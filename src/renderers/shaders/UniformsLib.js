@@ -30,6 +30,7 @@ const UniformsLib = {
 	envmap: {
 
 		envMap: { value: null },
+		envMapRotation: { value: 0 },
 		flipEnvMap: { value: - 1 },
 		reflectivity: { value: 1.0 },
 		refractionRatio: { value: 0.98 },

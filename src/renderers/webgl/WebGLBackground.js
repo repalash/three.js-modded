@@ -102,6 +102,7 @@ function WebGLBackground( renderer, cubemaps, state, objects, premultipliedAlpha
 			}
 
 			boxMesh.material.uniforms.envMap.value = background;
+			boxMesh.material.uniforms.envMapRotation.value = background.rotation || 0;
 			boxMesh.material.uniforms.flipEnvMap.value = ( background.isCubeTexture && background._needsFlipEnvMap ) ? - 1 : 1;
 
 			if ( currentBackground !== background ||

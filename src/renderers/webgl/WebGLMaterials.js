@@ -144,6 +144,7 @@ function WebGLMaterials( properties ) {
 		if ( envMap ) {
 
 			uniforms.envMap.value = envMap;
+			uniforms.envMapRotation.value = envMap.rotation || 0;
 
 			uniforms.flipEnvMap.value = ( envMap.isCubeTexture && envMap._needsFlipEnvMap ) ? - 1 : 1;
 

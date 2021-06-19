@@ -34,6 +34,8 @@ export default /* glsl */`
 
 	#endif
 
+	reflectVec = transformDirection1(reflectVec, rotationMatrix(vec3(0,1,0), envMapRotation));
+
 	#ifdef ENVMAP_TYPE_CUBE
 
 		vec4 envColor = textureCube( envMap, vec3( flipEnvMap * reflectVec.x, reflectVec.yz ) );
