@@ -114,7 +114,7 @@ class Material extends EventDispatcher {
 
 			if ( currentValue === undefined ) {
 
-				console.warn( 'THREE.' + this.type + ': \'' + key + '\' is not a property of this material.' );
+				// console.warn( 'THREE.' + this.type + ': \'' + key + '\' is not a property of this material.' );
 				continue;
 
 			}
