@@ -20,6 +20,7 @@ varying vec3 vIndirectFront;
 #include <uv2_pars_fragment>
 #include <map_pars_fragment>
 #include <alphamap_pars_fragment>
+#include <alphatest_pars_fragment>
 #include <aomap_pars_fragment>
 #include <lightmap_pars_fragment>
 #include <emissivemap_pars_fragment>
@@ -65,7 +66,7 @@ void main() {
 
 	#include <lightmap_fragment>
 
-	reflectedLight.indirectDiffuse *= BRDF_Diffuse_Lambert( diffuseColor.rgb );
+	reflectedLight.indirectDiffuse *= BRDF_Lambert( diffuseColor.rgb );
 
 	#ifdef DOUBLE_SIDED
 
@@ -77,7 +78,7 @@ void main() {
 
 	#endif
 
-	reflectedLight.directDiffuse *= BRDF_Diffuse_Lambert( diffuseColor.rgb ) * getShadowMask();
+	reflectedLight.directDiffuse *= BRDF_Lambert( diffuseColor.rgb ) * getShadowMask();
 
 	// modulation
 
@@ -87,8 +88,7 @@ void main() {
 
 	#include <envmap_fragment>
 
-	gl_FragColor = vec4( outgoingLight, diffuseColor.a );
-
+	#include <output_fragment>
 	#include <tonemapping_fragment>
 	#include <encodings_fragment>
 	#include <fog_fragment>
