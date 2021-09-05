@@ -15,7 +15,9 @@ import * as MathUtils from '../math/MathUtils.js';
  *  ior: <float>,
  *  reflectivity: <float>,
  *
+ *  sheen: <float>,
  *  sheenTint: <Color>,
+ *  sheenRoughness: <float>,
  *
  *  transmission: <float>,
  *  transmissionMap: new THREE.Texture( <Image> ),
@@ -69,8 +71,8 @@ class MeshPhysicalMaterial extends MeshStandardMaterial {
 		} );
 
 		this.sheenTint = new Color( 0x000000 );
+		this.sheenRoughness = 1.0;
 
-		this.transmission = 0.0;
 		this.transmissionMap = null;
 
 		this.thickness = 0.01;
@@ -83,11 +85,29 @@ class MeshPhysicalMaterial extends MeshStandardMaterial {
 		this.specularTint = new Color( 1, 1, 1 );
 		this.specularTintMap = null;
 
+		this._sheen = 0.0;
 		this._clearcoat = 0;
 		this._transmission = 0;
 
-
 		this.setValues( parameters );
+
+	}
+
+	get sheen() {
+
+		return this._sheen;
+
+	}
+
+	set sheen( value ) {
+
+		if ( this._sheen > 0 !== value > 0 ) {
+
+			this.version ++;
+
+		}
+
+		this._sheen = value;
 
 	}
 
@@ -127,7 +147,6 @@ class MeshPhysicalMaterial extends MeshStandardMaterial {
 
 	}
 
-
 	copy( source ) {
 
 		super.copy( source );
@@ -148,7 +167,9 @@ class MeshPhysicalMaterial extends MeshStandardMaterial {
 
 		this.ior = source.ior;
 
+		this.sheen = source.sheen;
 		this.sheenTint.copy( source.sheenTint );
+		this.sheenRoughness = source.sheenRoughness;
 
 		this.transmission = source.transmission;
 		this.transmissionMap = source.transmissionMap;
