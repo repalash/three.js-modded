@@ -23,8 +23,8 @@ class PositionNode extends Node {
 
 	generate( builder, output ) {
 
-		const type = this.getType( builder );
-		const nodeData = builder.getDataFromNode( this, builder.shaderStage );
+		const type = this.getNodeType( builder );
+		const nodeData = builder.getDataFromNode( this );
 		const scope = this.scope;
 
 		let localPositionNode = nodeData.localPositionNode;

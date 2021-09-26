@@ -1,6 +1,6 @@
 import Node from '../core/Node.js';
 
-class SwitchNode extends Node {
+class SplitNode extends Node {
 
 	constructor( node, components = 'x' ) {
 
@@ -11,7 +11,7 @@ class SwitchNode extends Node {
 
 	}
 
-	getType( builder ) {
+	getNodeType( builder ) {
 
 		return builder.getTypeFromLength( this.components.length );
 
@@ -19,15 +19,15 @@ class SwitchNode extends Node {
 
 	generate( builder, output ) {
 
-		const nodeType = this.node.getType( builder );
-		const nodeSnippet = this.node.build( builder, nodeType );
+		const type = this.node.getNodeType( builder );
+		const nodeSnippet = this.node.build( builder, type );
 
 		const snippet = `${nodeSnippet}.${this.components}`;
 
-		return builder.format( snippet, this.getType( builder ), output );
+		return builder.format( snippet, this.getNodeType( builder ), output );
 
 	}
 
 }
 
-export default SwitchNode;
+export default SplitNode;
