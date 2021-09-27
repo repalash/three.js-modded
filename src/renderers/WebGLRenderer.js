@@ -121,6 +121,10 @@ function WebGLRenderer( parameters = {} ) {
 	this.toneMapping = NoToneMapping;
 	this.toneMappingExposure = 1.0;
 
+	// user data
+
+	this.userData = {};
+
 	// internal properties
 
 	const _this = this;
@@ -1257,13 +1261,23 @@ function WebGLRenderer( parameters = {} ) {
 
 		currentRenderState.setupLightsView( camera );
 
-		if ( transmissiveObjects.length > 0 ) renderTransmissionPass( opaqueObjects, scene, camera );
+		if ( _this.userData.transmissionRender === undefined && _this.userData.renderTransmissionPass !== false )
+			if ( transmissiveObjects.length > 0 ) renderTransmissionPass( [ ...opaqueObjects, ...transparentObjects ], scene, camera );
 
 		if ( viewport ) state.viewport( _currentViewport.copy( viewport ) );
 
-		if ( opaqueObjects.length > 0 ) renderObjects( opaqueObjects, scene, camera );
-		if ( transmissiveObjects.length > 0 ) renderObjects( transmissiveObjects, scene, camera );
-		if ( transparentObjects.length > 0 ) renderObjects( transparentObjects, scene, camera );
+		if ( ! _this.userData.transmissionRender ) {
+
+			if ( opaqueObjects.length > 0 ) renderObjects( opaqueObjects, scene, camera );
+			if ( transparentObjects.length > 0 ) renderObjects( transparentObjects, scene, camera );
+
+		}
+
+		if ( _this.userData.transmissionRender !== false ) {
+
+			if ( transmissiveObjects.length > 0 ) renderObjects( transmissiveObjects, scene, camera );
+
+		}
 
 	}
 
@@ -1780,7 +1794,7 @@ function WebGLRenderer( parameters = {} ) {
 
 			}
 
-			materials.refreshMaterialUniforms( m_uniforms, material, _pixelRatio, _height, _transmissionRenderTarget );
+			materials.refreshMaterialUniforms( m_uniforms, material, _pixelRatio, _height, _this.userData.transmissionRenderTarget || _transmissionRenderTarget );
 
 			WebGLUniforms.upload( _gl, materialProperties.uniformsList, m_uniforms, textures );
 
