@@ -19501,8 +19501,11 @@
 			if (_this.userData.transmissionRender === undefined && _this.userData.renderTransmissionPass !== false) if (transmissiveObjects.length > 0) renderTransmissionPass([...opaqueObjects, ...transparentObjects], scene, camera);
 			if (viewport) state.viewport(_currentViewport.copy(viewport));
 
-			if (!_this.userData.transmissionRender) {
+			if (_this.userData.opaqueRender !== false) {
 				if (opaqueObjects.length > 0) renderObjects(opaqueObjects, scene, camera);
+			}
+
+			if (_this.userData.transparentRender !== false) {
 				if (transparentObjects.length > 0) renderObjects(transparentObjects, scene, camera);
 			}
 
