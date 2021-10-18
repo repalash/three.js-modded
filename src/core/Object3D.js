@@ -895,7 +895,12 @@ class Object3D extends EventDispatcher {
 		this.frustumCulled = source.frustumCulled;
 		this.renderOrder = source.renderOrder;
 
-		this.userData = JSON.parse( JSON.stringify( source.userData ) );
+		this.userData = {};
+		for ( const [ key, value ] of Object.entries( source.userData ) ) {
+
+			this.userData[ key ] = ! value || ( value && ( value.isTexture || value.isObject3D ) ) ? value : JSON.parse( JSON.stringify( value ) );
+
+		}
 
 		if ( recursive === true ) {
 
