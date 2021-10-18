@@ -24,7 +24,7 @@ class RenderPass extends Pass {
 
 	}
 
-	render( renderer, writeBuffer, readBuffer /*, deltaTime, maskActive */ ) {
+	render( renderer, writeBuffer, readBuffer, deltaTime, maskActive, depthRenderBuffer ) {
 
 		const oldAutoClear = renderer.autoClear;
 		renderer.autoClear = false;
@@ -55,6 +55,14 @@ class RenderPass extends Pass {
 		}
 
 		renderer.setRenderTarget( this.renderToScreen ? null : readBuffer );
+
+		if ( depthRenderBuffer ) {
+
+			const _gl = renderer.getContext();
+			_gl.framebufferRenderbuffer( _gl.FRAMEBUFFER, _gl.DEPTH_ATTACHMENT, _gl.RENDERBUFFER, depthRenderBuffer );
+			// todo: stencil and depth stencil similar to ogl
+
+		}
 
 		// TODO: Avoid using autoClear properties, see https://github.com/mrdoob/three.js/pull/15571#issuecomment-465669600
 		if ( this.clear ) renderer.clear( renderer.autoClearColor, renderer.autoClearDepth, renderer.autoClearStencil );

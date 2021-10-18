@@ -18,7 +18,7 @@
 		}
 
 		render( renderer, writeBuffer, readBuffer
-			/*, deltaTime, maskActive */
+			, deltaTime, maskActive, depthRenderBuffer
 		) {
 
 			const oldAutoClear = renderer.autoClear;
@@ -47,6 +47,13 @@
 			}
 
 			renderer.setRenderTarget( this.renderToScreen ? null : readBuffer ); // TODO: Avoid using autoClear properties, see https://github.com/mrdoob/three.js/pull/15571#issuecomment-465669600
+
+			if ( depthRenderBuffer ) {
+
+				const _gl = renderer.getContext();
+				_gl.framebufferRenderbuffer( _gl.FRAMEBUFFER, _gl.DEPTH_ATTACHMENT, _gl.RENDERBUFFER, depthRenderBuffer );
+
+			}
 
 			if ( this.clear ) renderer.clear( renderer.autoClearColor, renderer.autoClearDepth, renderer.autoClearStencil );
 			renderer.render( this.scene, this.camera );
