@@ -59,11 +59,11 @@ export default /* glsl */`
 
 		#ifdef TEXTURE_LOD_EXT
 
-			return texture2DLodEXT( transmissionSamplerMap, fragCoord.xy, framebufferLod );
+			return transmissionSamplerMapTexelToLinear ( texture2DLodEXT( transmissionSamplerMap, fragCoord.xy, framebufferLod ) );
 
 		#else
 
-			return texture2D( transmissionSamplerMap, fragCoord.xy, framebufferLod );
+			return transmissionSamplerMapTexelToLinear ( texture2D( transmissionSamplerMap, fragCoord.xy, framebufferLod ) );
 
 		#endif
 

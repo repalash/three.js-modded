@@ -48,7 +48,7 @@ function WebGLPrograms( renderer, cubemaps, cubeuvmaps, extensions, capabilities
 		'numDirLightShadows', 'numPointLightShadows', 'numSpotLightShadows',
 		'shadowMapEnabled', 'shadowMapType', 'toneMapping', 'physicallyCorrectLights',
 		'doubleSided', 'flipSided', 'numClippingPlanes', 'numClipIntersection', 'depthPacking', 'dithering', 'format',
-		'sheen', 'transmission', 'transmissionMap', 'thicknessMap'
+		'sheen', 'transmission', 'transmissionMap', 'thicknessMap', 'transmissionSamplerMapEncoding'
 	];
 
 	function getMaxBones( object ) {
@@ -159,6 +159,7 @@ function WebGLPrograms( renderer, cubemaps, cubeuvmaps, extensions, capabilities
 		}
 
 		const currentRenderTarget = renderer.getRenderTarget();
+		const transmissionRenderTarget = renderer.userData && renderer.userData.transmissionRenderTarget;
 
 		const useAlphaTest = material.alphaTest > 0;
 		const useClearcoat = material.clearcoat > 0;
@@ -224,6 +225,7 @@ function WebGLPrograms( renderer, cubemaps, cubeuvmaps, extensions, capabilities
 
 			transmission: material.transmission > 0,
 			transmissionMap: !! material.transmissionMap,
+			transmissionSamplerMapEncoding: transmissionRenderTarget ? getTextureEncodingFromMap( transmissionRenderTarget.texture ) : undefined,
 			thicknessMap: !! material.thicknessMap,
 
 			combine: material.combine,
