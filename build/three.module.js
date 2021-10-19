@@ -26125,13 +26125,18 @@ function WebGLRenderer( parameters = {} ) {
 
 		//
 
-		if ( _clippingEnabled === true ) clipping.beginShadows();
+		if ( _this.userData.shadowMapRender ) {
 
-		const shadowsArray = currentRenderState.state.shadowsArray;
+			if ( _clippingEnabled === true ) clipping.beginShadows();
 
-		shadowMap.render( shadowsArray, scene, camera );
+			const shadowsArray = currentRenderState.state.shadowsArray;
 
-		if ( _clippingEnabled === true ) clipping.endShadows();
+			if ( shadowsArray.length > 0 )
+				shadowMap.render( shadowsArray, scene, camera );
+
+			if ( _clippingEnabled === true ) clipping.endShadows();
+
+		}
 
 		//
 

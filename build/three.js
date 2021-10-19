@@ -19352,10 +19352,13 @@
 			} //
 
 
-			if (_clippingEnabled === true) clipping.beginShadows();
-			const shadowsArray = currentRenderState.state.shadowsArray;
-			shadowMap.render(shadowsArray, scene, camera);
-			if (_clippingEnabled === true) clipping.endShadows(); //
+			if (_this.userData.shadowMapRender) {
+				if (_clippingEnabled === true) clipping.beginShadows();
+				const shadowsArray = currentRenderState.state.shadowsArray;
+				if (shadowsArray.length > 0) shadowMap.render(shadowsArray, scene, camera);
+				if (_clippingEnabled === true) clipping.endShadows();
+			} //
+
 
 			if (this.info.autoReset === true) this.info.reset(); //
 
