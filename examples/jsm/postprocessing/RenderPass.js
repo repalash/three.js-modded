@@ -68,6 +68,13 @@ class RenderPass extends Pass {
 		if ( this.clear ) renderer.clear( renderer.autoClearColor, renderer.autoClearDepth, renderer.autoClearStencil );
 		renderer.render( this.scene, this.camera );
 
+		if ( depthRenderBuffer ) {
+
+			const _gl = renderer.getContext();
+			_gl.framebufferRenderbuffer( _gl.FRAMEBUFFER, _gl.DEPTH_ATTACHMENT, _gl.RENDERBUFFER, null );
+
+		}
+
 		if ( this.clearColor ) {
 
 			renderer.setClearColor( this._oldClearColor, oldClearAlpha );
