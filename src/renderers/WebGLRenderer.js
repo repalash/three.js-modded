@@ -1044,31 +1044,36 @@ function WebGLRenderer( parameters = {} ) {
 		if ( this.info.autoReset === true ) this.info.reset();
 
 		//
+		if ( _this.userData.backgroundRender !== false ) {
 
-		background.render( currentRenderList, scene );
-
-		// render scene
-
-		currentRenderState.setupLights( _this.physicallyCorrectLights );
-
-		if ( camera.isArrayCamera ) {
-
-			const cameras = camera.cameras;
-
-			for ( let i = 0, l = cameras.length; i < l; i ++ ) {
-
-				const camera2 = cameras[ i ];
-
-				renderScene( currentRenderList, scene, camera2, camera2.viewport );
-
-			}
-
-		} else {
-
-			renderScene( currentRenderList, scene, camera );
+			background.render( currentRenderList, scene );
 
 		}
 
+		// render scene
+		if ( _this.userData.sceneRender !== false ) {
+
+			currentRenderState.setupLights( _this.physicallyCorrectLights );
+
+			if ( camera.isArrayCamera ) {
+
+				const cameras = camera.cameras;
+
+				for ( let i = 0, l = cameras.length; i < l; i ++ ) {
+
+					const camera2 = cameras[ i ];
+
+					renderScene( currentRenderList, scene, camera2, camera2.viewport );
+
+				}
+
+			} else {
+
+				renderScene( currentRenderList, scene, camera );
+
+			}
+
+		}
 		//
 
 		if ( _currentRenderTarget !== null ) {
