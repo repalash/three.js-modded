@@ -15068,7 +15068,8 @@ const ENCODINGS = {
 	[ RGBM7Encoding ]: 3,
 	[ RGBM16Encoding ]: 4,
 	[ RGBDEncoding ]: 5,
-	[ GammaEncoding ]: 6
+	[ GammaEncoding ]: 6,
+	[ LogLuvEncoding ]: 7,
 };
 
 const _flatCamera = /*@__PURE__*/ new OrthographicCamera();
@@ -15970,6 +15971,10 @@ function _getEncodings() {
 
 				return RGBDToLinear( value, 256.0 );
 
+			} else if ( inputEncoding == 7 ) {
+
+				return LogLuvToLinear( value );
+
 			} else {
 
 				return GammaToLinear( value, 2.2 );
@@ -16003,6 +16008,10 @@ function _getEncodings() {
 			} else if ( outputEncoding == 5 ) {
 
 				return LinearToRGBD( value, 256.0 );
+
+			} else if ( outputEncoding == 7 ) {
+
+				return LinearToLogLuv( value );
 
 			} else {
 
