@@ -58,6 +58,12 @@ class GLTFExporter {
 
 		} );
 
+		this.register( function ( writer ) {
+
+			return new GLTFMaterialsClearcoatExtension( writer );
+
+		} );
+
 	}
 
 	register( callback ) {
@@ -103,6 +109,26 @@ class GLTFExporter {
 
 		writer.setPlugins( plugins );
 		writer.write( input, onDone, options );
+
+	}
+
+	parseAsync( input, options ) {
+
+		const scope = this;
+
+		return new Promise( function ( resolve, reject ) {
+
+			try {
+
+				scope.parse( input, resolve, options );
+
+			} catch ( e ) {
+
+				reject( e );
+
+			}
+
+		} );
 
 	}
 
@@ -2228,6 +2254,67 @@ class GLTFMaterialsPBRSpecularGlossiness {
 }
 
 /**
+ * Clearcoat Materials Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_clearcoat
+ */
+class GLTFMaterialsClearcoatExtension {
+
+	constructor( writer ) {
+
+		this.writer = writer;
+		this.name = 'KHR_materials_clearcoat';
+
+	}
+
+	writeMaterial( material, materialDef ) {
+
+		if ( ! material.isMeshPhysicalMaterial ) return;
+
+		const writer = this.writer;
+		const extensionsUsed = writer.extensionsUsed;
+
+		const extensionDef = {};
+
+		extensionDef.clearcoatFactor = material.clearcoat;
+
+		if ( material.clearcoatMap ) {
+
+			const clearcoatMapDef = { index: writer.processTexture( material.clearcoatMap ) };
+			writer.applyTextureTransform( clearcoatMapDef, material.clearcoatMap );
+			extensionDef.clearcoatTexture = clearcoatMapDef;
+
+		}
+
+		extensionDef.clearcoatRoughnessFactor = material.clearcoatRoughness;
+
+		if ( material.clearcoatRoughnessMap ) {
+
+			const clearcoatRoughnessMapDef = { index: writer.processTexture( material.clearcoatRoughnessMap ) };
+			writer.applyTextureTransform( clearcoatRoughnessMapDef, material.clearcoatRoughnessMap );
+			extensionDef.clearcoatRoughnessTexture = clearcoatRoughnessMapDef;
+
+		}
+
+		if ( material.clearcoatNormalMap ) {
+
+			const clearcoatNormalMapDef = { index: writer.processTexture( material.clearcoatNormalMap ) };
+			writer.applyTextureTransform( clearcoatNormalMapDef, material.clearcoatNormalMap );
+			extensionDef.clearcoatNormalTexture = clearcoatNormalMapDef;
+
+		}
+
+		materialDef.extensions = materialDef.extensions || {};
+		materialDef.extensions[ this.name ] = extensionDef;
+
+		extensionsUsed[ this.name ] = true;
+
+
+	}
+
+}
+
+/**
  * Transmission Materials Extension
  *
  * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_transmission
@@ -2285,7 +2372,7 @@ class GLTFMaterialsVolumeExtension {
 
 	writeMaterial( material, materialDef ) {
 
-		if ( ! material.isMeshPhysicalMaterial || material.thickness === 0 ) return;
+		if ( ! material.isMeshPhysicalMaterial || material.transmission === 0 ) return;
 
 		const writer = this.writer;
 		const extensionsUsed = writer.extensionsUsed;
@@ -2303,7 +2390,7 @@ class GLTFMaterialsVolumeExtension {
 		}
 
 		extensionDef.attenuationDistance = material.attenuationDistance;
-		extensionDef.attenuationColor = material.attenuationTint.toArray();
+		extensionDef.attenuationColor = material.attenuationColor.toArray();
 
 		materialDef.extensions = materialDef.extensions || {};
 		materialDef.extensions[ this.name ] = extensionDef;
