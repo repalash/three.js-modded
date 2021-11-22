@@ -12962,7 +12962,7 @@ var uv2_vertex = "#if defined( USE_LIGHTMAP ) || defined( USE_AOMAP )\n\tvUv2 = 
 
 var worldpos_vertex = "#if defined( USE_ENVMAP ) || defined( DISTANCE ) || defined ( USE_SHADOWMAP ) || defined ( USE_TRANSMISSION )\n\tvec4 worldPosition = vec4( transformed, 1.0 );\n\t#ifdef USE_INSTANCING\n\t\tworldPosition = instanceMatrix * worldPosition;\n\t#endif\n\tworldPosition = modelMatrix * worldPosition;\n#endif";
 
-const vertex$g = "varying vec2 vUv;\nuniform mat3 uvTransform;\nvoid main() {\n\tvUv = ( uvTransform * vec3( uv, 1 ) ).xy;\n\tgl_Position = vec4( position.xy, 1.0, 1.0 );\n}";
+const vertex$g = "varying vec2 vUv;\nuniform mat3 uvTransform;\nuniform bool flipX;\nuniform bool flipY;\nvoid main() {\n\tvUv = ( uvTransform * vec3( uv, 1 ) ).xy;\n    vUv = flipX ? vec2( 1.0 - vUv.x, vUv.y ) : vUv;\n    vUv = flipY ? vec2( vUv.x, 1.0 - vUv.y ) : vUv;\n\tgl_Position = vec4( position.xy, 1.0, 1.0 );\n}";
 
 const fragment$g = "uniform sampler2D t2D;\nvarying vec2 vUv;\nvoid main() {\n\tvec4 texColor = texture2D( t2D, vUv );\n\tgl_FragColor = mapTexelToLinear( texColor );\n\t#include <tonemapping_fragment>\n\t#include <encodings_fragment>\n}";
 
@@ -13587,6 +13587,8 @@ const ShaderLib = {
 		uniforms: {
 			uvTransform: { value: new Matrix3() },
 			t2D: { value: null },
+			flipX: { value: false },
+			flipY: { value: false },
 		},
 
 		vertexShader: ShaderChunk.background_vert,
@@ -13842,6 +13844,8 @@ function WebGLBackground( renderer, cubemaps, state, objects, premultipliedAlpha
 			}
 
 			planeMesh.material.uniforms.t2D.value = background;
+			planeMesh.material.uniforms.flipX.value = background.userData.flipX || false;
+			planeMesh.material.uniforms.flipY.value = background.userData.flipY || false;
 
 			if ( background.matrixAutoUpdate === true ) {
 
