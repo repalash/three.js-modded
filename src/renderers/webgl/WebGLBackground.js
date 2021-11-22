@@ -157,6 +157,9 @@ function WebGLBackground( renderer, cubemaps, state, objects, premultipliedAlpha
 
 			planeMesh.material.uniforms.t2D.value = background;
 
+			planeMesh.material.uniforms.flipX.value = background.userData.flipX || false;
+			planeMesh.material.uniforms.flipY.value = background.userData.flipY || false;
+
 			if ( background.matrixAutoUpdate === true ) {
 
 				background.updateMatrix();

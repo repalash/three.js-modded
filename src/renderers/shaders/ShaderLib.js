@@ -215,6 +215,9 @@ const ShaderLib = {
 		uniforms: {
 			uvTransform: { value: new Matrix3() },
 			t2D: { value: null },
+
+			flipX: { value: false },
+			flipY: { value: false },
 		},
 
 		vertexShader: ShaderChunk.background_vert,
