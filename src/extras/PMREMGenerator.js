@@ -1,14 +1,13 @@
 import {
+	BackSide,
 	CubeReflectionMapping,
 	CubeRefractionMapping,
 	CubeUVReflectionMapping,
 	GammaEncoding,
 	LinearEncoding,
-	LogLuvEncoding,
 	NearestFilter,
 	NoBlending,
 	NoToneMapping,
-	RGBAFormat,
 	RGBDEncoding,
 	RGBEEncoding,
 	RGBEFormat,
@@ -30,7 +29,6 @@ import { Color } from '../math/Color.js';
 import { WebGLRenderTarget } from '../renderers/WebGLRenderTarget.js';
 import { MeshBasicMaterial } from '../materials/MeshBasicMaterial.js';
 import { BoxGeometry } from '../geometries/BoxGeometry.js';
-import { BackSide } from '../constants.js';
 
 const LOD_MIN = 4;
 const LOD_MAX = 8;
@@ -56,7 +54,7 @@ const ENCODINGS = {
 	[ RGBM16Encoding ]: 4,
 	[ RGBDEncoding ]: 5,
 	[ GammaEncoding ]: 6,
-	[ LogLuvEncoding ]: 7,
+	// [ LogLuvEncoding ]: 7,
 };
 
 const _flatCamera = /*@__PURE__*/ new OrthographicCamera();
@@ -962,11 +960,11 @@ function _getEncodings() {
 
 				return RGBDToLinear( value, 256.0 );
 
-			} else if ( inputEncoding == 7 ) {
+			} /*else if ( inputEncoding == 7 ) {
 
 				return LogLuvToLinear( value );
 
-			} else {
+			}*/ else {
 
 				return GammaToLinear( value, 2.2 );
 
@@ -1000,11 +998,11 @@ function _getEncodings() {
 
 				return LinearToRGBD( value, 256.0 );
 
-			} else if ( outputEncoding == 7 ) {
+			}/* else if ( outputEncoding == 7 ) {
 
 				return LinearToLogLuv( value );
 
-			} else {
+			}*/ else {
 
 				return LinearToGamma( value, 2.2 );
 
