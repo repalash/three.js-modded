@@ -19,7 +19,6 @@ mat4 rotationMatrix(vec3 axis, float angle) {
 
 	uniform float envMapIntensity;
 	uniform float flipEnvMap;
-	uniform int maxMipLevel;
 	uniform float envMapRotation;
 
 
