@@ -27111,6 +27111,14 @@ function WebGLRenderer( parameters = {} ) {
 		p_uniforms.setValue( _gl, 'normalMatrix', object.normalMatrix );
 		p_uniforms.setValue( _gl, 'modelMatrix', object.matrixWorld );
 
+		if ( material.userData.uniformInverseModelMatrix?.isMatrix4 ) // TODO: do only once for object
+			p_uniforms.setValue( _gl, 'inverseModelMatrix',
+				material.userData.uniformInverseModelMatrix.copy( object.matrixWorld ).invert() );
+
+		if ( material.userData.uniformUvTransform?.isMatrix3 ) // TODO: not unsetting anywhere, should be fine
+			p_uniforms.setValue( _gl, 'uvTransform',
+				material.userData.uniformUvTransform );
+
 		return program;
 
 	}
