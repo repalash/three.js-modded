@@ -1,17 +1,17 @@
 import {
-	REVISION,
 	BackSide,
+	ClampToEdgeWrapping,
 	DoubleSide,
-	FrontSide,
-	RGBAFormat,
-	HalfFloatType,
 	FloatType,
-	UnsignedByteType,
+	FrontSide,
+	HalfFloatType,
 	LinearEncoding,
-	NoToneMapping,
 	LinearMipmapLinearFilter,
 	NearestFilter,
-	ClampToEdgeWrapping
+	NoToneMapping,
+	REVISION,
+	RGBAFormat,
+	UnsignedByteType,
 } from '../constants.js';
 import { Frustum } from '../math/Frustum.js';
 import { Matrix4 } from '../math/Matrix4.js';
@@ -1742,6 +1742,15 @@ function WebGLRenderer( parameters = {} ) {
 		p_uniforms.setValue( _gl, 'modelViewMatrix', object.modelViewMatrix );
 		p_uniforms.setValue( _gl, 'normalMatrix', object.normalMatrix );
 		p_uniforms.setValue( _gl, 'modelMatrix', object.matrixWorld );
+
+		// TODO: maybe just call a material.userData.onProgramRender function to update uniforms
+		if ( material.userData.uniformInverseModelMatrix?.isMatrix4 ) // TODO: do only once for object
+			p_uniforms.setValue( _gl, 'inverseModelMatrix',
+				material.userData.uniformInverseModelMatrix.copy( object.matrixWorld ).invert() );
+
+		if ( material.userData.uniformUvTransform?.isMatrix3 ) // TODO: not unsetting anywhere, should be fine
+			p_uniforms.setValue( _gl, 'uvTransform',
+				material.userData.uniformUvTransform );
 
 		return program;
 
