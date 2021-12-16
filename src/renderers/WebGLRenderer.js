@@ -1252,6 +1252,13 @@ function WebGLRenderer( parameters = {} ) {
 
 	function renderObjects( renderList, scene, camera ) {
 
+		// todo palash: find a better fix... PMREM and other ShaderPass wouldn't work for transparent and transmission objects
+		const temp = { ..._this.userData };
+		_this.userData.opaqueRender = undefined;
+		_this.userData.transparentRender = undefined;
+		_this.userData.transmissionRender = undefined;
+		_this.userData.backgroundRender = undefined;
+
 		const overrideMaterial = scene.isScene === true ? scene.overrideMaterial : null;
 
 		for ( let i = 0, l = renderList.length; i < l; i ++ ) {
@@ -1270,6 +1277,8 @@ function WebGLRenderer( parameters = {} ) {
 			}
 
 		}
+
+		Object.assign( _this.userData, temp );
 
 	}
 
