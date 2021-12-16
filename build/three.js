@@ -19654,6 +19654,13 @@
 		}
 
 		function renderObjects(renderList, scene, camera) {
+			// todo palash: find a better fix... PMREM and other ShaderPass wouldn't work for transparent and transmission objects
+			const temp = { ..._this.userData
+			};
+			_this.userData.opaqueRender = undefined;
+			_this.userData.transparentRender = undefined;
+			_this.userData.transmissionRender = undefined;
+			_this.userData.backgroundRender = undefined;
 			const overrideMaterial = scene.isScene === true ? scene.overrideMaterial : null;
 
 			for (let i = 0, l = renderList.length; i < l; i++) {
@@ -19667,6 +19674,8 @@
 					renderObject(object, scene, camera, geometry, material, group);
 				}
 			}
+
+			Object.assign(_this.userData, temp);
 		}
 
 		function renderObject(object, scene, camera, geometry, material, group) {
@@ -19974,7 +19983,8 @@
 
 			p_uniforms.setValue(_gl, 'modelViewMatrix', object.modelViewMatrix);
 			p_uniforms.setValue(_gl, 'normalMatrix', object.normalMatrix);
-			p_uniforms.setValue(_gl, 'modelMatrix', object.matrixWorld);
+			p_uniforms.setValue(_gl, 'modelMatrix', object.matrixWorld); // TODO: maybe just call a material.userData.onProgramRender function to update uniforms
+
 			if (material.userData.uniformInverseModelMatrix?.isMatrix4) // TODO: do only once for object
 				p_uniforms.setValue(_gl, 'inverseModelMatrix', material.userData.uniformInverseModelMatrix.copy(object.matrixWorld).invert());
 			if (material.userData.uniformUvTransform?.isMatrix3) // TODO: not unsetting anywhere, should be fine
