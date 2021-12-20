@@ -19983,12 +19983,10 @@
 
 			p_uniforms.setValue(_gl, 'modelViewMatrix', object.modelViewMatrix);
 			p_uniforms.setValue(_gl, 'normalMatrix', object.normalMatrix);
-			p_uniforms.setValue(_gl, 'modelMatrix', object.matrixWorld); // TODO: maybe just call a material.userData.onProgramRender function to update uniforms
+			p_uniforms.setValue(_gl, 'modelMatrix', object.matrixWorld); // Update this in Material.onBeforeRender. This is set for each object each frame, useful for stuff like inverseModelMatrix, uvTransform, geometry offsets etc.
 
-			if (material.userData.uniformInverseModelMatrix?.isMatrix4) // TODO: do only once for object
-				p_uniforms.setValue(_gl, 'inverseModelMatrix', material.userData.uniformInverseModelMatrix.copy(object.matrixWorld).invert());
-			if (material.userData.uniformUvTransform?.isMatrix3) // TODO: not unsetting anywhere, should be fine
-				p_uniforms.setValue(_gl, 'uvTransform', material.userData.uniformUvTransform);
+			const extraUniformsToUpload = material.extraUniformsToUpload;
+			extraUniformsToUpload && Object.entries(extraUniformsToUpload).forEach(([k, v]) => p_uniforms.setValue(_gl, k, v.value, textures));
 			return program;
 		} // If uniforms are marked as clean, they don't need to be loaded to the GPU.
 
