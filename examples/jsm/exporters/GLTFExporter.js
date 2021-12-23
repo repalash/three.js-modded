@@ -97,7 +97,7 @@ class GLTFExporter {
 	 * @param  {Function} onError  Callback on errors
 	 * @param  {Object} options options
 	 */
-	parse( input, onDone, onError, options ) {
+	parse( input, onDone, onError, options, gltfWriter ) {
 
 		if ( typeof onError === 'object' ) {
 
@@ -107,7 +107,7 @@ class GLTFExporter {
 
 		}
 
-		const writer = new GLTFWriter();
+		const writer = gltfWriter || new GLTFWriter();
 		const plugins = [];
 
 		for ( let i = 0, il = this.pluginCallbacks.length; i < il; i ++ ) {
@@ -2404,6 +2404,7 @@ class GLTFMaterialsVolumeExtension {
  * Static utility functions
  */
 GLTFExporter.Utils = {
+	GLTFWriter,
 
 	insertKeyframe: function ( track, time ) {
 
