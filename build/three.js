@@ -30137,7 +30137,7 @@
 							texture = new Texture(image);
 						}
 
-						if (image) texture.needsUpdate = true; // textures can have undefined image data
+						if (image && image.complete) texture.needsUpdate = true; // textures can have undefined image data
 					}
 
 					texture.uuid = data.uuid;

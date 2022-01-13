@@ -41586,7 +41586,7 @@ class ObjectLoader extends Loader {
 
 					}
 
-					if ( image ) texture.needsUpdate = true; // textures can have undefined image data
+					if ( image && image.complete ) texture.needsUpdate = true; // textures can have undefined image data
 
 				}
 
