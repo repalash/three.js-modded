@@ -231,7 +231,7 @@ function WebGLPrograms( renderer, cubemaps, cubeuvmaps, extensions, capabilities
 
 			transmission: material.transmission > 0,
 			transmissionMap: !! material.transmissionMap,
-			transmissionSamplerMapEncoding: transmissionRenderTarget ? getTextureEncodingFromMap( transmissionRenderTarget.texture ) : undefined,
+			transmissionSamplerMapEncoding: transmissionRenderTarget ? getTextureEncodingFromMap( transmissionRenderTarget.texture ) : LinearEncoding,
 			thicknessMap: !! material.thicknessMap,
 
 			combine: material.combine,

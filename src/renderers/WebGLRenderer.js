@@ -1205,7 +1205,13 @@ function WebGLRenderer( parameters = {} ) {
 
 		if ( _this.userData.transmissionRender !== false ) {
 
-			if ( transmissiveObjects.length > 0 ) renderObjects( transmissiveObjects, scene, camera );
+			if ( transmissiveObjects.length > 0 ) {
+
+				if ( ! _transmissionRenderTarget ) _transmissionRenderTarget = new WebGLRenderTarget( 1, 1 );
+
+				renderObjects( transmissiveObjects, scene, camera );
+
+			}
 
 		}
 
