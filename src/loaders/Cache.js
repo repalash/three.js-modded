@@ -14,13 +14,13 @@ const Cache = {
 
 	},
 
-	get: function ( key ) {
+	get: function ( key, type ) {
 
 		if ( this.enabled === false ) return;
 
 		// console.log( 'THREE.Cache', 'Checking key:', key );
 
-		return this.files[ key ];
+		return type ? Promise.resolve( this.files[ key ] ) : this.files[ key ];
 
 	},
 
