@@ -28055,10 +28055,10 @@
 
 			this.files[key] = file;
 		},
-		get: function (key) {
+		get: function (key, type) {
 			if (this.enabled === false) return; // console.log( 'THREE.Cache', 'Checking key:', key );
 
-			return this.files[key];
+			return type ? Promise.resolve(this.files[key]) : this.files[key];
 		},
 		remove: function (key) {
 			delete this.files[key];
@@ -28212,6 +28212,7 @@
 
 	}
 
+	/* eslint-disable indent */
 	const loading = {};
 
 	class FileLoader extends Loader {
@@ -28223,140 +28224,140 @@
 			if (url === undefined) url = '';
 			if (this.path !== undefined) url = this.path + url;
 			url = this.manager.resolveURL(url);
-			const cached = Cache.get(url);
+			Cache.get(url, this.responseType, this.mimeType).then(cached => {
+				if (cached !== undefined) {
+					this.manager.itemStart(url);
+					setTimeout(() => {
+						if (onLoad) onLoad(cached);
+						this.manager.itemEnd(url);
+					}, 0);
+					return cached;
+				} // Check if request is duplicate
 
-			if (cached !== undefined) {
-				this.manager.itemStart(url);
-				setTimeout(() => {
-					if (onLoad) onLoad(cached);
-					this.manager.itemEnd(url);
-				}, 0);
-				return cached;
-			} // Check if request is duplicate
+
+				if (loading[url] !== undefined) {
+					loading[url].push({
+						onLoad: onLoad,
+						onProgress: onProgress,
+						onError: onError
+					});
+					return;
+				} // Initialise array for duplicate requests
 
 
-			if (loading[url] !== undefined) {
+				loading[url] = [];
 				loading[url].push({
 					onLoad: onLoad,
 					onProgress: onProgress,
 					onError: onError
-				});
-				return;
-			} // Initialise array for duplicate requests
+				}); // create request
 
+				const req = new Request(url, {
+					headers: new Headers(this.requestHeader),
+					credentials: this.withCredentials ? 'include' : 'same-origin' // An abort controller could be added within a future PR
 
-			loading[url] = [];
-			loading[url].push({
-				onLoad: onLoad,
-				onProgress: onProgress,
-				onError: onError
-			}); // create request
+				}); // start the fetch
 
-			const req = new Request(url, {
-				headers: new Headers(this.requestHeader),
-				credentials: this.withCredentials ? 'include' : 'same-origin' // An abort controller could be added within a future PR
-
-			}); // start the fetch
-
-			fetch(req).then(response => {
-				if (response.status === 200 || response.status === 0) {
-					// Some browsers return HTTP Status 0 when using non-http protocol
-					// e.g. 'file://' or 'data://'. Handle as success.
-					if (response.status === 0) {
-						console.warn('THREE.FileLoader: HTTP Status 0 received.');
-					}
-
-					const callbacks = loading[url];
-					const reader = response.body.getReader();
-					const contentLength = response.headers.get('Content-Length');
-					const total = contentLength ? parseInt(contentLength) : 0;
-					const lengthComputable = total !== 0;
-					let loaded = 0; // periodically read data into the new stream tracking while download progress
-
-					return new ReadableStream({
-						start(controller) {
-							readData();
-
-							function readData() {
-								reader.read().then(({
-									done,
-									value
-								}) => {
-									if (done) {
-										controller.close();
-									} else {
-										loaded += value.byteLength;
-										const event = new ProgressEvent('progress', {
-											lengthComputable,
-											loaded,
-											total
-										});
-
-										for (let i = 0, il = callbacks.length; i < il; i++) {
-											const callback = callbacks[i];
-											if (callback.onProgress) callback.onProgress(event);
-										}
-
-										controller.enqueue(value);
-										readData();
-									}
-								});
-							}
+				fetch(req).then(response => {
+					if (response.status === 200 || response.status === 0) {
+						// Some browsers return HTTP Status 0 when using non-http protocol
+						// e.g. 'file://' or 'data://'. Handle as success.
+						if (response.status === 0) {
+							console.warn('THREE.FileLoader: HTTP Status 0 received.');
 						}
 
-					});
-				} else {
-					throw Error(`fetch for "${response.url}" responded with ${response.status}: ${response.statusText}`);
-				}
-			}).then(stream => {
-				const response = new Response(stream);
+						const callbacks = loading[url];
+						const reader = response.body.getReader();
+						const contentLength = response.headers.get('Content-Length');
+						const total = contentLength ? parseInt(contentLength) : 0;
+						const lengthComputable = total !== 0;
+						let loaded = 0; // periodically read data into the new stream tracking while download progress
 
-				switch (this.responseType) {
-					case 'arraybuffer':
-						return response.arrayBuffer();
+						return new ReadableStream({
+							start(controller) {
+								readData();
 
-					case 'blob':
-						return response.blob();
+								function readData() {
+									reader.read().then(({
+										done,
+										value
+									}) => {
+										if (done) {
+											controller.close();
+										} else {
+											loaded += value.byteLength;
+											const event = new ProgressEvent('progress', {
+												lengthComputable,
+												loaded,
+												total
+											});
 
-					case 'document':
-						return response.text().then(text => {
-							const parser = new DOMParser();
-							return parser.parseFromString(text, this.mimeType);
+											for (let i = 0, il = callbacks.length; i < il; i++) {
+												const callback = callbacks[i];
+												if (callback.onProgress) callback.onProgress(event);
+											}
+
+											controller.enqueue(value);
+											readData();
+										}
+									});
+								}
+							}
+
 						});
+					} else {
+						throw Error(`fetch for "${response.url}" responded with ${response.status}: ${response.statusText}`);
+					}
+				}).then(stream => {
+					const response = new Response(stream);
 
-					case 'json':
-						return response.json();
+					switch (this.responseType) {
+						case 'arraybuffer':
+							return response.arrayBuffer();
 
-					default:
-						return response.text();
-				}
-			}).then(data => {
-				// Add to cache only on HTTP success, so that we do not cache
-				// error response bodies as proper responses to requests.
-				Cache.add(url, data);
-				const callbacks = loading[url];
-				delete loading[url];
+						case 'blob':
+							return response.blob();
 
-				for (let i = 0, il = callbacks.length; i < il; i++) {
-					const callback = callbacks[i];
-					if (callback.onLoad) callback.onLoad(data);
-				}
+						case 'document':
+							return response.text().then(text => {
+								const parser = new DOMParser();
+								return parser.parseFromString(text, this.mimeType);
+							});
 
-				this.manager.itemEnd(url);
-			}).catch(err => {
-				// Abort errors and other errors are handled the same
-				const callbacks = loading[url];
-				delete loading[url];
+						case 'json':
+							return response.json();
 
-				for (let i = 0, il = callbacks.length; i < il; i++) {
-					const callback = callbacks[i];
-					if (callback.onError) callback.onError(err);
-				}
+						default:
+							return response.text();
+					}
+				}).then(data => {
+					// Add to cache only on HTTP success, so that we do not cache
+					// error response bodies as proper responses to requests.
+					Cache.add(url, data, this.responseType);
+					const callbacks = loading[url];
+					delete loading[url];
 
-				this.manager.itemError(url);
-				this.manager.itemEnd(url);
+					for (let i = 0, il = callbacks.length; i < il; i++) {
+						const callback = callbacks[i];
+						if (callback.onLoad) callback.onLoad(data);
+					}
+
+					this.manager.itemEnd(url);
+				}).catch(err => {
+					// Abort errors and other errors are handled the same
+					const callbacks = loading[url];
+					delete loading[url];
+
+					for (let i = 0, il = callbacks.length; i < il; i++) {
+						const callback = callbacks[i];
+						if (callback.onError) callback.onError(err);
+					}
+
+					this.manager.itemError(url);
+					this.manager.itemEnd(url);
+				});
+				this.manager.itemStart(url);
 			});
-			this.manager.itemStart(url);
 		}
 
 		setResponseType(value) {

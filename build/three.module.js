@@ -38568,13 +38568,13 @@ const Cache = {
 
 	},
 
-	get: function ( key ) {
+	get: function ( key, type ) {
 
 		if ( this.enabled === false ) return;
 
 		// console.log( 'THREE.Cache', 'Checking key:', key );
 
-		return this.files[ key ];
+		return type ? Promise.resolve( this.files[ key ] ) : this.files[ key ];
 
 	},
 
@@ -38800,6 +38800,8 @@ class Loader {
 
 }
 
+/* eslint-disable indent */
+
 const loading = {};
 
 class FileLoader extends Loader {
@@ -38818,7 +38820,7 @@ class FileLoader extends Loader {
 
 		url = this.manager.resolveURL( url );
 
-		const cached = Cache.get( url );
+		Cache.get( url, this.responseType, this.mimeType ).then( ( cached )=>{
 
 		if ( cached !== undefined ) {
 
@@ -38975,7 +38977,7 @@ class FileLoader extends Loader {
 
 				// Add to cache only on HTTP success, so that we do not cache
 				// error response bodies as proper responses to requests.
-				Cache.add( url, data );
+				Cache.add( url, data, this.responseType );
 
 				const callbacks = loading[ url ];
 				delete loading[ url ];
@@ -39010,6 +39012,8 @@ class FileLoader extends Loader {
 			} );
 
 		this.manager.itemStart( url );
+
+		} );
 
 	}
 
