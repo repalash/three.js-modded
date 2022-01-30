@@ -128,6 +128,7 @@ export default QUnit.module( 'Constants', () => {
 		assert.equal( Constants.TriangleFanDrawMode, 2, 'TriangleFanDrawMode is equal to 2' );
 		assert.equal( Constants.LinearEncoding, 3000, 'LinearEncoding is equal to 3000' );
 		assert.equal( Constants.sRGBEncoding, 3001, 'sRGBEncoding is equal to 3001' );
+		assert.equal( Constants.RGBM16Encoding, 3005, 'RGBM16Encoding is equal to 3005' );
 		assert.equal( Constants.BasicDepthPacking, 3200, 'BasicDepthPacking is equal to 3200' );
 		assert.equal( Constants.RGBADepthPacking, 3201, 'RGBADepthPacking is equal to 3201' );
 

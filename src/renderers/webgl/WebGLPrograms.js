@@ -149,7 +149,7 @@ function WebGLPrograms( renderer, cubemaps, cubeuvmaps, extensions, capabilities
 			instancingColor: object.isInstancedMesh === true && object.instanceColor !== null,
 
 			supportsVertexTextures: vertexTextures,
-			outputEncoding: ( currentRenderTarget === null ) ? renderer.outputEncoding : ( currentRenderTarget.isXRRenderTarget === true ? currentRenderTarget.texture.encoding : LinearEncoding ),
+			outputEncoding: ( currentRenderTarget === null ) ? renderer.outputEncoding : ( ( currentRenderTarget.isXRRenderTarget === true || currentRenderTarget.texture.encoding !== sRGBEncoding ) ? currentRenderTarget.texture.encoding : LinearEncoding ),
 			map: !! material.map,
 			matcap: !! material.matcap,
 			envMap: !! envMap,
@@ -189,7 +189,7 @@ function WebGLPrograms( renderer, cubemaps, cubeuvmaps, extensions, capabilities
 
 			transmission: material.transmission > 0,
 			transmissionMap: !! material.transmissionMap,
-			transmissionSamplerMapEncoding: transmissionRenderTarget ? getTextureEncodingFromMap( transmissionRenderTarget.texture ) : LinearEncoding,
+			transmissionSamplerMapEncoding: transmissionRenderTarget ? transmissionRenderTarget.texture.encoding : LinearEncoding,
 			thicknessMap: !! material.thicknessMap,
 
 			combine: material.combine,
