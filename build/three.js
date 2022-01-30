@@ -28218,6 +28218,7 @@
 	class FileLoader extends Loader {
 		constructor(manager) {
 			super(manager);
+			this.responseType = 'text';
 		}
 
 		load(url, onLoad, onProgress, onError) {

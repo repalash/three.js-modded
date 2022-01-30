@@ -38810,6 +38810,8 @@ class FileLoader extends Loader {
 
 		super( manager );
 
+		this.responseType = 'text';
+
 	}
 
 	load( url, onLoad, onProgress, onError ) {
