@@ -28056,7 +28056,7 @@
 			this.files[key] = file;
 		},
 		get: function (key, type) {
-			if (this.enabled === false) return; // console.log( 'THREE.Cache', 'Checking key:', key );
+			if (this.enabled === false) return type ? Promise.resolve() : undefined; // console.log( 'THREE.Cache', 'Checking key:', key );
 
 			return type ? Promise.resolve(this.files[key]) : this.files[key];
 		},
