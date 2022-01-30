@@ -8,7 +8,8 @@ import { NodeUpdateType } from './constants.js';
 
 import { REVISION, LinearEncoding } from 'three';
 
-const shaderStages = [ 'fragment', 'vertex' ];
+export const shaderStages = [ 'fragment', 'vertex' ];
+export const vector = [ 'x', 'y', 'z', 'w' ];
 
 class NodeBuilder {
 
@@ -624,7 +625,7 @@ class NodeBuilder {
 
 	getSignature() {
 
-		return `// Three.js r${ REVISION } • NodeMaterial System\n`;
+		return `// Three.js r${ REVISION } - NodeMaterial System\n`;
 
 	}
 
