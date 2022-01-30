@@ -16,7 +16,7 @@ const Cache = {
 
 	get: function ( key, type ) {
 
-		if ( this.enabled === false ) return;
+		if ( this.enabled === false ) return type ? Promise.resolve() : undefined;
 
 		// console.log( 'THREE.Cache', 'Checking key:', key );
 
