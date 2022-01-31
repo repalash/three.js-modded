@@ -44,6 +44,8 @@ class DataTextureLoader extends Loader {
 				texture.image.height = texData.height;
 				texture.image.data = texData.data;
 
+				texture.image.complete = true;
+
 			}
 
 			texture.wrapS = texData.wrapS !== undefined ? texData.wrapS : ClampToEdgeWrapping;
