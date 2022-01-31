@@ -28878,6 +28878,7 @@
 					texture.image.width = texData.width;
 					texture.image.height = texData.height;
 					texture.image.data = texData.data;
+					texture.image.complete = true;
 				}
 
 				texture.wrapS = texData.wrapS !== undefined ? texData.wrapS : ClampToEdgeWrapping;
@@ -36792,4 +36793,3 @@
 	Object.defineProperty(exports, '__esModule', { value: true });
 
 }));
-//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoidGhyZWUuanMiLCJzb3VyY2VzIjpbXSwic291cmNlc0NvbnRlbnQiOltdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiIn0=
