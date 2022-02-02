@@ -64,6 +64,12 @@ class GLTFExporter {
 
 		} );
 
+		this.register( function ( writer ) {
+
+			return new GLTFMaterialsSheenExtension( writer );
+
+		} );
+
 	}
 
 	register( callback ) {
@@ -2447,6 +2453,62 @@ class GLTFMaterialsVolumeExtension {
 		materialDef.extensions[ this.name ] = extensionDef;
 
 		extensionsUsed[ this.name ] = true;
+
+	}
+
+}
+
+/**
+ * Clearcoat Materials Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_sheen
+ */
+class GLTFMaterialsSheenExtension {
+
+	constructor( writer ) {
+
+		this.writer = writer;
+		this.name = 'KHR_materials_sheen';
+
+	}
+
+	writeMaterial( material, materialDef ) {
+
+		if ( ! material.isMeshPhysicalMaterial || material.sheen < 0.01 ) return;
+
+		const writer = this.writer;
+		const extensionsUsed = writer.extensionsUsed;
+
+		const extensionDef = {};
+
+		extensionDef.sheenColorFactor = material.sheenColor.toArray();
+
+		if ( material.sheenColorMap ) {
+
+			const sheenColorMapDef = { index: writer.processTexture( material.sheenColorTexture ) };
+			writer.applyTextureTransform( sheenColorMapDef, material.sheenColorMap );
+			extensionDef.sheenColorTexture = sheenColorMapDef;
+
+		}
+
+		extensionDef.sheenRoughnessFactor = material.sheenRoughness;
+
+		if ( material.sheenRoughnessMap ) {
+
+			const sheenRoughnessMapDef = { index: writer.processTexture( material.sheenRoughnessMap ) };
+			writer.applyTextureTransform( sheenRoughnessMapDef, material.sheenRoughnessMap );
+			extensionDef.sheenRoughnessTexture = sheenRoughnessMapDef;
+
+		}
+
+		materialDef.extensions = materialDef.extensions || {};
+		materialDef.extensions[ this.name ] = extensionDef;
+
+		materialDef.extras = materialDef.extras || {};
+		materialDef.extras.sheenFactor = material.sheen;
+
+		extensionsUsed[ this.name ] = true;
+
 
 	}
 

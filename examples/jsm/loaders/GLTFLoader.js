@@ -790,6 +790,13 @@ class GLTFMaterialsSheenExtension {
 
 		}
 
+		if ( materialDef.extras && materialDef.extras.sheenFactor !== undefined ) {
+
+			materialParams.sheen = materialDef.extras.sheenFactor;
+			delete materialDef.extras.sheenFactor; // so that it doesn't get into userData.
+
+		}
+
 		return Promise.all( pending );
 
 	}
