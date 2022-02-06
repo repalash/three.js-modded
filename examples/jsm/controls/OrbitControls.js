@@ -251,7 +251,11 @@ class OrbitControls extends EventDispatcher {
 
 				scope.object.lookAt( scope.target );
 
-				if ( scope.enableDamping === true ) {
+				if ( scope.enableDamping === true && (
+					Math.abs( sphericalDelta.theta ) +
+					Math.abs( sphericalDelta.phi ) +
+					Math.abs( panOffset.length() )
+				) > 0.001 ) {
 
 					sphericalDelta.theta *= ( 1 - scope.dampingFactor );
 					sphericalDelta.phi *= ( 1 - scope.dampingFactor );
