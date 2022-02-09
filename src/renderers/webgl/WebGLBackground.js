@@ -219,6 +219,11 @@ function WebGLBackground( renderer, cubemaps, state, objects, alpha, premultipli
 			setClear( clearColor, clearAlpha );
 
 		},
+		getPlaneMesh: function () {
+
+			return planeMesh;
+
+		},
 		render: render
 
 	};
