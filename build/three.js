@@ -10743,6 +10743,9 @@
 				clearAlpha = alpha;
 				setClear(clearColor, clearAlpha);
 			},
+			getPlaneMesh: function () {
+				return planeMesh;
+			},
 			render: render
 		};
 	}
@@ -19284,6 +19287,7 @@
 			_this.shadowMap = shadowMap;
 			_this.state = state;
 			_this.info = info;
+			_this.background = background;
 		}
 
 		initGLContext(); // xr

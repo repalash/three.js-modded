@@ -10741,6 +10741,9 @@ function WebGLBackground(renderer, cubemaps, state, objects, alpha, premultiplie
 			clearAlpha = alpha;
 			setClear(clearColor, clearAlpha);
 		},
+		getPlaneMesh: function () {
+			return planeMesh;
+		},
 		render: render
 	};
 }
@@ -19282,6 +19285,7 @@ function WebGLRenderer(parameters = {}) {
 		_this.shadowMap = shadowMap;
 		_this.state = state;
 		_this.info = info;
+		_this.background = background;
 	}
 
 	initGLContext(); // xr
