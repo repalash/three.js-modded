@@ -3470,6 +3470,8 @@ class GLTFParser {
 
 			}
 
+			if ( meshDef.extensions ) meshes.forEach( mesh => addUnknownExtensionsToUserData( extensions, mesh, meshDef ) );
+
 			for ( let i = 0, il = meshes.length; i < il; i ++ ) {
 
 				parser.associations.set( meshes[ i ], {
