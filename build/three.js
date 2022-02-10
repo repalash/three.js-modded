@@ -30262,7 +30262,8 @@
 						return {
 							data: getTypedArray(image.type, image.data),
 							width: image.width,
-							height: image.height
+							height: image.height,
+							complete: true
 						};
 					} else {
 						return null;
