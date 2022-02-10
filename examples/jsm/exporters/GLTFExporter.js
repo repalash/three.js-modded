@@ -701,7 +701,7 @@ class GLTFWriter {
 		const roughness = material.roughnessMap?.image;
 		const metalness = material.metalnessMap?.image;
 
-		if ( occlusion === roughness && roughness === metalness ) return occlusion;
+		if ( ( occlusion === roughness || ! occlusion ) && roughness === metalness ) return material.roughnessMap;
 
 		if ( occlusion || roughness || metalness ) {
 
@@ -1183,6 +1183,7 @@ class GLTFWriter {
 
 		const cache = this.cache;
 		const json = this.json;
+		console.log( map.flipY, map );
 
 		if ( cache.textures.has( map ) ) return cache.textures.get( map );
 
@@ -1258,6 +1259,7 @@ class GLTFWriter {
 
 		}
 
+		// todo: this also does flipY in some cases
 		const ormTexture = this.buildORMTexture( material );
 
 		// pbrMetallicRoughness.metallicRoughnessTexture
