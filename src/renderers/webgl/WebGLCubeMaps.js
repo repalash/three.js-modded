@@ -32,6 +32,7 @@ function WebGLCubeMaps( renderer ) {
 				if ( cubemaps.has( texture ) ) {
 
 					const cubemap = cubemaps.get( texture ).texture;
+					cubemap.rotation = texture.rotation;
 					return mapTextureMapping( cubemap, texture.mapping );
 
 				} else {
@@ -42,10 +43,10 @@ function WebGLCubeMaps( renderer ) {
 
 						const renderTarget = new WebGLCubeRenderTarget( image.height / 2 );
 						renderTarget.fromEquirectangularTexture( renderer, texture );
+						renderTarget.texture.rotation = texture.rotation;
 						cubemaps.set( texture, renderTarget );
 
 						texture.addEventListener( 'dispose', onTextureDispose );
-
 						return mapTextureMapping( renderTarget.texture, texture.mapping );
 
 					} else {

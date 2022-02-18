@@ -224,6 +224,11 @@ function WebGLBackground( renderer, cubemaps, state, objects, alpha, premultipli
 			return planeMesh;
 
 		},
+		getBoxMesh: function () {
+
+			return boxMesh;
+
+		},
 		render: render
 
 	};
