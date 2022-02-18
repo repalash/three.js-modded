@@ -10746,6 +10746,9 @@
 			getPlaneMesh: function () {
 				return planeMesh;
 			},
+			getBoxMesh: function () {
+				return boxMesh;
+			},
 			render: render
 		};
 	}
@@ -11392,6 +11395,7 @@
 				if (mapping === EquirectangularReflectionMapping || mapping === EquirectangularRefractionMapping) {
 					if (cubemaps.has(texture)) {
 						const cubemap = cubemaps.get(texture).texture;
+						cubemap.rotation = texture.rotation;
 						return mapTextureMapping(cubemap, texture.mapping);
 					} else {
 						const image = texture.image;
@@ -11399,6 +11403,7 @@
 						if (image && image.height > 0) {
 							const renderTarget = new WebGLCubeRenderTarget(image.height / 2);
 							renderTarget.fromEquirectangularTexture(renderer, texture);
+							renderTarget.texture.rotation = texture.rotation;
 							cubemaps.set(texture, renderTarget);
 							texture.addEventListener('dispose', onTextureDispose);
 							return mapTextureMapping(renderTarget.texture, texture.mapping);
