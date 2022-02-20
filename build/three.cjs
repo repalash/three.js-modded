@@ -18601,6 +18601,12 @@ function WebGLMaterials(properties) {
 			uniforms.color.value.copy(material.color);
 			uniforms.opacity.value = material.opacity;
 		} else if (material.isShaderMaterial) {
+			if (material.transmission !== undefined) {
+				if (uniforms.transmission) uniforms.transmission.value = material.transmission;
+				if (uniforms.transmissionSamplerMap && transmissionRenderTarget) uniforms.transmissionSamplerMap.value = transmissionRenderTarget ? transmissionRenderTarget.texture : null;
+				if (uniforms.transmissionSamplerSize && transmissionRenderTarget) uniforms.transmissionSamplerSize.value.set(transmissionRenderTarget.width, transmissionRenderTarget.height);
+			}
+
 			material.uniformsNeedUpdate = false; // #15581
 		}
 	}
