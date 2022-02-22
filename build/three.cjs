@@ -18467,8 +18467,10 @@ class WebXRManager extends EventDispatcher {
 
 
 		let onAnimationFrameCallback = null;
+		this.onPreAnimationFrameCallback = null;
 
 		function onAnimationFrame(time, frame) {
+			if (scope.onPreAnimationFrameCallback) scope.onPreAnimationFrameCallback(time, frame);
 			pose = frame.getViewerPose(referenceSpace);
 			xrFrame = frame;
 
