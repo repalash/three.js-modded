@@ -1183,7 +1183,6 @@ class GLTFWriter {
 
 		const cache = this.cache;
 		const json = this.json;
-		console.log( map.flipY, map );
 
 		if ( cache.textures.has( map ) ) return cache.textures.get( map );
 

@@ -996,7 +996,7 @@ function WebGLRenderer( parameters = {} ) {
 
 					const camera2 = cameras[ i ];
 
-					renderScene( currentRenderList, scene, camera2, camera2.viewport );
+					renderScene( currentRenderList, scene, camera2, camera2.viewport ); // viewport is set by WebXRManager
 
 				}
 
