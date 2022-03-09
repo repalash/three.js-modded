@@ -296,6 +296,14 @@ class OrbitControls extends EventDispatcher {
 
 		}();
 
+		this.stopDamping = function () {
+
+			sphericalDelta.set( 0, 0, 0 );
+
+			panOffset.set( 0, 0, 0 );
+
+		};
+
 		this.dispose = function () {
 
 			scope.domElement.removeEventListener( 'contextmenu', onContextMenu );
