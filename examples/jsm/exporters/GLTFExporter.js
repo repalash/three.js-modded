@@ -1045,7 +1045,7 @@ class GLTFWriter {
 	 * @param  {Boolean} flipY before writing out the image
 	 * @return {Integer}     Index of the processed texture in the "images" array
 	 */
-	processImage( image, format, flipY ) {
+	processImage( image, format, flipY, hasAlpha = true ) {
 
 		const writer = this;
 		const cache = writer.cache;
@@ -1056,7 +1056,7 @@ class GLTFWriter {
 		if ( ! cache.images.has( image ) ) cache.images.set( image, {} );
 
 		const cachedImages = cache.images.get( image );
-		const mimeType = format === RGBAFormat ? 'image/png' : 'image/jpeg';
+		const mimeType = ( format === RGBAFormat && hasAlpha ) ? 'image/png' : 'image/jpeg';
 		const key = mimeType + ':flipY/' + flipY.toString();
 
 		if ( cachedImages[ key ] !== undefined ) return cachedImages[ key ];
@@ -1179,7 +1179,7 @@ class GLTFWriter {
 	 * @param  {Texture} map Map to process
 	 * @return {Integer} Index of the processed texture in the "textures" array
 	 */
-	processTexture( map ) {
+	processTexture( map, hasAlpha = true ) {
 
 		const cache = this.cache;
 		const json = this.json;
@@ -1190,7 +1190,7 @@ class GLTFWriter {
 
 		const textureDef = {
 			sampler: this.processSampler( map ),
-			source: this.processImage( map.image, map.format, map.flipY )
+			source: this.processImage( map.image, map.format, map.flipY, hasAlpha )
 		};
 
 		if ( map.name ) textureDef.name = map.name;
@@ -1273,7 +1273,7 @@ class GLTFWriter {
 		// pbrMetallicRoughness.baseColorTexture or pbrSpecularGlossiness diffuseTexture
 		if ( material.map ) {
 
-			const baseColorMapDef = { index: this.processTexture( material.map ) };
+			const baseColorMapDef = { index: this.processTexture( material.map, material.transparent || ( material.transmission > 0 ) ) };
 			this.applyTextureTransform( baseColorMapDef, material.map );
 			materialDef.pbrMetallicRoughness.baseColorTexture = baseColorMapDef;
 
