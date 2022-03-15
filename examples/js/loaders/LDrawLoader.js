@@ -1656,21 +1656,13 @@
 
 					} else if ( elementSize === 2 ) {
 
-						if ( material !== null ) {
+						if ( isConditionalSegments ) {
 
-							if ( isConditionalSegments ) {
-
-								materials.push( material.userData.edgeMaterial.userData.conditionalEdgeMaterial );
-
-							} else {
-
-								materials.push( material.userData.edgeMaterial );
-
-							}
+							materials.push( material.userData.edgeMaterial.userData.conditionalEdgeMaterial );
 
 						} else {
 
-							materials.push( null );
+							materials.push( material.userData.edgeMaterial );
 
 						}
 
@@ -2029,7 +2021,8 @@
 
 		getMainEdgeMaterial() {
 
-			return this.getMaterial( MAIN_EDGE_COLOUR_CODE );
+			const mainMat = this.getMainMaterial();
+			return mainMat && mainMat.userData ? mainMat.userData.edgeMaterial : null;
 
 		}
 

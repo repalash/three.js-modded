@@ -24,8 +24,8 @@ function generateUUID() {
 			_lut[ d2 & 0x3f | 0x80 ] + _lut[ d2 >> 8 & 0xff ] + '-' + _lut[ d2 >> 16 & 0xff ] + _lut[ d2 >> 24 & 0xff ] +
 			_lut[ d3 & 0xff ] + _lut[ d3 >> 8 & 0xff ] + _lut[ d3 >> 16 & 0xff ] + _lut[ d3 >> 24 & 0xff ];
 
-	// .toUpperCase() here flattens concatenated strings to save heap memory space.
-	return uuid.toUpperCase();
+	// .toLowerCase() here flattens concatenated strings to save heap memory space.
+	return uuid.toLowerCase();
 
 }
 
@@ -133,13 +133,17 @@ function randFloatSpread( range ) {
 // Deterministic pseudo-random float in the interval [ 0, 1 ]
 function seededRandom( s ) {
 
-	if ( s !== undefined ) _seed = s % 2147483647;
+	if ( s !== undefined ) _seed = s;
 
-	// Park-Miller algorithm
+	// Mulberry32 generator
 
-	_seed = _seed * 16807 % 2147483647;
+	let t = _seed += 0x6D2B79F5;
 
-	return ( _seed - 1 ) / 2147483646;
+	t = Math.imul( t ^ t >>> 15, t | 1 );
+
+	t ^= t + Math.imul( t ^ t >>> 7, t | 61 );
+
+	return ( ( t ^ t >>> 14 ) >>> 0 ) / 4294967296;
 
 }
 

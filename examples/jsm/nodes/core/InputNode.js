@@ -1,94 +1,134 @@
-import { TempNode } from './TempNode.js';
+import { Color, Matrix3, Matrix4, Vector2, Vector3, Vector4 } from 'three';
+import Node from './Node.js';
 
-class InputNode extends TempNode {
+function getValueType( value ) {
 
-	constructor( type, params ) {
+	if ( typeof value === 'number' ) {
 
-		params = params || {};
-		params.shared = params.shared !== undefined ? params.shared : false;
+		return 'float';
 
-		super( type, params );
+	} else if ( typeof value === 'boolean' ) {
 
-		this.readonly = false;
+		return 'bool';
 
-	}
+	} else if ( value?.isVector2 === true ) {
 
-	setReadonly( value ) {
+		return 'vec2';
 
-		this.readonly = value;
+	} else if ( value?.isVector3 === true ) {
 
-		this.hashProperties = this.readonly ? [ 'value' ] : undefined;
+		return 'vec3';
 
-		return this;
+	} else if ( value?.isVector4 === true ) {
 
-	}
+		return 'vec4';
 
-	getReadonly( /* builder */ ) {
+	} else if ( value?.isMatrix3 === true ) {
 
-		return this.readonly;
+		return 'mat3';
 
-	}
+	} else if ( value?.isMatrix4 === true ) {
 
-	copy( source ) {
+		return 'mat4';
 
-		super.copy( source );
+	} else if ( value?.isColor === true ) {
 
-		if ( source.readonly !== undefined ) this.readonly = source.readonly;
-
-		return this;
+		return 'color';
 
 	}
 
-	createJSONNode( meta ) {
+	return null;
 
-		const data = super.createJSONNode( meta );
+}
 
-		if ( this.readonly === true ) data.readonly = this.readonly;
+function getValueFromType( type ) {
 
-		return data;
+	if ( type === 'color' ) {
+
+		return new Color();
+
+	} else if ( type === 'vec2' ) {
+
+		return new Vector2();
+
+	} else if ( type === 'vec3' ) {
+
+		return new Vector3();
+
+	} else if ( type === 'vec4' ) {
+
+		return new Vector4();
+
+	} else if ( type === 'mat3' ) {
+
+		return new Matrix3();
+
+	} else if ( type === 'mat4' ) {
+
+		return new Matrix4();
 
 	}
 
-	generate( builder, output, uuid, type, ns, needsUpdate ) {
+	return null;
 
-		uuid = builder.getUuid( uuid || this.getUuid() );
-		type = type || this.getType( builder );
+}
 
-		const data = builder.getNodeData( uuid ),
-			readonly = this.getReadonly( builder ) && this.generateReadonly !== undefined;
+class InputNode extends Node {
 
-		if ( readonly ) {
+	constructor( value, nodeType = null ) {
 
-			return this.generateReadonly( builder, output, uuid, type, ns, needsUpdate );
+		super( nodeType );
 
-		} else {
+		this.value = value;
 
-			if ( builder.isShader( 'vertex' ) ) {
+	}
 
-				if ( ! data.vertex ) {
+	getNodeType( /*builder*/ ) {
 
-					data.vertex = builder.createVertexUniform( type, this, ns, needsUpdate, this.getLabel() );
+		if ( this.nodeType === null ) {
 
-				}
-
-				return builder.format( data.vertex.name, type, output );
-
-			} else {
-
-				if ( ! data.fragment ) {
-
-					data.fragment = builder.createFragmentUniform( type, this, ns, needsUpdate, this.getLabel() );
-
-				}
-
-				return builder.format( data.fragment.name, type, output );
-
-			}
+			return getValueType( this.value );
 
 		}
+
+		return this.nodeType;
+
+	}
+
+	getInputType( builder ) {
+
+		return this.getNodeType( builder );
+
+	}
+
+	serialize( data ) {
+
+		super.serialize( data );
+
+		data.value = this.value?.toArray?.() || this.value;
+		data.valueType = getValueType( this.value );
+		data.nodeType = this.nodeType;
+
+	}
+
+	deserialize( data ) {
+
+		super.deserialize( data );
+
+		this.nodeType = data.nodeType;
+		this.value = getValueFromType( data.valueType );
+		this.value = this.value?.fromArray?.( data.value ) || data.value;
+
+	}
+
+	generate( /*builder, output*/ ) {
+
+		console.warn('Abstract function.');
 
 	}
 
 }
 
-export { InputNode };
+InputNode.prototype.isInputNode = true;
+
+export default InputNode;

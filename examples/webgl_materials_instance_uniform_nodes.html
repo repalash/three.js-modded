@@ -18,7 +18,8 @@
 		<script type="importmap">
 			{
 				"imports": {
-					"three": "../build/three.module.js"
+					"three": "../build/three.module.js",
+					"three-nodes/": "./jsm/nodes/"
 				}
 			}
 		</script>
@@ -26,12 +27,11 @@
 		<script type="module">
 
 			import * as THREE from 'three';
+			import * as Nodes from 'three-nodes/Nodes.js';
 
 			import Stats from './jsm/libs/stats.module.js';
 
 			import { nodeFrame } from './jsm/renderers/webgl/nodes/WebGLNodes.js';
-
-			import * as Nodes from './jsm/renderers/nodes/Nodes.js';
 
 			class InstanceUniformNode extends Nodes.Node {
 
@@ -41,7 +41,7 @@
 
 					this.updateType = Nodes.NodeUpdateType.Object;
 
-					this.inputNode = new Nodes.ColorNode();
+					this.uniformNode = new Nodes.UniformNode( new THREE.Color() );
 
 				}
 
@@ -52,7 +52,7 @@
 
 					const meshColor = mesh.color;
 
-					this.inputNode.value.copy( meshColor );
+					this.uniformNode.value.copy( meshColor );
 
 					// force refresh material uniforms
 					rendererState.useProgram( null );
@@ -61,7 +61,7 @@
 
 				generate( builder, output ) {
 
-					return this.inputNode.build( builder, output );
+					return this.uniformNode.build( builder, output );
 
 				}
 

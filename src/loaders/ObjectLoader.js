@@ -5,7 +5,6 @@ import {
 	EquirectangularReflectionMapping,
 	EquirectangularRefractionMapping,
 	CubeUVReflectionMapping,
-	CubeUVRefractionMapping,
 
 	RepeatWrapping,
 	ClampToEdgeWrapping,
@@ -48,6 +47,7 @@ import { PerspectiveCamera } from '../cameras/PerspectiveCamera.js';
 import { Scene } from '../scenes/Scene.js';
 import { CubeTexture } from '../textures/CubeTexture.js';
 import { Texture } from '../textures/Texture.js';
+import { Source } from '../textures/Source.js';
 import { DataTexture } from '../textures/DataTexture.js';
 import { ImageLoader } from './ImageLoader.js';
 import { LoadingManager } from './LoadingManager.js';
@@ -462,7 +462,7 @@ class ObjectLoader extends Loader {
 
 					// load array of images e.g CubeTexture
 
-					images[ image.uuid ] = [];
+					const imageArray = [];
 
 					for ( let j = 0, jl = url.length; j < jl; j ++ ) {
 
@@ -474,13 +474,13 @@ class ObjectLoader extends Loader {
 
 							if ( deserializedImage instanceof HTMLImageElement ) {
 
-								images[ image.uuid ].push( deserializedImage );
+								imageArray.push( deserializedImage );
 
 							} else {
 
 								// special case: handle array of data textures for cube textures
 
-								images[ image.uuid ].push( new DataTexture( deserializedImage.data, deserializedImage.width, deserializedImage.height ) );
+								imageArray.push( new DataTexture( deserializedImage.data, deserializedImage.width, deserializedImage.height ) );
 
 							}
 
@@ -488,17 +488,15 @@ class ObjectLoader extends Loader {
 
 					}
 
+					images[ image.uuid ] = new Source( imageArray );
+
 				} else {
 
 					// load single image
 
 					const deserializedImage = deserializeImage( image.url );
+					images[ image.uuid ] = new Source( deserializedImage );
 
-					if ( deserializedImage !== null ) {
-
-						images[ image.uuid ] = deserializedImage;
-
-					}
 
 				}
 
@@ -562,7 +560,7 @@ class ObjectLoader extends Loader {
 
 					// load array of images e.g CubeTexture
 
-					images[ image.uuid ] = [];
+					const imageArray = [];
 
 					for ( let j = 0, jl = url.length; j < jl; j ++ ) {
 
@@ -574,13 +572,13 @@ class ObjectLoader extends Loader {
 
 							if ( deserializedImage instanceof HTMLImageElement ) {
 
-								images[ image.uuid ].push( deserializedImage );
+								imageArray.push( deserializedImage );
 
 							} else {
 
 								// special case: handle array of data textures for cube textures
 
-								images[ image.uuid ].push( new DataTexture( deserializedImage.data, deserializedImage.width, deserializedImage.height ) );
+								imageArray.push( new DataTexture( deserializedImage.data, deserializedImage.width, deserializedImage.height ) );
 
 							}
 
@@ -588,17 +586,14 @@ class ObjectLoader extends Loader {
 
 					}
 
+					images[ image.uuid ] = new Source( imageArray );
+
 				} else {
 
 					// load single image
 
 					const deserializedImage = await deserializeImage( image.url );
-
-					if ( deserializedImage !== null ) {
-
-						images[ image.uuid ] = deserializedImage;
-
-					}
+					images[ image.uuid ] = new Source( deserializedImage );
 
 				}
 
@@ -642,12 +637,14 @@ class ObjectLoader extends Loader {
 
 				}
 
+				const source = images[ data.image ];
+				const image = source.data;
+
 				let texture;
-				const image = images[ data.image ];
 
 				if ( Array.isArray( image ) ) {
 
-					texture = new CubeTexture( image );
+					texture = new CubeTexture();
 
 					if ( image.length === 6 ) texture.needsUpdate = true;
 
@@ -655,17 +652,19 @@ class ObjectLoader extends Loader {
 
 					if ( image && image.data ) {
 
-						texture = new DataTexture( image.data, image.width, image.height );
+						texture = new DataTexture();
 
 					} else {
 
-						texture = new Texture( image );
+						texture = new Texture();
 
 					}
 
 					if ( image && image.complete ) texture.needsUpdate = true; // textures can have undefined image data
 
 				}
+
+				texture.source = source;
 
 				texture.uuid = data.uuid;
 
@@ -1105,8 +1104,7 @@ const TEXTURE_MAPPING = {
 	CubeRefractionMapping: CubeRefractionMapping,
 	EquirectangularReflectionMapping: EquirectangularReflectionMapping,
 	EquirectangularRefractionMapping: EquirectangularRefractionMapping,
-	CubeUVReflectionMapping: CubeUVReflectionMapping,
-	CubeUVRefractionMapping: CubeUVRefractionMapping
+	CubeUVReflectionMapping: CubeUVReflectionMapping
 };
 
 const TEXTURE_WRAPPING = {

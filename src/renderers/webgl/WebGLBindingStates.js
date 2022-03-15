@@ -9,6 +9,7 @@
 
 	const defaultState = createBindingState( null );
 	let currentState = defaultState;
+	let forceUpdate = false;
 
 	function setup( object, material, program, geometry, index ) {
 
@@ -59,7 +60,9 @@
 
 		}
 
-		if ( updateBuffers ) {
+		if ( updateBuffers || forceUpdate ) {
+
+			forceUpdate = false;
 
 			setupVertexAttributes( object, material, program, geometry );
 
@@ -354,7 +357,7 @@
 						const stride = data.stride;
 						const offset = geometryAttribute.offset;
 
-						if ( data && data.isInstancedInterleavedBuffer ) {
+						if ( data.isInstancedInterleavedBuffer ) {
 
 							for ( let i = 0; i < programAttribute.locationSize; i ++ ) {
 
@@ -556,6 +559,7 @@
 	function reset() {
 
 		resetDefaultState();
+		forceUpdate = true;
 
 		if ( currentState === defaultState ) return;
 

@@ -1,4 +1,4 @@
-export const REVISION = '137dev';
+export const REVISION = '139dev';
 export const MOUSE = { LEFT: 0, MIDDLE: 1, RIGHT: 2, ROTATE: 0, DOLLY: 1, PAN: 2 };
 export const TOUCH = { ROTATE: 0, PAN: 1, DOLLY_PAN: 2, DOLLY_ROTATE: 3 };
 export const CullFaceNone = 0;
@@ -60,7 +60,6 @@ export const CubeRefractionMapping = 302;
 export const EquirectangularReflectionMapping = 303;
 export const EquirectangularRefractionMapping = 304;
 export const CubeUVReflectionMapping = 306;
-export const CubeUVRefractionMapping = 307;
 export const RepeatWrapping = 1000;
 export const ClampToEdgeWrapping = 1001;
 export const MirroredRepeatWrapping = 1002;
@@ -86,6 +85,7 @@ export const UnsignedShort4444Type = 1017;
 export const UnsignedShort5551Type = 1018;
 export const UnsignedInt248Type = 1020;
 export const AlphaFormat = 1021;
+export const RGBFormat = 1022;
 export const RGBAFormat = 1023;
 export const LuminanceFormat = 1024;
 export const LuminanceAlphaFormat = 1025;
@@ -145,6 +145,11 @@ export const BasicDepthPacking = 3200;
 export const RGBADepthPacking = 3201;
 export const TangentSpaceNormalMap = 0;
 export const ObjectSpaceNormalMap = 1;
+
+// Color space string identifiers, matching CSS Color Module Level 4 and WebGPU names where available.
+export const NoColorSpace = '';
+export const SRGBColorSpace = 'srgb';
+export const LinearSRGBColorSpace = 'srgb-linear';
 
 export const ZeroStencilOp = 0;
 export const KeepStencilOp = 7680;

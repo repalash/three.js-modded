@@ -1,11 +1,21 @@
-import NodeBuilder from '../../nodes/core/NodeBuilder.js';
+import NodeBuilder, { shaderStages } from 'three-nodes/core/NodeBuilder.js';
+import NodeFrame from 'three-nodes/core/NodeFrame.js';
 import SlotNode from './SlotNode.js';
-import GLSLNodeParser from '../../nodes/parsers/GLSLNodeParser.js';
+import GLSLNodeParser from 'three-nodes/parsers/GLSLNodeParser.js';
 import WebGLPhysicalContextNode from './WebGLPhysicalContextNode.js';
 
-import { ShaderChunk, LinearEncoding, RGBAFormat, UnsignedByteType, sRGBEncoding } from 'three';
+import { PerspectiveCamera, ShaderChunk, ShaderLib, UniformsUtils, UniformsLib,
+	LinearEncoding, RGBAFormat, UnsignedByteType, sRGBEncoding } from 'three';
 
-const shaderStages = [ 'vertex', 'fragment' ];
+const nodeFrame = new NodeFrame();
+nodeFrame.camera = new PerspectiveCamera();
+
+const nodeShaderLib = {
+	LineBasicNodeMaterial: ShaderLib.basic,
+	MeshBasicNodeMaterial: ShaderLib.basic,
+	PointsNodeMaterial: ShaderLib.points,
+	MeshStandardNodeMaterial: ShaderLib.standard
+};
 
 function getIncludeSnippet( name ) {
 
@@ -55,6 +65,20 @@ class WebGLNodeBuilder extends NodeBuilder {
 	_parseObject() {
 
 		const material = this.material;
+		const type = material.type;
+
+		// shader lib
+
+		if ( nodeShaderLib[ type ] !== undefined ) {
+
+			const shaderLib = nodeShaderLib[ type ];
+			const shader = this.shader;
+
+			shader.vertexShader = shaderLib.vertexShader;
+			shader.fragmentShader = shaderLib.fragmentShader;
+			shader.uniforms = UniformsUtils.merge( [ shaderLib.uniforms, UniformsLib.lights ] );
+
+		}
 
 		// parse inputs
 
@@ -348,6 +372,8 @@ ${this.shader[ getShaderStageProperty( shaderStage ) ]}
 		this._addSnippets();
 		this._addUniforms();
 
+		this._updateUniforms();
+
 		this.shader.vertexShader = this.vertexShader;
 		this.shader.fragmentShader = this.fragmentShader;
 
@@ -510,6 +536,19 @@ ${this.shader[ getShaderStageProperty( shaderStage ) ]}
 				this.shader.uniforms[ uniform.name ] = uniform;
 
 			}
+
+		}
+
+	}
+
+	_updateUniforms() {
+
+		nodeFrame.object = this.object;
+		nodeFrame.renderer = this.renderer;
+
+		for ( const node of this.updateNodes ) {
+
+			nodeFrame.updateNode( node );
 
 		}
 

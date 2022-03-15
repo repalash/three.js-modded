@@ -1,20 +1,20 @@
 import {
 	BackSide,
-	ClampToEdgeWrapping,
 	DoubleSide,
 	FloatType,
 	FrontSide,
 	HalfFloatType,
 	LinearEncoding,
-	LinearMipmapLinearFilter,
-	NearestFilter,
-	NoToneMapping,
 	REVISION,
 	RGBAFormat, sRGBEncoding,
 	UnsignedByteType,
+	NoToneMapping,
+	LinearMipmapLinearFilter
 } from '../constants.js';
+import { floorPowerOfTwo } from '../math/MathUtils.js';
 import { Frustum } from '../math/Frustum.js';
 import { Matrix4 } from '../math/Matrix4.js';
+import { Vector2 } from '../math/Vector2.js';
 import { Vector3 } from '../math/Vector3.js';
 import { Vector4 } from '../math/Vector4.js';
 import { WebGLAnimation } from './webgl/WebGLAnimation.js';
@@ -31,7 +31,6 @@ import { WebGLGeometries } from './webgl/WebGLGeometries.js';
 import { WebGLIndexedBufferRenderer } from './webgl/WebGLIndexedBufferRenderer.js';
 import { WebGLInfo } from './webgl/WebGLInfo.js';
 import { WebGLMorphtargets } from './webgl/WebGLMorphtargets.js';
-import { WebGLMultisampleRenderTarget } from './WebGLMultisampleRenderTarget.js';
 import { WebGLObjects } from './webgl/WebGLObjects.js';
 import { WebGLPrograms } from './webgl/WebGLPrograms.js';
 import { WebGLProperties } from './webgl/WebGLProperties.js';
@@ -60,7 +59,6 @@ function WebGLRenderer( parameters = {} ) {
 	const _canvas = parameters.canvas !== undefined ? parameters.canvas : createCanvasElement(),
 		_context = parameters.context !== undefined ? parameters.context : null,
 
-		_alpha = parameters.alpha !== undefined ? parameters.alpha : false,
 		_depth = parameters.depth !== undefined ? parameters.depth : true,
 		_stencil = parameters.stencil !== undefined ? parameters.stencil : true,
 		_antialias = parameters.antialias !== undefined ? parameters.antialias : false,
@@ -68,6 +66,18 @@ function WebGLRenderer( parameters = {} ) {
 		_preserveDrawingBuffer = parameters.preserveDrawingBuffer !== undefined ? parameters.preserveDrawingBuffer : false,
 		_powerPreference = parameters.powerPreference !== undefined ? parameters.powerPreference : 'default',
 		_failIfMajorPerformanceCaveat = parameters.failIfMajorPerformanceCaveat !== undefined ? parameters.failIfMajorPerformanceCaveat : false;
+
+	let _alpha;
+
+	if ( parameters.context !== undefined ) {
+
+		_alpha = _context.getContextAttributes().alpha;
+
+	} else {
+
+		_alpha = parameters.alpha !== undefined ? parameters.alpha : false;
+
+	}
 
 	let currentRenderList = null;
 	let currentRenderState = null;
@@ -174,6 +184,7 @@ function WebGLRenderer( parameters = {} ) {
 
 	const _projScreenMatrix = new Matrix4();
 
+	const _vector2 = new Vector2();
 	const _vector3 = new Vector3();
 
 	const _emptyScene = { background: null, fog: null, environment: null, overrideMaterial: null, isScene: true };
@@ -301,7 +312,7 @@ function WebGLRenderer( parameters = {} ) {
 		morphtargets = new WebGLMorphtargets( _gl, capabilities, textures );
 		clipping = new WebGLClipping( properties );
 		programCache = new WebGLPrograms( _this, cubemaps, cubeuvmaps, extensions, capabilities, bindingStates, clipping );
-		materials = new WebGLMaterials( properties );
+		materials = new WebGLMaterials( _this, properties );
 		renderLists = new WebGLRenderLists();
 		renderStates = new WebGLRenderStates( extensions, capabilities );
 		background = new WebGLBackground( _this, cubemaps, state, objects, _alpha, _premultipliedAlpha );
@@ -527,13 +538,13 @@ function WebGLRenderer( parameters = {} ) {
 
 	};
 
-	this.clear = function ( color, depth, stencil ) {
+	this.clear = function ( color = true, depth = true, stencil = true ) {
 
 		let bits = 0;
 
-		if ( color === undefined || color ) bits |= _gl.COLOR_BUFFER_BIT;
-		if ( depth === undefined || depth ) bits |= _gl.DEPTH_BUFFER_BIT;
-		if ( stencil === undefined || stencil ) bits |= _gl.STENCIL_BUFFER_BIT;
+		if ( color ) bits |= _gl.COLOR_BUFFER_BIT;
+		if ( depth ) bits |= _gl.DEPTH_BUFFER_BIT;
+		if ( stencil ) bits |= _gl.STENCIL_BUFFER_BIT;
 
 		_gl.clear( bits );
 
@@ -885,7 +896,7 @@ function WebGLRenderer( parameters = {} ) {
 	const animation = new WebGLAnimation();
 	animation.setAnimationLoop( onAnimationFrame );
 
-	if ( typeof window !== 'undefined' ) animation.setContext( window );
+	if ( typeof self !== 'undefined' ) animation.setContext( self );
 
 	this.setAnimationLoop = function ( callback ) {
 
@@ -1024,14 +1035,6 @@ function WebGLRenderer( parameters = {} ) {
 		//
 
 		if ( scene.isScene === true ) scene.onAfterRender( _this, scene, camera );
-
-		// Ensure depth buffer writing is enabled so it can be cleared on next render
-
-		state.buffers.depth.setTest( true );
-		state.buffers.depth.setMask( true );
-		state.buffers.color.setMask( true );
-
-		state.setPolygonOffset( false );
 
 		// _gl.finish();
 
@@ -1216,26 +1219,45 @@ function WebGLRenderer( parameters = {} ) {
 
 		}
 
+		// Ensure depth buffer writing is enabled so it can be cleared on next render
+
+		state.buffers.depth.setTest( true );
+		state.buffers.depth.setMask( true );
+		state.buffers.color.setMask( true );
+
+		state.setPolygonOffset( false );
+
+
 	}
 
 	function renderTransmissionPass( opaqueObjects, scene, camera ) {
 
+		const isWebGL2 = capabilities.isWebGL2;
+
 		if ( _transmissionRenderTarget === null ) {
 
-			const needsAntialias = _antialias === true && capabilities.isWebGL2 === true;
-			const renderTargetType = needsAntialias ? WebGLMultisampleRenderTarget : WebGLRenderTarget;
-
-			_transmissionRenderTarget = new renderTargetType( 1024, 1024, {
+			_transmissionRenderTarget = new WebGLRenderTarget( 1, 1, {
 				generateMipmaps: true,
 				type: utils.convert( HalfFloatType ) !== null ? HalfFloatType : UnsignedByteType,
 				minFilter: LinearMipmapLinearFilter,
-				magFilter: NearestFilter,
-				wrapS: ClampToEdgeWrapping,
-				wrapT: ClampToEdgeWrapping,
-				useRenderToTexture: extensions.has( 'WEBGL_multisampled_render_to_texture' )
+				samples: ( isWebGL2 && _antialias === true ) ? 4 : 0
 			} );
 
 		}
+
+		_this.getDrawingBufferSize( _vector2 );
+
+		if ( isWebGL2 ) {
+
+			_transmissionRenderTarget.setSize( _vector2.x, _vector2.y );
+
+		} else {
+
+			_transmissionRenderTarget.setSize( floorPowerOfTwo( _vector2.x ), floorPowerOfTwo( _vector2.y ) );
+
+		}
+
+		//
 
 		const currentRenderTarget = _this.getRenderTarget();
 		_this.setRenderTarget( _transmissionRenderTarget );
@@ -1443,6 +1465,7 @@ function WebGLRenderer( parameters = {} ) {
 		materialProperties.skinning = parameters.skinning;
 		materialProperties.morphTargets = parameters.morphTargets;
 		materialProperties.morphNormals = parameters.morphNormals;
+		materialProperties.morphColors = parameters.morphColors;
 		materialProperties.morphTargetsCount = parameters.morphTargetsCount;
 		materialProperties.numClippingPlanes = parameters.numClippingPlanes;
 		materialProperties.numIntersection = parameters.numClipIntersection;
@@ -1466,8 +1489,11 @@ function WebGLRenderer( parameters = {} ) {
 		const vertexTangents = !! material.normalMap && !! geometry.attributes.tangent;
 		const morphTargets = !! geometry.morphAttributes.position;
 		const morphNormals = !! geometry.morphAttributes.normal;
-		const morphTargetsCount = !! geometry.morphAttributes.position ? geometry.morphAttributes.position.length : 0;
+		const morphColors = !! geometry.morphAttributes.color;
 		const toneMapping = material.toneMapped ? _this.toneMapping : NoToneMapping;
+
+		const morphAttribute = geometry.morphAttributes.position || geometry.morphAttributes.normal || geometry.morphAttributes.color;
+		const morphTargetsCount = ( morphAttribute !== undefined ) ? morphAttribute.length : 0;
 
 		const materialProperties = properties.get( material );
 		const lights = currentRenderState.state.lights;
@@ -1546,6 +1572,10 @@ function WebGLRenderer( parameters = {} ) {
 				needsProgramChange = true;
 
 			} else if ( materialProperties.morphNormals !== morphNormals ) {
+
+				needsProgramChange = true;
+
+			} else if ( materialProperties.morphColors !== morphColors ) {
 
 				needsProgramChange = true;
 
@@ -1699,7 +1729,9 @@ function WebGLRenderer( parameters = {} ) {
 
 		}
 
-		if ( !! geometry && ( geometry.morphAttributes.position !== undefined || geometry.morphAttributes.normal !== undefined ) ) {
+		const morphAttributes = geometry.morphAttributes;
+
+		if ( morphAttributes.position !== undefined || morphAttributes.normal !== undefined || ( morphAttributes.color !== undefined && capabilities.isWebGL2 === true ) ) {
 
 			morphtargets.update( object, geometry, material, program );
 
@@ -1833,11 +1865,10 @@ function WebGLRenderer( parameters = {} ) {
 
 				// The multisample_render_to_texture extension doesn't work properly if there
 				// are midframe flushes and an external depth buffer. Disable use of the extension.
-				if ( renderTarget.useRenderToTexture ) {
+				if ( extensions.has( 'WEBGL_multisampled_render_to_texture' ) === true ) {
 
-					console.warn( 'render-to-texture extension was disabled because an external texture was provided' );
-					renderTarget.useRenderToTexture = false;
-					renderTarget.useRenderbuffer = true;
+					console.warn( 'THREE.WebGLRenderer: Render-to-texture extension was disabled because an external texture was provided' );
+					renderTargetProperties.__useRenderToTexture = false;
 
 				}
 
@@ -1860,6 +1891,7 @@ function WebGLRenderer( parameters = {} ) {
 		_currentRenderTarget = renderTarget;
 		_currentActiveCubeFace = activeCubeFace;
 		_currentActiveMipmapLevel = activeMipmapLevel;
+
 		let useDefaultFramebuffer = true;
 
 		if ( renderTarget ) {
@@ -1893,7 +1925,7 @@ function WebGLRenderer( parameters = {} ) {
 
 			const texture = renderTarget.texture;
 
-			if ( texture.isDataTexture3D || texture.isDataTexture2DArray ) {
+			if ( texture.isData3DTexture || texture.isDataArrayTexture ) {
 
 				isRenderTarget3D = true;
 
@@ -1906,7 +1938,7 @@ function WebGLRenderer( parameters = {} ) {
 				framebuffer = __webglFramebuffer[ activeCubeFace ];
 				isCube = true;
 
-			} else if ( renderTarget.useRenderbuffer ) {
+			} else if ( ( capabilities.isWebGL2 && renderTarget.samples > 0 ) && textures.useMultisampledRTT( renderTarget ) === false ) {
 
 				framebuffer = properties.get( renderTarget ).__webglMultisampledFramebuffer;
 
@@ -2108,12 +2140,12 @@ function WebGLRenderer( parameters = {} ) {
 		const glType = utils.convert( dstTexture.type );
 		let glTarget;
 
-		if ( dstTexture.isDataTexture3D ) {
+		if ( dstTexture.isData3DTexture ) {
 
 			textures.setTexture3D( dstTexture, 0 );
 			glTarget = _gl.TEXTURE_3D;
 
-		} else if ( dstTexture.isDataTexture2DArray ) {
+		} else if ( dstTexture.isDataArrayTexture ) {
 
 			textures.setTexture2DArray( dstTexture, 0 );
 			glTarget = _gl.TEXTURE_2D_ARRAY;
@@ -2143,7 +2175,7 @@ function WebGLRenderer( parameters = {} ) {
 		_gl.pixelStorei( _gl.UNPACK_SKIP_ROWS, sourceBox.min.y );
 		_gl.pixelStorei( _gl.UNPACK_SKIP_IMAGES, sourceBox.min.z );
 
-		if ( srcTexture.isDataTexture || srcTexture.isDataTexture3D ) {
+		if ( srcTexture.isDataTexture || srcTexture.isData3DTexture ) {
 
 			_gl.texSubImage3D( glTarget, level, position.x, position.y, position.z, width, height, depth, glFormat, glType, image.data );
 

@@ -6,15 +6,14 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "unit": "qunit -r failonlyreporter -f !-webonly unit/three.source.unit.js",
-    "unit-examples": "qunit -r failonlyreporter -f !-webonly unit/three.example.unit.js"
+    "unit": "qunit -r failonlyreporter -f !-webonly unit/three.source.unit.js"
   },
   "devDependencies": {
     "failonlyreporter": "^1.0.0",
     "jimp": "^0.16.1",
     "pixelmatch": "^5.2.1",
     "puppeteer": "^13.1.2",
-    "qunit": "^2.17.2",
+    "qunit": "^2.18.0",
     "serve-handler": "^6.1.3"
   }
 }

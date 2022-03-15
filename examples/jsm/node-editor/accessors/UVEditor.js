@@ -1,6 +1,6 @@
 import { SelectInput, LabelElement } from '../../libs/flow.module.js';
 import { BaseNode } from '../core/BaseNode.js';
-import { UVNode } from '../../renderers/nodes/Nodes.js';
+import { UVNode } from 'three-nodes/Nodes.js';
 
 export class UVEditor extends BaseNode {
 
@@ -12,7 +12,7 @@ export class UVEditor extends BaseNode {
 
 		const optionsField = new SelectInput( [ '1', '2' ], 0 ).onChange( () => {
 
-			node.value = Number( optionsField.getValue() );
+			node.index = Number( optionsField.getValue() );
 
 			this.invalidate();
 
