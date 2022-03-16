@@ -1805,6 +1805,9 @@ function WebGLTextures( _gl, extensions, state, properties, capabilities, utils,
 
 				}
 
+			} else if ( encoding === RGBM16Encoding ) {
+				// do nothing
+
 			} else {
 
 				console.error( 'THREE.WebGLTextures: Unsupported texture encoding:', encoding );
