@@ -14516,7 +14516,7 @@
 				specularMap: !!material.specularMap,
 				specularIntensityMap: !!material.specularIntensityMap,
 				specularColorMap: !!material.specularColorMap,
-				opaque: material.transparent === false && material.blending === NormalBlending,
+				opaque: material.transparent === false && material.blending === NormalBlending && !(material.transmission > 0),
 				alphaMap: !!material.alphaMap,
 				alphaTest: useAlphaTest,
 				gradientMap: !!material.gradientMap,
