@@ -1171,7 +1171,7 @@ class GLTFWriter {
 	 * @param  {Texture} map Map to process
 	 * @return {Integer} Index of the processed texture in the "textures" array
 	 */
-	processTexture( map, hasAlpha = true ) {
+	processTexture( map ) {
 
 		const cache = this.cache;
 		const json = this.json;
@@ -1268,7 +1268,7 @@ class GLTFWriter {
 		// pbrMetallicRoughness.baseColorTexture or pbrSpecularGlossiness diffuseTexture
 		if ( material.map ) {
 
-			const baseColorMapDef = { index: this.processTexture( material.map, material.transparent || ( material.transmission > 0 ) ) };
+			const baseColorMapDef = { index: this.processTexture( material.map ) };
 			this.applyTextureTransform( baseColorMapDef, material.map );
 			materialDef.pbrMetallicRoughness.baseColorTexture = baseColorMapDef;
 
