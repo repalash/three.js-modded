@@ -567,6 +567,7 @@ class GLTFWriter {
 
 			console.warn( 'THREE.GLTFExporter: userData of \'' + object.name + '\' ' +
 				'won\'t be serialized because of JSON.stringify error - ' + error.message );
+			console.warn( { ...object.userData } );
 
 		}
 
