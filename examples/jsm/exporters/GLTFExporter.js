@@ -2482,7 +2482,7 @@ class GLTFMaterialsSheenExtension {
 
 		if ( material.sheenColorMap ) {
 
-			const sheenColorMapDef = { index: writer.processTexture( material.sheenColorTexture ) };
+			const sheenColorMapDef = { index: writer.processTexture( material.sheenColorMap ) };
 			writer.applyTextureTransform( sheenColorMapDef, material.sheenColorMap );
 			extensionDef.sheenColorTexture = sheenColorMapDef;
 
