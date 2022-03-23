@@ -142,13 +142,25 @@ class NodeBuilder {
 
 	}
 
-	getTexture( /* textureProperty, uvSnippet, biasSnippet = null */ ) {
+	getTexture( /* textureProperty, uvSnippet */ ) {
 
 		console.warn( 'Abstract function.' );
 
 	}
 
-	getCubeTexture( /* textureProperty, uvSnippet, biasSnippet = null */ ) {
+	getTextureBias( /* textureProperty, uvSnippet, biasSnippet */ ) {
+
+		console.warn( 'Abstract function.' );
+
+	}
+
+	getCubeTexture( /* textureProperty, uvSnippet */ ) {
+
+		console.warn( 'Abstract function.' );
+
+	}
+
+	getCubeTextureBias( /* textureProperty, uvSnippet, biasSnippet */ ) {
 
 		console.warn( 'Abstract function.' );
 
@@ -159,7 +171,7 @@ class NodeBuilder {
 
 		if ( type === 'float' ) return toFloat( value );
 		if ( type === 'int' ) return `${ Math.round( value ) }`;
-		if ( type === 'uint' ) return value >= 0 ? `${ Math.round( value ) }` : '0';
+		if ( type === 'uint' ) return value >= 0 ? `${ Math.round( value ) }u` : '0u';
 		if ( type === 'bool' ) return value ? 'true' : 'false';
 		if ( type === 'color' ) return `${ this.getType( 'vec3' ) }( ${ toFloat( value.r ) }, ${ toFloat( value.g ) }, ${ toFloat( value.b ) } )`;
 
@@ -240,6 +252,12 @@ class NodeBuilder {
 	isMatrix( type ) {
 
 		return /mat\d/.test( type );
+
+	}
+
+	isReference( type ) {
+
+		return type === 'void' || type === 'property' || type === 'sampler';
 
 	}
 
@@ -633,7 +651,7 @@ class NodeBuilder {
 		fromType = this.getVectorType( fromType );
 		toType = this.getVectorType( toType );
 
-		if ( fromType === toType || toType === 'void' || toType === null ) {
+		if ( fromType === toType || toType === null || this.isReference( toType ) ) {
 
 			return snippet;
 
