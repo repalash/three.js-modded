@@ -7320,9 +7320,7 @@
 
 		applyMatrix4(m) {
 			for (let i = 0, l = this.count; i < l; i++) {
-				_vector$9.x = this.getX(i);
-				_vector$9.y = this.getY(i);
-				_vector$9.z = this.getZ(i);
+				_vector$9.fromBufferAttribute(this, i);
 
 				_vector$9.applyMatrix4(m);
 
@@ -7334,9 +7332,7 @@
 
 		applyNormalMatrix(m) {
 			for (let i = 0, l = this.count; i < l; i++) {
-				_vector$9.x = this.getX(i);
-				_vector$9.y = this.getY(i);
-				_vector$9.z = this.getZ(i);
+				_vector$9.fromBufferAttribute(this, i);
 
 				_vector$9.applyNormalMatrix(m);
 
@@ -7348,9 +7344,7 @@
 
 		transformDirection(m) {
 			for (let i = 0, l = this.count; i < l; i++) {
-				_vector$9.x = this.getX(i);
-				_vector$9.y = this.getY(i);
-				_vector$9.z = this.getZ(i);
+				_vector$9.fromBufferAttribute(this, i);
 
 				_vector$9.transformDirection(m);
 
@@ -16635,13 +16629,15 @@
 		let useOffscreenCanvas = false;
 
 		try {
-			useOffscreenCanvas = typeof OffscreenCanvas !== 'undefined' && new OffscreenCanvas(1, 1).getContext('2d') !== null;
+			useOffscreenCanvas = typeof OffscreenCanvas !== 'undefined' // eslint-disable-next-line compat/compat
+			&& new OffscreenCanvas(1, 1).getContext('2d') !== null;
 		} catch (err) {// Ignore any errors
 		}
 
 		function createCanvas(width, height) {
 			// Use OffscreenCanvas when available. Specially needed in web workers
-			return useOffscreenCanvas ? new OffscreenCanvas(width, height) : createElementNS('canvas');
+			return useOffscreenCanvas ? // eslint-disable-next-line compat/compat
+			new OffscreenCanvas(width, height) : createElementNS('canvas');
 		}
 
 		function resizeImage(image, needsPowerOfTwo, needsNewCanvas, maxSize) {
@@ -20540,15 +20536,11 @@
 					!halfFloatSupportedByExt) {
 						console.error('THREE.WebGLRenderer.readRenderTargetPixels: renderTarget is not in UnsignedByteType or implementation defined type.');
 						return;
-					}
+					} // the following if statement ensures valid read requests (no out-of-bounds pixels, see #8604)
 
-					if (_gl.checkFramebufferStatus(_gl.FRAMEBUFFER) === _gl.FRAMEBUFFER_COMPLETE) {
-						// the following if statement ensures valid read requests (no out-of-bounds pixels, see #8604)
-						if (x >= 0 && x <= renderTarget.width - width && y >= 0 && y <= renderTarget.height - height) {
-							_gl.readPixels(x, y, width, height, utils.convert(textureFormat), utils.convert(textureType), buffer);
-						}
-					} else {
-						console.error('THREE.WebGLRenderer.readRenderTargetPixels: readPixels from renderTarget failed. Framebuffer not complete.');
+
+					if (x >= 0 && x <= renderTarget.width - width && y >= 0 && y <= renderTarget.height - height) {
+						_gl.readPixels(x, y, width, height, utils.convert(textureFormat), utils.convert(textureType), buffer);
 					}
 				} finally {
 					// restore framebuffer of current render target if necessary
@@ -20919,9 +20911,7 @@
 
 		applyMatrix4(m) {
 			for (let i = 0, l = this.data.count; i < l; i++) {
-				_vector$6.x = this.getX(i);
-				_vector$6.y = this.getY(i);
-				_vector$6.z = this.getZ(i);
+				_vector$6.fromBufferAttribute(this, i);
 
 				_vector$6.applyMatrix4(m);
 
@@ -20933,9 +20923,7 @@
 
 		applyNormalMatrix(m) {
 			for (let i = 0, l = this.count; i < l; i++) {
-				_vector$6.x = this.getX(i);
-				_vector$6.y = this.getY(i);
-				_vector$6.z = this.getZ(i);
+				_vector$6.fromBufferAttribute(this, i);
 
 				_vector$6.applyNormalMatrix(m);
 
@@ -20947,9 +20935,7 @@
 
 		transformDirection(m) {
 			for (let i = 0, l = this.count; i < l; i++) {
-				_vector$6.x = this.getX(i);
-				_vector$6.y = this.getY(i);
-				_vector$6.z = this.getZ(i);
+				_vector$6.fromBufferAttribute(this, i);
 
 				_vector$6.transformDirection(m);
 
@@ -21442,10 +21428,7 @@
 			const skinWeight = this.geometry.attributes.skinWeight;
 
 			for (let i = 0, l = skinWeight.count; i < l; i++) {
-				vector.x = skinWeight.getX(i);
-				vector.y = skinWeight.getY(i);
-				vector.z = skinWeight.getZ(i);
-				vector.w = skinWeight.getW(i);
+				vector.fromBufferAttribute(skinWeight, i);
 				const scale = 1.0 / vector.manhattanLength();
 
 				if (scale !== Infinity) {
