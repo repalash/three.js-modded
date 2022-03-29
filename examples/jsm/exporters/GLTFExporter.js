@@ -1184,6 +1184,7 @@ class GLTFWriter {
 		let mimeType = map.userData.mimeType;
 
 		if ( mimeType === 'image/webp' ) mimeType = 'image/png';
+		if ( mimeType === 'image/jpg' ) mimeType = 'image/jpeg';
 
 		const textureDef = {
 			sampler: this.processSampler( map ),
