@@ -1123,7 +1123,7 @@ class GLTFTextureWebPExtension {
 
 		return this.detectSupport().then( function ( isSupported ) {
 
-			if ( isSupported ) return parser.loadTextureImage( textureIndex, source, loader );
+			if ( isSupported ) return parser.loadTextureImage( textureIndex, extension.source, loader );
 
 			if ( json.extensionsRequired && json.extensionsRequired.indexOf( name ) >= 0 ) {
 
@@ -2587,7 +2587,11 @@ class GLTFParser {
 					break;
 
 				case 'animation':
-					dependency = this.loadAnimation( index );
+					dependency = this._invokeOne( function ( ext ) {
+		
+						return ext.loadAnimation && ext.loadAnimation( index );
+		
+					} );
 					break;
 
 				case 'camera':

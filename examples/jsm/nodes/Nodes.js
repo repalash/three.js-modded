@@ -88,7 +88,7 @@ export * from './functions/BSDFs.js';
 export * from './materials/Materials.js';
 
 // shader node
-export * from './ShaderNode.js';
+export * from './shadernode/ShaderNodeElements.js';
 
 const nodeLib = {
 	// core

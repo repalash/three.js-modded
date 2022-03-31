@@ -10,10 +10,26 @@ import {
 	TrianglesDrawMode,
 	Vector3,
 } from 'three';
-import { generateTangents } from '../libs/mikktspace.module.js';
 
+function computeTangents() {
 
-function computeTangents( geometry, negateSign = true ) {
+	throw new Error( 'BufferGeometryUtils: computeTangents renamed to computeMikkTSpaceTangents.' );
+
+}
+
+function computeMikkTSpaceTangents( geometry, MikkTSpace, negateSign = true ) {
+
+	if ( ! MikkTSpace || ! MikkTSpace.isReady ) {
+
+		throw new Error( 'BufferGeometryUtils: Initialized MikkTSpace library required.' );
+
+	}
+
+	if ( ! geometry.hasAttribute( 'position' ) || ! geometry.hasAttribute( 'normal' ) || ! geometry.hasAttribute( 'uv' ) ) {
+
+		throw new Error( 'BufferGeometryUtils: Tangents require "position", "normal", and "uv" attributes.' );
+
+	}
 
 	function getAttributeArray( attribute ) {
 
@@ -55,7 +71,7 @@ function computeTangents( geometry, negateSign = true ) {
 
 	// Compute vertex tangents.
 
-	const tangents = generateTangents(
+	const tangents = MikkTSpace.generateTangents(
 
 		getAttributeArray( _geometry.attributes.position ),
 		getAttributeArray( _geometry.attributes.normal ),
@@ -70,7 +86,7 @@ function computeTangents( geometry, negateSign = true ) {
 
 		for ( let i = 3; i < tangents.length; i += 4 ) {
 
-			tangents[ i ] *= -1;
+			tangents[ i ] *= - 1;
 
 		}
 
@@ -80,7 +96,13 @@ function computeTangents( geometry, negateSign = true ) {
 
 	_geometry.setAttribute( 'tangent', new BufferAttribute( tangents, 4 ) );
 
-	return geometry.copy( _geometry );
+	if ( geometry !== _geometry ) {
+
+		geometry.copy( _geometry )
+
+	}
+
+	return geometry;
 
 }
 
@@ -1099,6 +1121,7 @@ function mergeGroups( geometry ) {
 
 export {
 	computeTangents,
+	computeMikkTSpaceTangents,
 	mergeBufferGeometries,
 	mergeBufferAttributes,
 	interleaveAttributes,

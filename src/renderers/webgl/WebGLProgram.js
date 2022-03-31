@@ -694,7 +694,7 @@ function WebGLProgram( renderer, cacheKey, parameters, bindingStates ) {
 
 			parameters.transmissionSamplerMapEncoding ? getTexelDecodingFunction( 'transmissionSamplerMapTexelToLinear', parameters.transmissionSamplerMapEncoding ) : '',
 
-			parameters.depthPacking ? '#define DEPTH_PACKING ' + parameters.depthPacking : '',
+			parameters.useDepthPacking ? '#define DEPTH_PACKING ' + parameters.depthPacking : '',
 
 			'\n'
 

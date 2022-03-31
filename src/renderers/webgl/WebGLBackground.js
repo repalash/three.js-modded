@@ -117,6 +117,8 @@ function WebGLBackground( renderer, cubemaps, state, objects, alpha, premultipli
 
 			}
 
+			boxMesh.layers.enableAll();
+
 			// push to the pre-sorted opaque render list
 			renderList.unshift( boxMesh, boxMesh.geometry, boxMesh.material, 0, 0, null );
 
@@ -180,6 +182,7 @@ function WebGLBackground( renderer, cubemaps, state, objects, alpha, premultipli
 
 			}
 
+			planeMesh.layers.enableAll();
 
 			// push to the pre-sorted opaque render list
 			renderList.unshift( planeMesh, planeMesh.geometry, planeMesh.material, 0, 0, null );
