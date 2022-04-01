@@ -638,7 +638,7 @@ class ObjectLoader extends Loader {
 				}
 
 				const source = images[ data.image ];
-				const image = source.data;
+				const image = source ? source.data : undefined;
 
 				let texture;
 
