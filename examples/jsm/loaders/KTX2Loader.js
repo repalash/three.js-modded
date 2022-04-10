@@ -203,7 +203,7 @@ class KTX2Loader extends Loader {
 
 			}
 
-			this._createTexture( [ buffer ] )
+			this.createTexture( [ buffer ] )
 				.then( function ( _texture ) {
 
 					texture.copy( _texture );
@@ -243,7 +243,7 @@ class KTX2Loader extends Loader {
 	 * @param {object?} config
 	 * @return {Promise<CompressedTexture>}
 	 */
-	_createTexture( buffers, config = {} ) {
+	createTexture( buffers, config = {} ) {
 
 		const taskConfig = config;
 		const texturePending = this.init().then( () => {

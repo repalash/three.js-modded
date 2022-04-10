@@ -1186,9 +1186,11 @@ class GLTFWriter {
 		if ( mimeType === 'image/webp' ) mimeType = 'image/png';
 		if ( mimeType === 'image/jpg' ) mimeType = 'image/jpeg';
 
+		const implTypes = [ 'image/jpeg', 'image/png' ];
+
 		const textureDef = {
 			sampler: this.processSampler( map ),
-			source: this.processImage( map.image, map.format, map.flipY, mimeType )
+			source: implTypes.includes( mimeType ) ? this.processImage( map.image, map.format, map.flipY, mimeType ) : null
 		};
 
 		if ( map.name ) textureDef.name = map.name;
