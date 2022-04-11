@@ -232,6 +232,51 @@ function WebGLBackground( renderer, cubemaps, state, objects, alpha, premultipli
 			return boxMesh;
 
 		},
+		getBoxMesh2: function () {
+
+			if ( boxMesh === undefined ) {
+
+				boxMesh = new Mesh(
+					new BoxGeometry( 1, 1, 1 ),
+					new ShaderMaterial( {
+						name: 'BackgroundCubeMaterial',
+						uniforms: cloneUniforms( ShaderLib.cube.uniforms ),
+						vertexShader: ShaderLib.cube.vertexShader,
+						fragmentShader: ShaderLib.cube.fragmentShader,
+						side: BackSide,
+						depthTest: false,
+						depthWrite: false,
+						fog: false
+					} )
+				);
+
+				boxMesh.geometry.deleteAttribute( 'normal' );
+				boxMesh.geometry.deleteAttribute( 'uv' );
+
+				boxMesh.onBeforeRender = function ( renderer, scene, camera ) {
+
+					this.matrixWorld.copyPosition( camera.matrixWorld );
+
+				};
+
+				// enable code injection for non-built-in material
+				Object.defineProperty( boxMesh.material, 'envMap', {
+
+					get: function () {
+
+						return this.uniforms.envMap.value;
+
+					}
+
+				} );
+
+				objects.update( boxMesh );
+
+			}
+
+			return boxMesh;
+
+		},
 		render: render
 
 	};
