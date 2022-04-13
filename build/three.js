@@ -18899,7 +18899,8 @@
 
 			if (envMap) {
 				uniforms.envMap.value = envMap;
-				uniforms.envMapRotation.value = (properties.get(material).environment || envMap)?.rotation || 0;
+				const envMapOrig = properties.get(material).environment || envMap;
+				uniforms.envMapRotation.value = envMapOrig ? envMapOrig.rotation : 0;
 				uniforms.flipEnvMap.value = envMap.isCubeTexture && envMap.isRenderTargetTexture === false ? -1 : 1;
 				uniforms.reflectivity.value = material.reflectivity;
 				uniforms.ior.value = material.ior;
