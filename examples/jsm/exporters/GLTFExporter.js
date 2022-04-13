@@ -702,11 +702,11 @@ class GLTFWriter {
 
 		console.warn( 'THREE.GLTFExporter: Merged metalnessMap and roughnessMap textures.' );
 
-		const metalness = metalnessMap?.image;
-		const roughness = roughnessMap?.image;
+		const metalness = metalnessMap ? metalnessMap.image : undefined;
+		const roughness = roughnessMap ? roughnessMap.image : undefined;
 
-		const width = Math.max( metalness?.width || 0, roughness?.width || 0 );
-		const height = Math.max( metalness?.height || 0, roughness?.height || 0 );
+		const width = Math.max( metalness ? metalness.width : 0, roughness ? roughness.width : 0 );
+		const height = Math.max( metalness ? metalness.height : 0, roughness ? roughness.height : 0 );
 
 		const canvas = document.createElement( 'canvas' );
 		canvas.width = width;
