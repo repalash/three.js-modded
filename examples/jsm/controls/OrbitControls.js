@@ -394,6 +394,9 @@ class OrbitControls extends EventDispatcher {
 
 		}
 
+		this.rotateUp = rotateUp;
+		this.rotateLeft = rotateLeft;
+
 		const panLeft = function () {
 
 			const v = new Vector3();
