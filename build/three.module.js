@@ -26440,6 +26440,7 @@ function WebGLRenderer( parameters = {} ) {
 		_this.state = state;
 		_this.info = info;
 		_this.background = background;
+		_this.cubeuvmaps = cubeuvmaps;
 
 	}
 
