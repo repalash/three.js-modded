@@ -39,7 +39,7 @@ class OrbitControls extends EventDispatcher {
 		this.target = new Vector3();
 
 		// How far you can dolly in and out ( PerspectiveCamera only )
-		this.minDistance = 0;
+		this.minDistance = 0.01;
 		this.maxDistance = Infinity;
 
 		// How far you can zoom in and out ( OrthographicCamera only )
@@ -65,6 +65,7 @@ class OrbitControls extends EventDispatcher {
 		// Set to false to disable zooming
 		this.enableZoom = true;
 		this.zoomSpeed = 1.0;
+		this.maxZoomSpeed = 1.0; // only used while damping
 
 		// Set to false to disable rotating
 		this.enableRotate = true;
@@ -225,7 +226,16 @@ class OrbitControls extends EventDispatcher {
 				spherical.makeSafe();
 
 
-				spherical.radius *= scale;
+				if ( scope.enableDamping ) {
+
+					// spherical.radius += spherical.radius * sphericalDelta.radius * scope.dampingFactor;
+					spherical.radius *= 1 + sphericalDelta.radius * scope.dampingFactor;
+
+				} else {
+
+					spherical.radius *= scale;
+
+				}
 
 				// restrict radius to be between desired limits
 				spherical.radius = Math.max( scope.minDistance, Math.min( scope.maxDistance, spherical.radius ) );
@@ -254,11 +264,13 @@ class OrbitControls extends EventDispatcher {
 				if ( scope.enableDamping === true && (
 					Math.abs( sphericalDelta.theta ) +
 					Math.abs( sphericalDelta.phi ) +
+					Math.abs( sphericalDelta.radius ) +
 					Math.abs( panOffset.length() )
 				) > 0.001 ) {
 
 					sphericalDelta.theta *= ( 1 - scope.dampingFactor );
 					sphericalDelta.phi *= ( 1 - scope.dampingFactor );
+					sphericalDelta.radius *= ( 1 - scope.dampingFactor );
 
 					panOffset.multiplyScalar( 1 - scope.dampingFactor );
 
@@ -478,11 +490,13 @@ class OrbitControls extends EventDispatcher {
 
 		}();
 
-		function dollyOut( dollyScale ) {
+		function dollyOut( dollyScale, delta = 0 ) {
 
 			if ( scope.object.isPerspectiveCamera ) {
 
 				scale /= dollyScale;
+				sphericalDelta.radius -= delta;
+				sphericalDelta.radius = Math.max( - scope.maxZoomSpeed, Math.min( scope.maxZoomSpeed, sphericalDelta.radius ) );
 
 			} else if ( scope.object.isOrthographicCamera ) {
 
@@ -499,11 +513,13 @@ class OrbitControls extends EventDispatcher {
 
 		}
 
-		function dollyIn( dollyScale ) {
+		function dollyIn( dollyScale, delta = 0 ) {
 
 			if ( scope.object.isPerspectiveCamera ) {
 
 				scale *= dollyScale;
+				sphericalDelta.radius += delta;
+				sphericalDelta.radius = Math.max( - scope.maxZoomSpeed, Math.min( scope.maxZoomSpeed, sphericalDelta.radius ) );
 
 			} else if ( scope.object.isOrthographicCamera ) {
 
@@ -598,13 +614,35 @@ class OrbitControls extends EventDispatcher {
 
 		function handleMouseWheel( event ) {
 
+			let delta = 0;
+			// from trackball controls
+			switch ( event.deltaMode ) {
+
+				case 2:
+				// Zoom in pages
+					delta += event.deltaY * 1;
+					break;
+
+				case 1:
+				// Zoom in lines
+					delta += event.deltaY * 0.4;
+					break;
+
+				default:
+				// undefined, 0, assume pixels
+					delta += event.deltaY * 0.01;
+					break;
+
+			}
+
+
 			if ( event.deltaY < 0 ) {
 
-				dollyIn( getZoomScale() );
+				dollyIn( getZoomScale(), delta * scope.zoomSpeed );
 
 			} else if ( event.deltaY > 0 ) {
 
-				dollyOut( getZoomScale() );
+				dollyOut( getZoomScale(), - delta * scope.zoomSpeed );
 
 			}
 
