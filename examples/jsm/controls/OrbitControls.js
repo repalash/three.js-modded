@@ -231,11 +231,10 @@ class OrbitControls extends EventDispatcher {
 					// spherical.radius += spherical.radius * sphericalDelta.radius * scope.dampingFactor;
 					spherical.radius *= 1 + sphericalDelta.radius * scope.dampingFactor;
 
-				} else {
-
-					spherical.radius *= scale;
-
 				}
+
+				spherical.radius *= scale;
+
 
 				// restrict radius to be between desired limits
 				spherical.radius = Math.max( scope.minDistance, Math.min( scope.maxDistance, spherical.radius ) );
@@ -265,7 +264,7 @@ class OrbitControls extends EventDispatcher {
 					Math.abs( sphericalDelta.theta ) +
 					Math.abs( sphericalDelta.phi ) +
 					Math.abs( sphericalDelta.radius ) +
-					Math.abs( panOffset.length() )
+					panOffset.length()
 				) > 0.001 ) {
 
 					sphericalDelta.theta *= ( 1 - scope.dampingFactor );
@@ -390,7 +389,7 @@ class OrbitControls extends EventDispatcher {
 
 		function getZoomScale() {
 
-			return Math.pow( 0.95, scope.zoomSpeed );
+			return scope.enableDamping ? 1 : Math.pow( 0.95, scope.zoomSpeed );
 
 		}
 
