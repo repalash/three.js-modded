@@ -13029,7 +13029,7 @@ class PlaneGeometry extends BufferGeometry {
 
 }
 
-var alphamap_fragment = "#ifdef USE_ALPHAMAP\n\tdiffuseColor.a *= texture2D( alphaMap, vUv ).g;\n#endif";
+var alphamap_fragment = "#ifdef USE_ALPHAMAP\n\t#if defined(INVERSE_ALPHAMAP) && INVERSE_ALPHAMAP >= 1\n\tdiffuseColor.a *= 1.0-texture2D( alphaMap, vUv ).g;\n\t#else\n\tdiffuseColor.a *= texture2D( alphaMap, vUv ).g;\n\t#endif\n#endif";
 
 var alphamap_pars_fragment = "#ifdef USE_ALPHAMAP\n\tuniform sampler2D alphaMap;\n#endif";
 
