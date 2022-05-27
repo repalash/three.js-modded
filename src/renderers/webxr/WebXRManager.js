@@ -13,7 +13,7 @@ import {
 	RGBAFormat,
 	sRGBEncoding,
 	UnsignedByteType,
-	UnsignedShortType,
+	UnsignedIntType,
 	UnsignedInt248Type,
 } from '../../constants.js';
 
@@ -130,6 +130,15 @@ class WebXRManager extends EventDispatcher {
 		}
 
 		function onSessionEnd() {
+
+			session.removeEventListener( 'select', onSessionEvent );
+			session.removeEventListener( 'selectstart', onSessionEvent );
+			session.removeEventListener( 'selectend', onSessionEvent );
+			session.removeEventListener( 'squeeze', onSessionEvent );
+			session.removeEventListener( 'squeezestart', onSessionEvent );
+			session.removeEventListener( 'squeezeend', onSessionEvent );
+			session.removeEventListener( 'end', onSessionEnd );
+			session.removeEventListener( 'inputsourceschange', onInputSourcesChange );
 
 			inputSourcesMap.forEach( function ( controller, inputSource ) {
 
@@ -283,7 +292,7 @@ class WebXRManager extends EventDispatcher {
 
 						glDepthFormat = attributes.stencil ? gl.DEPTH24_STENCIL8 : gl.DEPTH_COMPONENT24;
 						depthFormat = attributes.stencil ? DepthStencilFormat : DepthFormat;
-						depthType = attributes.stencil ? UnsignedInt248Type : UnsignedShortType;
+						depthType = attributes.stencil ? UnsignedInt248Type : UnsignedIntType;
 
 					}
 
@@ -321,6 +330,7 @@ class WebXRManager extends EventDispatcher {
 				// Set foveation to maximum.
 				this.setFoveation( 1.0 );
 
+				customReferenceSpace = null;
 				referenceSpace = await session.requestReferenceSpace( referenceSpaceType );
 
 				animation.setContext( session );
@@ -628,7 +638,16 @@ class WebXRManager extends EventDispatcher {
 
 					}
 
-					const camera = cameras[ i ];
+					let camera = cameras[ i ];
+
+					if ( camera === undefined ) {
+
+						camera = new PerspectiveCamera();
+						camera.layers.enable( i );
+						camera.viewport = new Vector4();
+						cameras[ i ] = camera;
+
+					}
 
 					camera.matrix.fromArray( view.transform.matrix );
 					camera.projectionMatrix.fromArray( view.projectionMatrix );
