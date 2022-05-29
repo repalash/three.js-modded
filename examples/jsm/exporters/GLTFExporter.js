@@ -759,7 +759,7 @@ class GLTFWriter {
 		const width = Math.max( metalness ? metalness.width : 0, roughness ? roughness.width : 0 );
 		const height = Math.max( metalness ? metalness.height : 0, roughness ? roughness.height : 0 );
 
-		const canvas = getCanvas();
+		const canvas = document.createElement( 'canvas' ); // todo: dispose this canvas when exporter is done
 		canvas.width = width;
 		canvas.height = height;
 
