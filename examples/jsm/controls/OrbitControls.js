@@ -260,6 +260,8 @@ class OrbitControls extends EventDispatcher {
 
 				scope.object.lookAt( scope.target );
 
+				let isDamping = false;
+
 				if ( scope.enableDamping === true && (
 					Math.abs( sphericalDelta.theta ) +
 					Math.abs( sphericalDelta.phi ) +
@@ -272,6 +274,8 @@ class OrbitControls extends EventDispatcher {
 					sphericalDelta.radius *= ( 1 - scope.dampingFactor );
 
 					panOffset.multiplyScalar( 1 - scope.dampingFactor );
+
+					isDamping = true;
 
 				} else {
 
@@ -288,6 +292,7 @@ class OrbitControls extends EventDispatcher {
 				// using small-angle approximation cos(x/2) = 1 - x^2 / 8
 
 				if ( zoomChanged ||
+					isDamping ||
 					lastPosition.distanceToSquared( scope.object.position ) > EPS ||
 					8 * ( 1 - lastQuaternion.dot( scope.object.quaternion ) ) > EPS ) {
 
