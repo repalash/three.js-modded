@@ -540,6 +540,18 @@ class OrbitControls extends EventDispatcher {
 
 		}
 
+		this.zoomIn = function ( delta ) {
+
+			dollyOut( getZoomScale(), delta * scope.zoomSpeed );
+
+		};
+
+		this.zoomOut = function ( delta ) {
+
+			dollyIn( getZoomScale(), delta * scope.zoomSpeed );
+
+		};
+
 		//
 		// event callbacks - update the object state
 		//
