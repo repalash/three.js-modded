@@ -1029,8 +1029,6 @@ class OrbitControls extends EventDispatcher {
 
 		function onMouseMove( event ) {
 
-			if ( scope.enabled === false ) return;
-
 			switch ( state ) {
 
 				case STATE.ROTATE:
