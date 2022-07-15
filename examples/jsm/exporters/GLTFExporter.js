@@ -78,6 +78,12 @@ class GLTFExporter {
 
 		} );
 
+		this.register( function ( writer ) {
+
+			return new GLTFMaterialsIorExtension( writer );
+
+		} );
+
 	}
 
 	register( callback ) {
@@ -749,7 +755,7 @@ class GLTFWriter {
 
 					return ( c < 0.04045 ) ? c * 0.0773993808 : Math.pow( c * 0.9478672986 + 0.0521327014, 2.4 );
 
-				}
+				};
 
 			}
 
@@ -757,7 +763,7 @@ class GLTFWriter {
 
 				return c;
 
-			}
+			};
 
 		}
 
@@ -1256,9 +1262,15 @@ class GLTFWriter {
 
 		const implTypes = [ 'image/jpeg', 'image/png' ];
 
+		if ( mimeType && ! implTypes.includes( mimeType ) ) {
+
+			console.error( 'GLTFExporter: Unsupported mime type: ' + mimeType + '. Cannot export texture.', map );
+
+		}
+
 		const textureDef = {
 			sampler: this.processSampler( map ),
-			source: implTypes.includes( mimeType ) ? this.processImage( map.image, map.format, map.flipY, mimeType ) : null
+			source: ( ! mimeType || implTypes.includes( mimeType ) ) ? this.processImage( map.image, map.format, map.flipY, mimeType ) : null
 		};
 
 		if ( map.name ) textureDef.name = map.name;
@@ -2632,6 +2644,40 @@ class GLTFMaterialsSheenExtension {
 
 		extensionsUsed[ this.name ] = true;
 
+
+	}
+
+}
+
+/**
+ * Materials ior Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_ior
+ */
+class GLTFMaterialsIorExtension {
+
+	constructor( writer ) {
+
+		this.writer = writer;
+		this.name = 'KHR_materials_ior';
+
+	}
+
+	writeMaterial( material, materialDef ) {
+
+		if ( ! material.isMeshPhysicalMaterial ) return;
+
+		const writer = this.writer;
+		const extensionsUsed = writer.extensionsUsed;
+
+		const extensionDef = {};
+
+		extensionDef.ior = material.ior;
+
+		materialDef.extensions = materialDef.extensions || {};
+		materialDef.extensions[ this.name ] = extensionDef;
+
+		extensionsUsed[ this.name ] = true;
 
 	}
 
