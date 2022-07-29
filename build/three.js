@@ -5855,7 +5855,17 @@
 			this.userData = {};
 		}
 
-		onBeforeRender() {}
+		onBeforeRender(renderer, scene, camera, geometry, material, group) {
+			this.dispatchEvent({
+				type: 'beforeRender',
+				renderer,
+				scene,
+				camera,
+				geometry,
+				material,
+				group
+			});
+		}
 
 		onAfterRender() {}
 

@@ -7540,7 +7540,11 @@ class Object3D extends EventDispatcher {
 
 	}
 
-	onBeforeRender( /* renderer, scene, camera, geometry, material, group */ ) {}
+	onBeforeRender( renderer, scene, camera, geometry, material, group ) {
+
+		this.dispatchEvent( { type: 'beforeRender', renderer, scene, camera, geometry, material, group } );
+
+	}
 
 	onAfterRender( /* renderer, scene, camera, geometry, material, group */ ) {}
 
