@@ -3116,17 +3116,46 @@ class GLTFParser {
 
 			texture.flipY = false;
 
-			if ( sourceDef.extras && sourceDef.extras.flipY ) {
+			if ( sourceDef.extras ) {
 
-				texture.flipY = sourceDef.extras.flipY;
+				if ( sourceDef.extras.flipY !== undefined ) { // we still need to handle this for externally loaded textures, which cannot be flipped during export
+
+					// https://github.com/mrdoob/three.js/issues/16144
+					if ( loader.isImageBitmapLoader === true && typeof createImageBitmap !== undefined ) {
+
+						const t1 = texture;
+						const flip = sourceDef.extras.flipY && ! t1.flipY;
+						createImageBitmap( t1.source.data, {
+							imageOrientation: flip ? 'flipY' : 'none',
+						} ).then( function ( imageBitmap ) { // this is a terrible hack, todo: find a better way
+
+							if ( t1.source.data.close ) t1.source.data.close();
+							t1.source.data = imageBitmap;
+							t1.source.needsUpdate = true;
+							t1.needsUpdate = true;
+
+						} );
+
+					}
+
+					texture.flipY = sourceDef.extras.flipY;
+					texture.needsUpdate = true;
+
+					delete sourceDef.extras.flipY;
+
+				}
+
+				if ( sourceDef.extras.uuid !== undefined ) {
+
+					texture.uuid = sourceDef.extras.uuid;
+					delete sourceDef.extras.uuid;
+
+				}
 
 			}
 
-			if ( sourceDef.uri && typeof sourceDef.uri === 'string' ) {
-
+			if ( sourceDef.uri && typeof sourceDef.uri === 'string' )
 				texture.userData.rootPath = sourceDef.uri;
-
-			}
 
 			return texture;
 
