@@ -17081,6 +17081,7 @@ function WebGLTextures(_gl, extensions, state, properties, capabilities, utils, 
 		state.bindTexture(textureType, textureProperties.__webglTexture);
 
 		if (source.version !== source.__currentVersion || forceUpload === true) {
+			// Note: flipY, premultiplyAlpha does not work for ImageBitmap, it must be set while creating the image with createImageBitmap (see https://threejs.org/docs/index.html#api/en/loaders/ImageBitmapLoader , https://github.com/mrdoob/three.js/issues/16144)
 			_gl.pixelStorei(_gl.UNPACK_FLIP_Y_WEBGL, texture.flipY);
 
 			_gl.pixelStorei(_gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, texture.premultiplyAlpha);
