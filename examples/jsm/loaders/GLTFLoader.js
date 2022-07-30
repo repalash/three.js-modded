@@ -3014,8 +3014,6 @@ class GLTFParser {
 
 		const promise = this.loadImageSource( sourceIndex, loader ).then( function ( texture ) {
 
-			texture.flipY = false;
-
 			if ( textureDef.name ) texture.name = textureDef.name;
 
 			const samplers = json.samplers || {};
@@ -3042,6 +3040,7 @@ class GLTFParser {
 
 	}
 
+	// do not call this from any extension.
 	loadImageSource( sourceIndex, loader ) {
 
 		const parser = this;
@@ -3114,6 +3113,20 @@ class GLTFParser {
 			}
 
 			texture.userData.mimeType = sourceDef.mimeType || getImageURIMimeType( sourceDef.uri );
+
+			texture.flipY = false;
+
+			if ( sourceDef.extras && sourceDef.extras.flipY ) {
+
+				texture.flipY = sourceDef.extras.flipY;
+
+			}
+
+			if ( sourceDef.uri && typeof sourceDef.uri === 'string' ) {
+
+				texture.userData.rootPath = sourceDef.uri;
+
+			}
 
 			return texture;
 
