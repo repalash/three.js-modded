@@ -3024,6 +3024,17 @@ class GLTFParser {
 			texture.wrapS = WEBGL_WRAPPINGS[ sampler.wrapS ] || RepeatWrapping;
 			texture.wrapT = WEBGL_WRAPPINGS[ sampler.wrapT ] || RepeatWrapping;
 
+			if ( sampler.extras ) {
+
+				if ( sampler.extras.uuid !== undefined ) {
+
+					texture.uuid = sampler.extras.uuid;
+					// delete sampler.extras.uuid; // do not delete this. It can be read for finding texture references by uuid in after parse. Also sampler extras is not copied to user data to no problem.
+
+				}
+
+			}
+
 			parser.associations.set( texture, { textures: textureIndex } );
 
 			return texture;
@@ -3147,8 +3158,15 @@ class GLTFParser {
 
 				if ( sourceDef.extras.uuid !== undefined ) {
 
-					texture.uuid = sourceDef.extras.uuid;
-					delete sourceDef.extras.uuid;
+					texture.source.uuid = sourceDef.extras.uuid;
+					// delete sourceDef.extras.uuid; // do not delete
+
+				}
+
+				if ( sourceDef.extras.t_uuid !== undefined ) {
+
+					texture.uuid = sourceDef.extras.t_uuid;
+					// delete sourceDef.extras.t_uuid; // do not delete
 
 				}
 
