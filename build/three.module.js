@@ -40795,6 +40795,7 @@ class LightShadow {
 		this.camera = source.camera.clone();
 
 		this.bias = source.bias;
+		this.normalBias = source.normalBias;
 		this.radius = source.radius;
 
 		this.mapSize.copy( source.mapSize );
