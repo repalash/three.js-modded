@@ -42,6 +42,8 @@ class OrbitControls extends EventDispatcher {
 		this.minDistance = 0.01;
 		this.maxDistance = Infinity;
 
+		this.autoPushTarget = true; // push target when zoomed even after minDistance
+
 		// How far you can zoom in and out ( OrthographicCamera only )
 		this.minZoom = 0;
 		this.maxZoom = Infinity;
@@ -233,8 +235,12 @@ class OrbitControls extends EventDispatcher {
 
 				}
 
-				spherical.radius *= scale;
+				spherical.radius *= scale; // this will be used when using touch, otherwise it will be 1.
 
+				let pushDelta = 0;
+				// push target
+				if ( scope.autoPushTarget && spherical.radius < scope.minDistance )
+					pushDelta = scope.minDistance - spherical.radius;
 
 				// restrict radius to be between desired limits
 				spherical.radius = Math.max( scope.minDistance, Math.min( scope.maxDistance, spherical.radius ) );
@@ -257,6 +263,8 @@ class OrbitControls extends EventDispatcher {
 				offset.applyQuaternion( quatInverse );
 
 				position.copy( scope.target ).add( offset );
+
+				scope.target.add( offset.normalize().multiplyScalar( - pushDelta ) );
 
 				scope.object.lookAt( scope.target );
 
