@@ -24063,15 +24063,24 @@ function WebGLTextures( _gl, extensions, state, properties, capabilities, utils,
 		const supportsMips = isPowerOfTwo$1( renderTarget ) || isWebGL2;
 
 		const textures = renderTarget.isWebGLMultipleRenderTargets === true ? renderTarget.texture : [ renderTarget.texture ];
+		const target = renderTarget.isWebGLCubeRenderTarget ? 34067 : 3553;
 
 		for ( let i = 0, il = textures.length; i < il; i ++ ) {
 
 			const texture = textures[ i ];
+			const textureProperties = properties.get( texture );
+			const webglTexture = textureProperties.__webglTexture;
+
+			if ( textureProperties.__version !== texture.version ) { // needsUpdate called after generateMipmaps change,
+
+				state.bindTexture( target, webglTexture );
+				setTextureParameters( target, texture, supportsMips );
+				state.unbindTexture();
+				textureProperties.__version = texture.version;
+
+			}
 
 			if ( textureNeedsGenerateMipmaps( texture, supportsMips ) ) {
-
-				const target = renderTarget.isWebGLCubeRenderTarget ? 34067 : 3553;
-				const webglTexture = properties.get( texture ).__webglTexture;
 
 				state.bindTexture( target, webglTexture );
 				generateMipmap( target );
@@ -27892,7 +27901,38 @@ function WebGLRenderer( parameters = {} ) {
 
 				if ( ! _transmissionRenderTarget ) _transmissionRenderTarget = new WebGLRenderTarget( 1, 1 );
 
+				const texture = _this.userData.transmissionRenderTarget.texture;
+				const isWebGL2 = capabilities.isWebGL2;
+
+				const generateMipmaps = texture.generateMipmaps;
+				const minFilter = texture.minFilter;
+				// const magFilter = texture.magFilter;
+
+				if ( isWebGL2 && _this.userData.blurTransmissionTarget ) {
+
+					texture.generateMipmaps = true;
+					texture.minFilter = LinearMipmapLinearFilter;
+					// texture.magFilter = LinearMipmapLinearFilter;
+					texture.needsUpdate = true;
+
+					// textures.updateMultisampleRenderTarget( _this.userData.transmissionRenderTarget ); // todo?
+					textures.updateRenderTargetMipmap( _this.userData.transmissionRenderTarget );
+
+				}
+
 				renderObjects( transmissiveObjects, scene, camera );
+
+				if ( isWebGL2 && _this.userData.blurTransmissionTarget ) {
+
+					texture.generateMipmaps = generateMipmaps;
+					texture.minFilter = minFilter;
+					// texture.magFilter = magFilter;
+					texture.needsUpdate = true;
+
+					// textures.updateMultisampleRenderTarget( _this.userData.transmissionRenderTarget ); // todo?
+					textures.updateRenderTargetMipmap( _this.userData.transmissionRenderTarget );
+
+				}
 
 			}
 
@@ -27910,6 +27950,8 @@ function WebGLRenderer( parameters = {} ) {
 	}
 
 	function renderTransmissionPass( opaqueObjects, scene, camera ) {
+
+		console.error( 'three.js internal render transmission pass should not be called' );
 
 		const isWebGL2 = capabilities.isWebGL2;
 
