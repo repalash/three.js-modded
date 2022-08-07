@@ -1706,15 +1706,24 @@ function WebGLTextures( _gl, extensions, state, properties, capabilities, utils,
 		const supportsMips = isPowerOfTwo( renderTarget ) || isWebGL2;
 
 		const textures = renderTarget.isWebGLMultipleRenderTargets === true ? renderTarget.texture : [ renderTarget.texture ];
+		const target = renderTarget.isWebGLCubeRenderTarget ? _gl.TEXTURE_CUBE_MAP : _gl.TEXTURE_2D;
 
 		for ( let i = 0, il = textures.length; i < il; i ++ ) {
 
 			const texture = textures[ i ];
+			const textureProperties = properties.get( texture );
+			const webglTexture = textureProperties.__webglTexture;
+
+			if ( textureProperties.__version !== texture.version ) { // needsUpdate called after generateMipmaps change,
+
+				state.bindTexture( target, webglTexture );
+				setTextureParameters( target, texture, supportsMips );
+				state.unbindTexture();
+				textureProperties.__version = texture.version;
+
+			}
 
 			if ( textureNeedsGenerateMipmaps( texture, supportsMips ) ) {
-
-				const target = renderTarget.isWebGLCubeRenderTarget ? _gl.TEXTURE_CUBE_MAP : _gl.TEXTURE_2D;
-				const webglTexture = properties.get( texture ).__webglTexture;
 
 				state.bindTexture( target, webglTexture );
 				generateMipmap( target );

@@ -1249,7 +1249,38 @@ function WebGLRenderer( parameters = {} ) {
 
 				if ( ! _transmissionRenderTarget ) _transmissionRenderTarget = new WebGLRenderTarget( 1, 1 );
 
+				const texture = _this.userData.transmissionRenderTarget.texture;
+				const isWebGL2 = capabilities.isWebGL2;
+
+				const generateMipmaps = texture.generateMipmaps;
+				const minFilter = texture.minFilter;
+				// const magFilter = texture.magFilter;
+
+				if ( isWebGL2 && _this.userData.blurTransmissionTarget ) {
+
+					texture.generateMipmaps = true;
+					texture.minFilter = LinearMipmapLinearFilter;
+					// texture.magFilter = LinearMipmapLinearFilter;
+					texture.needsUpdate = true;
+
+					// textures.updateMultisampleRenderTarget( _this.userData.transmissionRenderTarget ); // todo?
+					textures.updateRenderTargetMipmap( _this.userData.transmissionRenderTarget );
+
+				}
+
 				renderObjects( transmissiveObjects, scene, camera );
+
+				if ( isWebGL2 && _this.userData.blurTransmissionTarget ) {
+
+					texture.generateMipmaps = generateMipmaps;
+					texture.minFilter = minFilter;
+					// texture.magFilter = magFilter;
+					texture.needsUpdate = true;
+
+					// textures.updateMultisampleRenderTarget( _this.userData.transmissionRenderTarget ); // todo?
+					textures.updateRenderTargetMipmap( _this.userData.transmissionRenderTarget );
+
+				}
 
 			}
 
@@ -1267,6 +1298,8 @@ function WebGLRenderer( parameters = {} ) {
 	}
 
 	function renderTransmissionPass( opaqueObjects, scene, camera ) {
+
+		console.error( 'three.js internal render transmission pass should not be called' );
 
 		const isWebGL2 = capabilities.isWebGL2;
 
