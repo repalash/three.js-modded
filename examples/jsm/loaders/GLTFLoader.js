@@ -1567,6 +1567,7 @@ class GLTFTextureTransformExtension {
 		if ( transform.rotation !== undefined ) {
 
 			texture.rotation = transform.rotation;
+			// texture.center.set( 0.5, 0.5 ); // todo: texture center is not saved in gltf.
 
 		}
 

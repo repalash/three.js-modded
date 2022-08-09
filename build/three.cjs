@@ -1741,7 +1741,7 @@ Color.NAMES = _colorKeywords;
 let _canvas;
 
 class ImageUtils {
-	static getDataURL(image) {
+	static getDataURL(image, forcePng = false) {
 		if (/^data:/i.test(image.src)) {
 			return image.src;
 		}
@@ -1770,7 +1770,7 @@ class ImageUtils {
 			canvas = _canvas;
 		}
 
-		if (canvas.width > 2048 || canvas.height > 2048) {
+		if (!forcePng && (canvas.width > 2048 || canvas.height > 2048)) {
 			console.warn('THREE.ImageUtils.getDataURL: Image converted to jpg for performance reasons', image);
 			return canvas.toDataURL('image/jpeg', 0.6);
 		} else {
@@ -1882,8 +1882,17 @@ function serializeImage(image) {
 	} else {
 		if (image.data) {
 			// images of DataTexture
+			let data = [];
+
+			try {
+				data = Array.from(image.data);
+			} catch (e) {
+				if (e.message.includes('Invalid array length')) console.warn('Serializing large texture, might not be saved in JSON structure.');else console.error(e);
+				data = image.data;
+			}
+
 			return {
-				data: Array.from(image.data),
+				data: data,
 				width: image.width,
 				height: image.height,
 				type: image.data.constructor.name
