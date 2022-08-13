@@ -68,6 +68,7 @@ class OrbitControls extends EventDispatcher {
 		this.enableZoom = true;
 		this.zoomSpeed = 1.0;
 		this.maxZoomSpeed = 1.0; // only used while damping
+		this.dollyZoom = false; // only for PerspectiveCamera, control zoom with wheel.
 
 		// Set to false to disable rotating
 		this.enableRotate = true;
@@ -228,14 +229,38 @@ class OrbitControls extends EventDispatcher {
 				spherical.makeSafe();
 
 
-				if ( scope.enableDamping ) {
+				if ( Math.abs( sphericalDelta.radius ) > 0 ) {
+
+					if ( scope.dollyZoom ) {
+
+						scope.object.zoom = Math.max( Math.max( scope.minZoom, 0.1 ), Math.min( Math.min( scope.maxZoom, 20 ), scope.object.zoom * ( 1 + sphericalDelta.radius * ( scope.enableDamping ? scope.dampingFactor : 1 ) ) ) );
+						scope.object.updateProjectionMatrix();
+
+						if ( scope.object.zoom >= Math.min( scope.maxZoom, 20 ) || scope.object.zoom <= Math.max( scope.minZoom, 0.1 ) )
+							sphericalDelta.radius = 0;
+
+					}
 
 					// spherical.radius += spherical.radius * sphericalDelta.radius * scope.dampingFactor;
-					spherical.radius *= 1 + sphericalDelta.radius * scope.dampingFactor;
+					spherical.radius *= 1 + sphericalDelta.radius * ( scope.enableDamping ? scope.dampingFactor : 1 );
 
 				}
 
-				spherical.radius *= scale; // this will be used when using touch, otherwise it will be 1.
+				if ( Math.abs( scale - 1 ) > 0.00001 ) { // this will be used when using touch, otherwise it will be 1.
+
+					if ( scope.dollyZoom ) {
+
+						scope.object.zoom = Math.max( Math.max( scope.minZoom, 0.1 ), Math.min( Math.min( scope.maxZoom, 20 ), scope.object.zoom * scale ) );
+						scope.object.updateProjectionMatrix();
+
+						if ( scope.object.zoom >= Math.min( scope.maxZoom, 20 ) || scope.object.zoom <= Math.max( scope.minZoom, 0.1 ) )
+							scale = 1;
+
+					}
+
+					spherical.radius *= scale;
+
+				}
 
 				let pushDelta = 0;
 				// push target
@@ -507,8 +532,7 @@ class OrbitControls extends EventDispatcher {
 			if ( scope.object.isPerspectiveCamera ) {
 
 				scale /= dollyScale;
-				sphericalDelta.radius -= delta;
-				sphericalDelta.radius = Math.max( - scope.maxZoomSpeed, Math.min( scope.maxZoomSpeed, sphericalDelta.radius ) );
+				sphericalDelta.radius = Math.max( - scope.maxZoomSpeed, Math.min( scope.maxZoomSpeed, sphericalDelta.radius - delta ) );
 
 			} else if ( scope.object.isOrthographicCamera ) {
 
@@ -530,8 +554,7 @@ class OrbitControls extends EventDispatcher {
 			if ( scope.object.isPerspectiveCamera ) {
 
 				scale *= dollyScale;
-				sphericalDelta.radius += delta;
-				sphericalDelta.radius = Math.max( - scope.maxZoomSpeed, Math.min( scope.maxZoomSpeed, sphericalDelta.radius ) );
+				sphericalDelta.radius = Math.max( - scope.maxZoomSpeed, Math.min( scope.maxZoomSpeed, sphericalDelta.radius + delta ) );
 
 			} else if ( scope.object.isOrthographicCamera ) {
 
@@ -550,13 +573,13 @@ class OrbitControls extends EventDispatcher {
 
 		this.zoomIn = function ( delta ) {
 
-			dollyOut( getZoomScale(), delta * scope.zoomSpeed );
+			dollyOut( 1, delta * scope.zoomSpeed );
 
 		};
 
 		this.zoomOut = function ( delta ) {
 
-			dollyIn( getZoomScale(), delta * scope.zoomSpeed );
+			dollyIn( 1, delta * scope.zoomSpeed );
 
 		};
 
@@ -662,11 +685,11 @@ class OrbitControls extends EventDispatcher {
 
 			if ( event.deltaY < 0 ) {
 
-				dollyIn( getZoomScale(), delta * scope.zoomSpeed );
+				dollyIn( 1, delta * scope.zoomSpeed );
 
 			} else if ( event.deltaY > 0 ) {
 
-				dollyOut( getZoomScale(), - delta * scope.zoomSpeed );
+				dollyOut( 1, - delta * scope.zoomSpeed );
 
 			}
 
