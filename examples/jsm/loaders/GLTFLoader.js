@@ -3110,7 +3110,19 @@ class GLTFParser {
 
 				}
 
-				loader.load( LoaderUtils.resolveURL( sourceURI, options.path ), onLoad, undefined, reject );
+				loader.load( LoaderUtils.resolveURL( sourceURI, options.path ), onLoad, undefined, function ( e ) {
+
+					if ( loader.isImageBitmapLoader === true ) { // special check in-case ImageBitmapLoader fails, like with loading SVGs
+
+						loader = new TextureLoader( parser.options.manager ); // todo: instead get handler from loading manager, so that we can load HDR files also
+						onLoad = resolve;
+						loader.setCrossOrigin( parser.options.crossOrigin );
+						loader.setRequestHeader( parser.options.requestHeader );
+						loader.load( LoaderUtils.resolveURL( sourceURI, options.path ), onLoad, undefined, reject );
+
+					} else reject( e );
+
+				} );
 
 			} );
 
@@ -3400,7 +3412,11 @@ class GLTFParser {
 
 			}
 
+			console.log( metallicRoughness );
+
 			if ( metallicRoughness.baseColorTexture !== undefined ) {
+
+				console.log( materialParams );
 
 				pending.push( parser.assignTexture( materialParams, 'map', metallicRoughness.baseColorTexture, sRGBEncoding ) );
 
