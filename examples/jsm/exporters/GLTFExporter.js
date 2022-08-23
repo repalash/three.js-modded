@@ -23,7 +23,6 @@ import {
 	Vector3
 } from 'three';
 
-
 class GLTFExporter {
 
 	constructor() {
@@ -118,14 +117,6 @@ class GLTFExporter {
 	 * @param  {Object} options options
 	 */
 	parse( input, onDone, onError, options, gltfWriter ) {
-
-		if ( typeof onError === 'object' ) {
-
-			console.warn( 'THREE.GLTFExporter: parse() expects options as the fourth argument now.' );
-
-			options = onError;
-
-		}
 
 		const writer = gltfWriter || new GLTFWriter();
 		const plugins = [];
@@ -1514,12 +1505,6 @@ class GLTFWriter {
 		} else {
 
 			mode = mesh.material.wireframe ? WEBGL_CONSTANTS.LINES : WEBGL_CONSTANTS.TRIANGLES;
-
-		}
-
-		if ( geometry.isBufferGeometry !== true ) {
-
-			throw new Error( 'THREE.GLTFExporter: Geometry is not of type THREE.BufferGeometry.' );
 
 		}
 

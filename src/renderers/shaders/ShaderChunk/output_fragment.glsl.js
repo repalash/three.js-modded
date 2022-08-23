@@ -5,7 +5,7 @@ diffuseColor.a = 1.0;
 
 // https://github.com/mrdoob/three.js/pull/22425
 #ifdef USE_TRANSMISSION
-diffuseColor.a *= transmissionAlpha + 0.1;
+diffuseColor.a *= material.transmissionAlpha + 0.1;
 diffuseColor.a = min(max(diffuseColor.a, 0.), 1.);
 #endif
 

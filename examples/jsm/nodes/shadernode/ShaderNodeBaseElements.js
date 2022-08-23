@@ -11,7 +11,7 @@ import InstanceIndexNode from '../core/InstanceIndexNode.js';
 import PropertyNode from '../core/PropertyNode.js';
 import UniformNode from '../core/UniformNode.js';
 import VarNode from '../core/VarNode.js';
-import VaryNode from '../core/VaryNode.js';
+import VaryingNode from '../core/VaryingNode.js';
 
 // accessors
 import BufferNode from '../accessors/BufferNode.js';
@@ -87,12 +87,12 @@ export const bmat4 = new ConvertType( 'bmat4' );
 
 // @TODO: ArrayUniformNode
 
-export const func = ( code ) => {
+export const func = ( code, includes ) => {
 
-	const node = nodeObject( new FunctionNode( code ) );
+	const node = nodeObject( new FunctionNode( code, includes ) );
 
 	const call = node.call.bind( node );
-	node.call = ( params ) => nodeObject( call( params ) );
+	node.call = ( ...params ) => nodeObject( call( params.length > 1 || params[ 0 ]?.isNode === true ? nodeArray( params ) : nodeObjects( params[ 0 ] ) ) );
 
 	return node;
 
@@ -109,6 +109,8 @@ export const uniform = ( nodeOrType ) => {
 
 };
 
+export const fn = ( code, includes ) => func( code, includes ).call;
+
 export const attribute = ( name, nodeType ) => nodeObject( new AttributeNode( name, nodeType ) );
 export const property = ( name, nodeOrType ) => nodeObject( new PropertyNode( name, getConstNodeType( nodeOrType ) ) );
 
@@ -120,7 +122,7 @@ export const call = nodeProxy( FunctionCallNode );
 export const instanceIndex = nodeImmutable( InstanceIndexNode );
 export const label = nodeProxy( VarNode );
 export const temp = label;
-export const vary = nodeProxy( VaryNode );
+export const varying = nodeProxy( VaryingNode );
 
 // accesors
 
