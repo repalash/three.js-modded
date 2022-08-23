@@ -3412,11 +3412,7 @@ class GLTFParser {
 
 			}
 
-			console.log( metallicRoughness );
-
 			if ( metallicRoughness.baseColorTexture !== undefined ) {
-
-				console.log( materialParams );
 
 				pending.push( parser.assignTexture( materialParams, 'map', metallicRoughness.baseColorTexture, sRGBEncoding ) );
 
