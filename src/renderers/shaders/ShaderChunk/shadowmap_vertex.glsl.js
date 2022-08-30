@@ -1,5 +1,5 @@
 export default /* glsl */`
-#ifdef USE_SHADOWMAP
+#if defined( USE_SHADOWMAP )
 
 	#if NUM_DIR_LIGHT_SHADOWS > 0 || NUM_SPOT_LIGHT_SHADOWS > 0 || NUM_POINT_LIGHT_SHADOWS > 0
 
@@ -27,8 +27,11 @@ export default /* glsl */`
 	#pragma unroll_loop_start
 	for ( int i = 0; i < NUM_SPOT_LIGHT_SHADOWS; i ++ ) {
 
-		shadowWorldPosition = worldPosition + vec4( shadowWorldNormal * spotLightShadows[ i ].shadowNormalBias, 0 );
-		vSpotShadowCoord[ i ] = spotShadowMatrix[ i ] * shadowWorldPosition;
+		shadowWorldPosition = worldPosition;
+		#if ( UNROLLED_LOOP_INDEX < NUM_SPOT_LIGHT_SHADOWS )
+			shadowWorldPosition.xyz += shadowWorldNormal * spotLightShadows[ i ].shadowNormalBias;
+		#endif
+		vSpotLightCoord[ i ] = spotLightMatrix[ i ] * shadowWorldPosition;
 
 	}
 	#pragma unroll_loop_end

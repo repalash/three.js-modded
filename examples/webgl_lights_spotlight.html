@@ -19,7 +19,8 @@
 		<script type="importmap">
 			{
 				"imports": {
-					"three": "../build/three.module.js"
+					"three": "../build/three.module.js",
+					"three/addons/": "./jsm/"
 				}
 			}
 		</script>
@@ -28,13 +29,15 @@
 
 			import * as THREE from 'three';
 
-			import { GUI } from './jsm/libs/lil-gui.module.min.js';
+			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 
-			import { OrbitControls } from './jsm/controls/OrbitControls.js';
+			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 			let renderer, scene, camera;
 
 			let spotLight, lightHelper, shadowCameraHelper;
+
+			let textures = { none: null };
 
 			let gui;
 
@@ -43,12 +46,11 @@
 				renderer = new THREE.WebGLRenderer();
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
-				document.body.appendChild( renderer.domElement );
-
 				renderer.shadowMap.enabled = true;
-
 				renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 				renderer.outputEncoding = THREE.sRGBEncoding;
+				document.body.appendChild( renderer.domElement );
+
 
 				scene = new THREE.Scene();
 
@@ -59,10 +61,24 @@
 				controls.addEventListener( 'change', render );
 				controls.minDistance = 20;
 				controls.maxDistance = 500;
-				controls.enablePan = false;
 
 				const ambient = new THREE.AmbientLight( 0xffffff, 0.1 );
 				scene.add( ambient );
+
+				const loader = new THREE.TextureLoader().setPath( 'textures/' );
+				const filenames = [ 'uv_grid_opengl.jpg', 'sprite2.png', 'colors.png' ];
+
+				for ( let i = 0; i < filenames.length; i ++ ) {
+
+					const filename = filenames[ i ];
+
+					const texture = loader.load( filename );
+					texture.minFilter = THREE.LinearFilter;
+					texture.magFilter = THREE.LinearFilter;
+
+					textures[ filename ] = texture;
+
+				}
 
 				spotLight = new THREE.SpotLight( 0xffffff, 1 );
 				spotLight.position.set( 15, 40, 35 );
@@ -83,6 +99,7 @@
 				scene.add( lightHelper );
 
 				shadowCameraHelper = new THREE.CameraHelper( spotLight.shadow.camera );
+				shadowCameraHelper.visible = false;
 				scene.add( shadowCameraHelper );
 
 				//
@@ -121,6 +138,8 @@
 
 				renderer.setSize( window.innerWidth, window.innerHeight );
 
+				render();
+
 			}
 
 			function render() {
@@ -144,7 +163,9 @@
 					angle: spotLight.angle,
 					penumbra: spotLight.penumbra,
 					decay: spotLight.decay,
-					focus: spotLight.shadow.focus
+					focus: spotLight.shadow.focus,
+					map: 'none',
+					'shadow camera': false
 				};
 
 				gui.addColor( params, 'light color' ).onChange( function ( val ) {
@@ -193,6 +214,20 @@
 				gui.add( params, 'focus', 0, 1 ).onChange( function ( val ) {
 
 					spotLight.shadow.focus = val;
+					render();
+
+				} );
+
+				gui.add( params, 'map', textures ).onChange( function ( val ) {
+
+					spotLight.map = val;
+					render();
+
+				} );
+
+				gui.add( params, 'shadow camera' ).onChange( function ( val ) {
+
+					shadowCameraHelper.visible = val;
 					render();
 
 				} );
