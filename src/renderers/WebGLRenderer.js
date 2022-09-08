@@ -1430,6 +1430,7 @@ function WebGLRenderer( parameters = {} ) {
 		}
 
 		object.onAfterRender( _this, scene, camera, geometry, material, group );
+		material.onAfterRender( _this, scene, camera, geometry, object, group );
 
 	}
 
