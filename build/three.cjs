@@ -6749,6 +6749,8 @@ class Material extends EventDispatcher {
 
 	onBeforeRender() {}
 
+	onAfterRender() {}
+
 	onBeforeCompile() {}
 
 	customProgramCacheKey() {
@@ -20477,6 +20479,7 @@ function WebGLRenderer(parameters = {}) {
 		}
 
 		object.onAfterRender(_this, scene, camera, geometry, material, group);
+		material.onAfterRender(_this, scene, camera, geometry, object, group);
 	}
 
 	function getProgram(material, scene, object) {
