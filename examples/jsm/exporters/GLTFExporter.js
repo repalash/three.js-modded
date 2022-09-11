@@ -1084,7 +1084,7 @@ class GLTFWriter {
 
 		};
 
-		if ( attribute.normalized === true ) accessorDef.normalized = true;
+		// if ( attribute.normalized === true ) accessorDef.normalized = true; // getters are always returning non-normalized attributes.
 		if ( ! json.accessors ) json.accessors = [];
 
 		return json.accessors.push( accessorDef ) - 1;
