@@ -395,7 +395,7 @@ class OrbitControls extends EventDispatcher {
 
 		// current position in spherical coordinates
 		const spherical = new Spherical();
-		const sphericalDelta = new Spherical();
+		const sphericalDelta = new Spherical( 0, 0, 0 );
 
 		let scale = 1;
 		const panOffset = new Vector3();
