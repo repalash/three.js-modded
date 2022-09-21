@@ -3088,6 +3088,7 @@ class GLTFParser {
 
 		let sourceURI = sourceDef.uri || '';
 		let isObjectURL = false;
+		let sourceBlob = null;
 
 		if ( sourceDef.bufferView !== undefined ) {
 
@@ -3098,6 +3099,7 @@ class GLTFParser {
 				isObjectURL = true;
 				const blob = new Blob( [ bufferView ], { type: sourceDef.mimeType } );
 				sourceURI = URL.createObjectURL( blob );
+				sourceBlob = blob;
 				return sourceURI;
 
 			} );
@@ -3132,7 +3134,7 @@ class GLTFParser {
 					if ( loader.isImageBitmapLoader === true ) { // special check in-case ImageBitmapLoader fails, like with loading SVGs
 
 						loader = new TextureLoader( parser.options.manager ); // todo: instead get handler from loading manager, so that we can load HDR files also
-						onLoad = resolve;
+						onLoad = resolve; // reset from override done above for ImageBitmapLoader
 						loader.setCrossOrigin( parser.options.crossOrigin );
 						loader.setRequestHeader( parser.options.requestHeader );
 						loader.load( LoaderUtils.resolveURL( sourceURI, options.path ), onLoad, undefined, reject );
@@ -3204,6 +3206,8 @@ class GLTFParser {
 
 			if ( sourceDef.uri && typeof sourceDef.uri === 'string' )
 				texture.userData.rootPath = sourceDef.uri;
+
+			if ( sourceBlob ) texture.userData.__sourceBlob = sourceBlob;
 
 			return texture;
 
