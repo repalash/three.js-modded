@@ -280,6 +280,7 @@ class OrbitControls extends EventDispatcher {
 				}
 
 				offset.setFromSpherical( spherical );
+				// transform(offset, spherical); // todo https://math.stackexchange.com/questions/69099/equation-of-a-rectangle
 
 				// rotate offset back to "camera-up-vector-is-up" space
 				offset.applyQuaternion( quatInverse );
@@ -860,7 +861,7 @@ class OrbitControls extends EventDispatcher {
 
 			dollyEnd.set( 0, distance );
 
-			dollyDelta.set( 0, Math.pow( dollyEnd.y / dollyStart.y, scope.zoomSpeed ) );
+			dollyDelta.set( 0, Math.pow( dollyEnd.y / dollyStart.y, scope.zoomSpeed * 6 ) );
 
 			dollyOut( dollyDelta.y );
 
