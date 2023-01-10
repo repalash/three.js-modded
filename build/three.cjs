@@ -19956,10 +19956,18 @@ function WebGLRenderer(parameters = {}) {
 	}; // Events
 
 
+	this.onContextLost = () => {};
+
+	this.onContextRestore = () => {};
+
+	this.onContextCreationError = () => {};
+
 	function onContextLost(event) {
 		event.preventDefault();
 		console.log('THREE.WebGLRenderer: Context Lost.');
 		_isContextLost = true;
+
+		_this.onContextLost(event);
 	}
 
 	function
@@ -19978,10 +19986,16 @@ function WebGLRenderer(parameters = {}) {
 		shadowMap.autoUpdate = shadowMapAutoUpdate;
 		shadowMap.needsUpdate = shadowMapNeedsUpdate;
 		shadowMap.type = shadowMapType;
+
+		_this.onContextRestore();
+
+		console.log('restored');
 	}
 
 	function onContextCreationError(event) {
 		console.error('THREE.WebGLRenderer: A WebGL context could not be created. Reason: ', event.statusMessage);
+
+		_this.onContextCreationError(event);
 	}
 
 	function onMaterialDispose(event) {
