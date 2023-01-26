@@ -6227,7 +6227,8 @@ class Object3D extends EventDispatcher {
 				shapes: {},
 				skeletons: {},
 				animations: {},
-				nodes: {}
+				nodes: {},
+				extras: {}
 			};
 			output.metadata = {
 				version: 4.5,
@@ -20371,12 +20372,12 @@ function WebGLRenderer(parameters = {}) {
 		if (_this.userData.transmissionRender !== false) {
 			if (transmissiveObjects.length > 0) {
 				if (!_transmissionRenderTarget) _transmissionRenderTarget = new WebGLRenderTarget(1, 1);
-				const texture = _this.userData.transmissionRenderTarget.texture;
+				const texture = (_this.userData.transmissionRenderTarget || _transmissionRenderTarget).texture;
 				const isWebGL2 = capabilities.isWebGL2;
 				const generateMipmaps = texture.generateMipmaps;
 				const minFilter = texture.minFilter; // const magFilter = texture.magFilter;
 
-				if (isWebGL2 && _this.userData.blurTransmissionTarget) {
+				if (isWebGL2 && _this.userData.blurTransmissionTarget && _this.userData.transmissionRenderTarget) {
 					texture.generateMipmaps = true;
 					texture.minFilter = LinearMipmapLinearFilter; // texture.magFilter = LinearMipmapLinearFilter;
 
@@ -20387,7 +20388,7 @@ function WebGLRenderer(parameters = {}) {
 
 				renderObjects(transmissiveObjects, scene, camera);
 
-				if (isWebGL2 && _this.userData.blurTransmissionTarget) {
+				if (isWebGL2 && _this.userData.blurTransmissionTarget && _this.userData.transmissionRenderTarget) {
 					texture.generateMipmaps = generateMipmaps;
 					texture.minFilter = minFilter; // texture.magFilter = magFilter;
 

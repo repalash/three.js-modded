@@ -8089,7 +8089,8 @@ class Object3D extends EventDispatcher {
 				shapes: {},
 				skeletons: {},
 				animations: {},
-				nodes: {}
+				nodes: {},
+				extras: {},
 			};
 
 			output.metadata = {
@@ -27878,14 +27879,14 @@ function WebGLRenderer( parameters = {} ) {
 
 				if ( ! _transmissionRenderTarget ) _transmissionRenderTarget = new WebGLRenderTarget( 1, 1 );
 
-				const texture = _this.userData.transmissionRenderTarget.texture;
+				const texture = ( _this.userData.transmissionRenderTarget || _transmissionRenderTarget ).texture;
 				const isWebGL2 = capabilities.isWebGL2;
 
 				const generateMipmaps = texture.generateMipmaps;
 				const minFilter = texture.minFilter;
 				// const magFilter = texture.magFilter;
 
-				if ( isWebGL2 && _this.userData.blurTransmissionTarget ) {
+				if ( isWebGL2 && _this.userData.blurTransmissionTarget && _this.userData.transmissionRenderTarget ) {
 
 					texture.generateMipmaps = true;
 					texture.minFilter = LinearMipmapLinearFilter;
@@ -27899,7 +27900,7 @@ function WebGLRenderer( parameters = {} ) {
 
 				renderObjects( transmissiveObjects, scene, camera );
 
-				if ( isWebGL2 && _this.userData.blurTransmissionTarget ) {
+				if ( isWebGL2 && _this.userData.blurTransmissionTarget && _this.userData.transmissionRenderTarget ) {
 
 					texture.generateMipmaps = generateMipmaps;
 					texture.minFilter = minFilter;
