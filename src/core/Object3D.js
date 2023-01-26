@@ -667,7 +667,8 @@ class Object3D extends EventDispatcher {
 				shapes: {},
 				skeletons: {},
 				animations: {},
-				nodes: {}
+				nodes: {},
+				extras: {},
 			};
 
 			output.metadata = {
