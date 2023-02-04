@@ -125,7 +125,7 @@ function WebGLPrograms( renderer, cubemaps, cubeuvmaps, extensions, capabilities
 			instancingColor: object.isInstancedMesh === true && object.instanceColor !== null,
 
 			supportsVertexTextures: vertexTextures,
-			outputEncoding: ( currentRenderTarget === null ) ? renderer.outputEncoding : ( ( currentRenderTarget.isXRRenderTarget === true || currentRenderTarget.texture.encoding !== sRGBEncoding ) ? currentRenderTarget.texture.encoding : LinearEncoding ),
+			outputEncoding: ( currentRenderTarget === null ) ? renderer.outputEncoding : ( ( currentRenderTarget.isXRRenderTarget === true || ( Array.isArray( currentRenderTarget.texture ) ? currentRenderTarget.texture[ 0 ] : currentRenderTarget.texture ).encoding !== sRGBEncoding ) ? ( Array.isArray( currentRenderTarget.texture ) ? currentRenderTarget.texture[ 0 ] : currentRenderTarget.texture ).encoding : LinearEncoding ),
 			map: !! material.map,
 			matcap: !! material.matcap,
 			envMap: !! envMap,
