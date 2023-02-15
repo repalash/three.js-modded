@@ -31038,15 +31038,20 @@
 			if (this.path !== undefined) url = this.path + url;
 			url = this.manager.resolveURL(url);
 			const scope = this;
-			const cached = Cache.get(url);
+			const cached = Cache.get(url, 'blob');
 
 			if (cached !== undefined) {
 				scope.manager.itemStart(url);
-				setTimeout(function () {
-					if (onLoad) onLoad(cached);
+				createImageBitmap(cached, Object.assign(scope.options, {
+					colorSpaceConversion: 'none'
+				})).then(function (imageBitmap) {
+					if (onLoad) onLoad(imageBitmap);
 					scope.manager.itemEnd(url);
-				}, 0);
-				return cached;
+				}).catch(function (e) {
+					if (onError) onError(e);
+					scope.manager.itemError(url);
+					scope.manager.itemEnd(url);
+				});
 			}
 
 			const fetchOptions = {};
@@ -31055,11 +31060,11 @@
 			fetch(url, fetchOptions).then(function (res) {
 				return res.blob();
 			}).then(function (blob) {
+				Cache.add(url, blob, 'blob');
 				return createImageBitmap(blob, Object.assign(scope.options, {
 					colorSpaceConversion: 'none'
 				}));
 			}).then(function (imageBitmap) {
-				Cache.add(url, imageBitmap);
 				if (onLoad) onLoad(imageBitmap);
 				scope.manager.itemEnd(url);
 			}).catch(function (e) {
