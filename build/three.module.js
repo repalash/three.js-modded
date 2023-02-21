@@ -39986,6 +39986,8 @@ class FileLoader extends Loader {
 
 		this.responseType = 'text';
 
+		this.useCache = true;
+
 	}
 
 	load( url, onLoad, onProgress, onError ) {
@@ -39996,7 +39998,10 @@ class FileLoader extends Loader {
 
 		url = this.manager.resolveURL( url );
 
-		Cache.get( url, this.responseType, this.mimeType ).then( ( cached )=>{
+		( this.useCache ?
+			Cache.get( url, this.responseType, this.mimeType ) :
+			Promise.resolve( undefined ) )
+			.then( ( cached )=>{
 
 		if ( cached !== undefined ) {
 
@@ -40178,7 +40183,7 @@ class FileLoader extends Loader {
 
 				// Add to cache only on HTTP success, so that we do not cache
 				// error response bodies as proper responses to requests.
-				Cache.add( url, data, this.responseType );
+				if ( this.useCache ) Cache.add( url, data, this.responseType );
 
 				const callbacks = loading[ url ];
 				delete loading[ url ];
@@ -40219,11 +40224,11 @@ class FileLoader extends Loader {
 			} )
 			.finally( () => {
 
-				this.manager.itemEnd( url );
+				if ( this.useCache ) this.manager.itemEnd( url );
 
 			} );
 
-		this.manager.itemStart( url );
+		if ( this.useCache ) this.manager.itemStart( url );
 
 		} );
 
@@ -40509,7 +40514,29 @@ class ImageLoader extends Loader {
 
 		scope.manager.itemStart( url );
 
-		image.src = url;
+		Cache.get( url, 'blob' ).then( ( cachedBlob )=>{
+
+			if ( cachedBlob !== undefined && ! cachedBlob.type.startsWith( 'text/plain' ) ) {
+
+				image.src = URL.createObjectURL( cachedBlob );
+				return;
+
+			}
+
+			const fileLoader = new FileLoader( this.manager );
+			fileLoader.useCache = false;
+			fileLoader.setPath( this.path );
+			fileLoader.setResponseType( 'blob' );
+
+			fileLoader.load( url, function ( blob ) {
+
+				Cache.add( url, blob, 'blob' );
+				image.src = URL.createObjectURL( blob );
+				console.log( blob, url, image.src );
+
+			} );
+
+		} );
 
 		return image;
 
@@ -43303,15 +43330,48 @@ class ImageBitmapLoader extends Loader {
 
 		const scope = this;
 
-		const cached = Cache.get( url, 'blob' );
+		Cache.get( url, 'blob' ).then( ( cached ) => {
 
-		if ( cached !== undefined ) {
+			if ( cached !== undefined ) {
 
-			scope.manager.itemStart( url );
+				scope.manager.itemStart( url );
 
-			createImageBitmap( cached, Object.assign( scope.options, { colorSpaceConversion: 'none' } )
+				createImageBitmap( cached, Object.assign( scope.options, { colorSpaceConversion: 'none' } ) )
+					.then( function ( imageBitmap ) {
 
-			).then( function ( imageBitmap ) {
+						if ( onLoad ) onLoad( imageBitmap );
+
+						scope.manager.itemEnd( url );
+
+					} )
+					.catch( function ( e ) {
+
+						if ( onError ) onError( e );
+
+						scope.manager.itemError( url );
+						scope.manager.itemEnd( url );
+
+					} );
+
+				return;
+
+			}
+
+			const fetchOptions = {};
+			fetchOptions.credentials = ( this.crossOrigin === 'anonymous' ) ? 'same-origin' : 'include';
+			fetchOptions.headers = this.requestHeader;
+
+			fetch( url, fetchOptions ).then( function ( res ) {
+
+				return res.blob();
+
+			} ).then( function ( blob ) {
+
+				Cache.add( url, blob, 'blob' );
+
+				return createImageBitmap( blob, Object.assign( scope.options, { colorSpaceConversion: 'none' } ) );
+
+			} ).then( function ( imageBitmap ) {
 
 				if ( onLoad ) onLoad( imageBitmap );
 
@@ -43326,38 +43386,10 @@ class ImageBitmapLoader extends Loader {
 
 			} );
 
-		}
-
-		const fetchOptions = {};
-		fetchOptions.credentials = ( this.crossOrigin === 'anonymous' ) ? 'same-origin' : 'include';
-		fetchOptions.headers = this.requestHeader;
-
-		fetch( url, fetchOptions ).then( function ( res ) {
-
-			return res.blob();
-
-		} ).then( function ( blob ) {
-
-			Cache.add( url, blob, 'blob' );
-
-			return createImageBitmap( blob, Object.assign( scope.options, { colorSpaceConversion: 'none' } ) );
-
-		} ).then( function ( imageBitmap ) {
-
-			if ( onLoad ) onLoad( imageBitmap );
-
-			scope.manager.itemEnd( url );
-
-		} ).catch( function ( e ) {
-
-			if ( onError ) onError( e );
-
-			scope.manager.itemError( url );
-			scope.manager.itemEnd( url );
+			scope.manager.itemStart( url );
 
 		} );
 
-		scope.manager.itemStart( url );
 
 	}
 
