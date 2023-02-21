@@ -23,6 +23,8 @@ class FileLoader extends Loader {
 
 		this.responseType = 'text';
 
+		this.useCache = true;
+
 	}
 
 	load( url, onLoad, onProgress, onError ) {
@@ -33,7 +35,10 @@ class FileLoader extends Loader {
 
 		url = this.manager.resolveURL( url );
 
-		Cache.get( url, this.responseType, this.mimeType ).then( ( cached )=>{
+		( this.useCache ?
+			Cache.get( url, this.responseType, this.mimeType ) :
+			Promise.resolve( undefined ) )
+			.then( ( cached )=>{
 
 		if ( cached !== undefined ) {
 
@@ -215,7 +220,7 @@ class FileLoader extends Loader {
 
 				// Add to cache only on HTTP success, so that we do not cache
 				// error response bodies as proper responses to requests.
-				Cache.add( url, data, this.responseType );
+				if ( this.useCache ) Cache.add( url, data, this.responseType );
 
 				const callbacks = loading[ url ];
 				delete loading[ url ];
@@ -256,11 +261,11 @@ class FileLoader extends Loader {
 			} )
 			.finally( () => {
 
-				this.manager.itemEnd( url );
+				if ( this.useCache ) this.manager.itemEnd( url );
 
 			} );
 
-		this.manager.itemStart( url );
+		if ( this.useCache ) this.manager.itemStart( url );
 
 		} );
 

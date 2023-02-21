@@ -43,15 +43,48 @@ class ImageBitmapLoader extends Loader {
 
 		const scope = this;
 
-		const cached = Cache.get( url, 'blob' );
+		Cache.get( url, 'blob' ).then( ( cached ) => {
 
-		if ( cached !== undefined ) {
+			if ( cached !== undefined ) {
 
-			scope.manager.itemStart( url );
+				scope.manager.itemStart( url );
 
-			createImageBitmap( cached, Object.assign( scope.options, { colorSpaceConversion: 'none' } )
+				createImageBitmap( cached, Object.assign( scope.options, { colorSpaceConversion: 'none' } ) )
+					.then( function ( imageBitmap ) {
 
-			).then( function ( imageBitmap ) {
+						if ( onLoad ) onLoad( imageBitmap );
+
+						scope.manager.itemEnd( url );
+
+					} )
+					.catch( function ( e ) {
+
+						if ( onError ) onError( e );
+
+						scope.manager.itemError( url );
+						scope.manager.itemEnd( url );
+
+					} );
+
+				return;
+
+			}
+
+			const fetchOptions = {};
+			fetchOptions.credentials = ( this.crossOrigin === 'anonymous' ) ? 'same-origin' : 'include';
+			fetchOptions.headers = this.requestHeader;
+
+			fetch( url, fetchOptions ).then( function ( res ) {
+
+				return res.blob();
+
+			} ).then( function ( blob ) {
+
+				Cache.add( url, blob, 'blob' );
+
+				return createImageBitmap( blob, Object.assign( scope.options, { colorSpaceConversion: 'none' } ) );
+
+			} ).then( function ( imageBitmap ) {
 
 				if ( onLoad ) onLoad( imageBitmap );
 
@@ -66,38 +99,10 @@ class ImageBitmapLoader extends Loader {
 
 			} );
 
-		}
-
-		const fetchOptions = {};
-		fetchOptions.credentials = ( this.crossOrigin === 'anonymous' ) ? 'same-origin' : 'include';
-		fetchOptions.headers = this.requestHeader;
-
-		fetch( url, fetchOptions ).then( function ( res ) {
-
-			return res.blob();
-
-		} ).then( function ( blob ) {
-
-			Cache.add( url, blob, 'blob' );
-
-			return createImageBitmap( blob, Object.assign( scope.options, { colorSpaceConversion: 'none' } ) );
-
-		} ).then( function ( imageBitmap ) {
-
-			if ( onLoad ) onLoad( imageBitmap );
-
-			scope.manager.itemEnd( url );
-
-		} ).catch( function ( e ) {
-
-			if ( onError ) onError( e );
-
-			scope.manager.itemError( url );
-			scope.manager.itemEnd( url );
+			scope.manager.itemStart( url );
 
 		} );
 
-		scope.manager.itemStart( url );
 
 	}
 

@@ -1,5 +1,6 @@
 import { Cache } from './Cache.js';
 import { Loader } from './Loader.js';
+import { FileLoader } from './FileLoader.js';
 import { createElementNS } from '../utils.js';
 
 class ImageLoader extends Loader {
@@ -79,7 +80,29 @@ class ImageLoader extends Loader {
 
 		scope.manager.itemStart( url );
 
-		image.src = url;
+		Cache.get( url, 'blob' ).then( ( cachedBlob )=>{
+
+			if ( cachedBlob !== undefined && ! cachedBlob.type.startsWith( 'text/plain' ) ) {
+
+				image.src = URL.createObjectURL( cachedBlob );
+				return;
+
+			}
+
+			const fileLoader = new FileLoader( this.manager );
+			fileLoader.useCache = false;
+			fileLoader.setPath( this.path );
+			fileLoader.setResponseType( 'blob' );
+
+			fileLoader.load( url, function ( blob ) {
+
+				Cache.add( url, blob, 'blob' );
+				image.src = URL.createObjectURL( blob );
+				console.log( blob, url, image.src );
+
+			} );
+
+		} );
 
 		return image;
 
