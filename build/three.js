@@ -29120,7 +29120,6 @@
 				fileLoader.load(url, function (blob) {
 					Cache.add(url, blob, 'blob');
 					image.src = URL.createObjectURL(blob);
-					console.log(blob, url, image.src);
 				});
 			});
 			return image;
