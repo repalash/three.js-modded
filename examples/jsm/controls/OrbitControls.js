@@ -165,7 +165,13 @@ class OrbitControls extends EventDispatcher {
 
 			const twoPI = 2 * Math.PI;
 
+			const lastUpdateTime = 0;
+
 			return function update() {
+
+				const now = Date.now();
+				const deltaTime = now - lastUpdateTime;
+				if ( deltaTime < 1000 / 60 ) return;
 
 				const position = scope.object.position;
 
