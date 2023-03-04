@@ -5,7 +5,11 @@ export default /* glsl */`
 
 		#if defined( ENVMAP_TYPE_CUBE_UV )
 
+		#if defined( FIX_ENV_DIRECTION )
+			vec3 worldNormal = normal;
+		#else
 			vec3 worldNormal = inverseTransformDirection( normal, viewMatrix );
+		#endif
 
 			worldNormal = transformDirection1(worldNormal, rotationMatrix(vec3(0,1,0), envMapRotation));
 
@@ -30,7 +34,11 @@ export default /* glsl */`
 			// Mixing the reflection with the normal is more accurate and keeps rough objects from gathering light from behind their tangent plane.
 			reflectVec = normalize( mix( reflectVec, normal, roughness * roughness) );
 
+			#if !defined( FIX_ENV_DIRECTION )
+
 			reflectVec = inverseTransformDirection( reflectVec, viewMatrix );
+
+			#endif
 
 			reflectVec = transformDirection1(reflectVec, rotationMatrix(vec3(0,1,0), envMapRotation));
 
