@@ -66,6 +66,14 @@ class ShaderPass extends Pass {
 
 	}
 
+	dispose() {
+
+		this.material.dispose();
+
+		this.fsQuad.dispose();
+
+	}
+
 }
 
 export { ShaderPass };

@@ -1,20 +1,19 @@
 import {
+	REVISION,
 	BackSide,
 	DoubleSide,
-	FloatType,
 	FrontSide,
+	RGBAFormat,
 	HalfFloatType,
-	LinearEncoding,
-	REVISION,
-	RGBAFormat, sRGBEncoding,
+	FloatType,
 	UnsignedByteType,
+	LinearEncoding,
+	sRGBEncoding,
 	NoToneMapping,
 	LinearMipmapLinearFilter
 } from '../constants.js';
-import { floorPowerOfTwo } from '../math/MathUtils.js';
 import { Frustum } from '../math/Frustum.js';
 import { Matrix4 } from '../math/Matrix4.js';
-import { Vector2 } from '../math/Vector2.js';
 import { Vector3 } from '../math/Vector3.js';
 import { Vector4 } from '../math/Vector4.js';
 import { WebGLAnimation } from './webgl/WebGLAnimation.js';
@@ -127,7 +126,7 @@ function WebGLRenderer( parameters = {} ) {
 
 	// physical lights
 
-	this.physicallyCorrectLights = false;
+	this.useLegacyLights = true;
 
 	// tone mapping
 
@@ -137,28 +136,6 @@ function WebGLRenderer( parameters = {} ) {
 	// user data
 
 	this.userData = {};
-
-	//
-
-	Object.defineProperties( this, {
-
-		// @deprecated since r136, 0e21088102b4de7e0a0a33140620b7a3424b9e6d
-
-		gammaFactor: {
-			get: function () {
-
-				console.warn( 'THREE.WebGLRenderer: .gammaFactor has been removed.' );
-				return 2;
-
-			},
-			set: function () {
-
-				console.warn( 'THREE.WebGLRenderer: .gammaFactor has been removed.' );
-
-			}
-		}
-
-	} );
 
 	// internal properties
 
@@ -209,7 +186,6 @@ function WebGLRenderer( parameters = {} ) {
 
 	const _projScreenMatrix = new Matrix4();
 
-	const _vector2 = new Vector2();
 	const _vector3 = new Vector3();
 
 	const _emptyScene = { background: null, fog: null, environment: null, overrideMaterial: null, isScene: true };
@@ -341,7 +317,7 @@ function WebGLRenderer( parameters = {} ) {
 		materials = new WebGLMaterials( _this, properties );
 		renderLists = new WebGLRenderLists();
 		renderStates = new WebGLRenderStates( extensions, capabilities );
-		background = new WebGLBackground( _this, cubemaps, state, objects, _alpha, _premultipliedAlpha );
+		background = new WebGLBackground( _this, cubemaps, cubeuvmaps, state, objects, _alpha, _premultipliedAlpha );
 		shadowMap = new WebGLShadowMap( _this, objects, capabilities );
 		uniformsGroups = new WebGLUniformsGroups( _gl, info, capabilities, state );
 
@@ -420,7 +396,7 @@ function WebGLRenderer( parameters = {} ) {
 
 	};
 
-	this.setSize = function ( width, height, updateStyle ) {
+	this.setSize = function ( width, height, updateStyle = true ) {
 
 		if ( xr.isPresenting ) {
 
@@ -435,7 +411,7 @@ function WebGLRenderer( parameters = {} ) {
 		_canvas.width = Math.floor( width * _pixelRatio );
 		_canvas.height = Math.floor( height * _pixelRatio );
 
-		if ( updateStyle !== false ) {
+		if ( updateStyle === true ) {
 
 			_canvas.style.width = width + 'px';
 			_canvas.style.height = height + 'px';
@@ -742,22 +718,6 @@ function WebGLRenderer( parameters = {} ) {
 		//
 
 		let index = geometry.index;
-		const position = geometry.attributes.position;
-
-		//
-
-		if ( index === null ) {
-
-			if ( position === undefined || position.count === 0 ) return;
-
-		} else if ( index.count === 0 ) {
-
-			return;
-
-		}
-
-		//
-
 		let rangeFactor = 1;
 
 		if ( material.wireframe === true ) {
@@ -766,6 +726,39 @@ function WebGLRenderer( parameters = {} ) {
 			rangeFactor = 2;
 
 		}
+
+		//
+
+		const drawRange = geometry.drawRange;
+		const position = geometry.attributes.position;
+
+		let drawStart = drawRange.start * rangeFactor;
+		let drawEnd = ( drawRange.start + drawRange.count ) * rangeFactor;
+
+		if ( group !== null ) {
+
+			drawStart = Math.max( drawStart, group.start * rangeFactor );
+			drawEnd = Math.min( drawEnd, ( group.start + group.count ) * rangeFactor );
+
+		}
+
+		if ( index !== null ) {
+
+			drawStart = Math.max( drawStart, 0 );
+			drawEnd = Math.min( drawEnd, index.count );
+
+		} else if ( position !== undefined && position !== null ) {
+
+			drawStart = Math.max( drawStart, 0 );
+			drawEnd = Math.min( drawEnd, position.count );
+
+		}
+
+		const drawCount = drawEnd - drawStart;
+
+		if ( drawCount < 0 || drawCount === Infinity ) return;
+
+		//
 
 		bindingStates.setup( object, material, program, geometry, index );
 
@@ -780,23 +773,6 @@ function WebGLRenderer( parameters = {} ) {
 			renderer.setIndex( attribute );
 
 		}
-
-		//
-
-		const dataCount = ( index !== null ) ? index.count : position.count;
-
-		const rangeStart = geometry.drawRange.start * rangeFactor;
-		const rangeCount = geometry.drawRange.count * rangeFactor;
-
-		const groupStart = group !== null ? group.start * rangeFactor : 0;
-		const groupCount = group !== null ? group.count * rangeFactor : Infinity;
-
-		const drawStart = Math.max( rangeStart, groupStart );
-		const drawEnd = Math.min( dataCount, rangeStart + rangeCount, groupStart + groupCount ) - 1;
-
-		const drawCount = Math.max( 0, drawEnd - drawStart + 1 );
-
-		if ( drawCount === 0 ) return;
 
 		//
 
@@ -851,7 +827,8 @@ function WebGLRenderer( parameters = {} ) {
 
 		} else if ( geometry.isInstancedBufferGeometry ) {
 
-			const instanceCount = Math.min( geometry.instanceCount, geometry._maxInstanceCount );
+			const maxInstanceCount = geometry._maxInstanceCount !== undefined ? geometry._maxInstanceCount : Infinity;
+			const instanceCount = Math.min( geometry.instanceCount, maxInstanceCount );
 
 			renderer.renderInstances( drawStart, drawCount, instanceCount );
 
@@ -869,7 +846,7 @@ function WebGLRenderer( parameters = {} ) {
 
 		function prepare( material, scene, object ) {
 
-			if ( material.transparent === true && material.side === DoubleSide ) {
+			if ( material.transparent === true && material.side === DoubleSide && material.forceSinglePass === false ) {
 
 				material.side = BackSide;
 				material.needsUpdate = true;
@@ -910,7 +887,7 @@ function WebGLRenderer( parameters = {} ) {
 
 		} );
 
-		currentRenderState.setupLights( _this.physicallyCorrectLights );
+		currentRenderState.setupLights( _this.useLegacyLights );
 
 		scene.traverse( function ( object ) {
 
@@ -1023,7 +1000,7 @@ function WebGLRenderer( parameters = {} ) {
 		_frustum.setFromProjectionMatrix( _projScreenMatrix );
 
 		_localClippingEnabled = this.localClippingEnabled;
-		_clippingEnabled = clipping.init( this.clippingPlanes, _localClippingEnabled, camera );
+		_clippingEnabled = clipping.init( this.clippingPlanes, _localClippingEnabled );
 
 		currentRenderList = renderLists.get( scene, renderListStack.length );
 		currentRenderList.init();
@@ -1069,7 +1046,7 @@ function WebGLRenderer( parameters = {} ) {
 		// render scene
 		if ( _this.userData.sceneRender !== false ) {
 
-			currentRenderState.setupLights( _this.physicallyCorrectLights );
+			currentRenderState.setupLights( _this.useLegacyLights );
 
 			if ( camera.isArrayCamera ) {
 
@@ -1262,8 +1239,11 @@ function WebGLRenderer( parameters = {} ) {
 
 		currentRenderState.setupLightsView( camera );
 
+		if ( _clippingEnabled === true ) clipping.setGlobalState( _this.clippingPlanes, camera );
+
+		if ( transmissiveObjects.length > 0 ) renderTransmissionPass( opaqueObjects, transmissiveObjects, scene, camera );
 		if ( _this.userData.transmissionRender === undefined && _this.userData.renderTransmissionPass !== false )
-			if ( transmissiveObjects.length > 0 ) renderTransmissionPass( [ ...opaqueObjects, ...transparentObjects ], scene, camera );
+			if ( transmissiveObjects.length > 0 ) renderTransmissionPass( [ ...opaqueObjects, ...transparentObjects ], transmissiveObjects, scene, camera );
 
 		if ( viewport ) state.viewport( _currentViewport.copy( viewport ) );
 
@@ -1330,35 +1310,31 @@ function WebGLRenderer( parameters = {} ) {
 
 		state.setPolygonOffset( false );
 
-
 	}
 
-	function renderTransmissionPass( opaqueObjects, scene, camera ) {
+	function renderTransmissionPass( opaqueObjects, transmissiveObjects, scene, camera ) {
 
 		console.error( 'three.js internal render transmission pass should not be called' );
-
-		const isWebGL2 = capabilities.isWebGL2;
-
 		if ( _transmissionRenderTarget === null ) {
 
-			_transmissionRenderTarget = new WebGLRenderTarget( 1, 1, {
+			const isWebGL2 = capabilities.isWebGL2;
+
+			_transmissionRenderTarget = new WebGLRenderTarget( 1024, 1024, {
 				generateMipmaps: true,
 				type: extensions.has( 'EXT_color_buffer_half_float' ) ? HalfFloatType : UnsignedByteType,
 				minFilter: LinearMipmapLinearFilter,
 				samples: ( isWebGL2 && _antialias === true ) ? 4 : 0
 			} );
 
-		}
+			// debug
 
-		_this.getDrawingBufferSize( _vector2 );
+			/*
+			const geometry = new PlaneGeometry();
+			const material = new MeshBasicMaterial( { map: _transmissionRenderTarget.texture } );
 
-		if ( isWebGL2 ) {
-
-			_transmissionRenderTarget.setSize( _vector2.x, _vector2.y );
-
-		} else {
-
-			_transmissionRenderTarget.setSize( floorPowerOfTwo( _vector2.x ), floorPowerOfTwo( _vector2.y ) );
+			const mesh = new Mesh( geometry, material );
+			scene.add( mesh );
+			*/
 
 		}
 
@@ -1375,12 +1351,48 @@ function WebGLRenderer( parameters = {} ) {
 
 		renderObjects( opaqueObjects, scene, camera );
 
-		_this.toneMapping = currentToneMapping;
-
 		textures.updateMultisampleRenderTarget( _transmissionRenderTarget );
 		textures.updateRenderTargetMipmap( _transmissionRenderTarget );
 
+		let renderTargetNeedsUpdate = false;
+
+		for ( let i = 0, l = transmissiveObjects.length; i < l; i ++ ) {
+
+			const renderItem = transmissiveObjects[ i ];
+
+			const object = renderItem.object;
+			const geometry = renderItem.geometry;
+			const material = renderItem.material;
+			const group = renderItem.group;
+
+			if ( material.side === DoubleSide && object.layers.test( camera.layers ) ) {
+
+				const currentSide = material.side;
+
+				material.side = BackSide;
+				material.needsUpdate = true;
+
+				renderObject( object, scene, camera, geometry, material, group );
+
+				material.side = currentSide;
+				material.needsUpdate = true;
+
+				renderTargetNeedsUpdate = true;
+
+			}
+
+		}
+
+		if ( renderTargetNeedsUpdate === true ) {
+
+			textures.updateMultisampleRenderTarget( _transmissionRenderTarget );
+			textures.updateRenderTargetMipmap( _transmissionRenderTarget );
+
+		}
+
 		_this.setRenderTarget( currentRenderTarget );
+
+		_this.toneMapping = currentToneMapping;
 
 	}
 
@@ -1425,7 +1437,7 @@ function WebGLRenderer( parameters = {} ) {
 
 		material.onBeforeRender( _this, scene, camera, geometry, object, group );
 
-		if ( material.transparent === true && material.side === DoubleSide ) {
+		if ( material.transparent === true && material.side === DoubleSide && material.forceSinglePass === false ) {
 
 			material.side = BackSide;
 			material.needsUpdate = true;
@@ -1840,7 +1852,7 @@ function WebGLRenderer( parameters = {} ) {
 
 		if ( morphAttributes.position !== undefined || morphAttributes.normal !== undefined || ( morphAttributes.color !== undefined && capabilities.isWebGL2 === true ) ) {
 
-			morphtargets.update( object, geometry, material, program );
+			morphtargets.update( object, geometry, program );
 
 		}
 
@@ -2034,6 +2046,9 @@ function WebGLRenderer( parameters = {} ) {
 		_currentActiveMipmapLevel = activeMipmapLevel;
 
 		let useDefaultFramebuffer = true;
+		let framebuffer = null;
+		let isCube = false;
+		let isRenderTarget3D = false;
 
 		if ( renderTarget ) {
 
@@ -2056,17 +2071,9 @@ function WebGLRenderer( parameters = {} ) {
 
 			}
 
-		}
-
-		let framebuffer = null;
-		let isCube = false;
-		let isRenderTarget3D = false;
-
-		if ( renderTarget ) {
-
 			const texture = renderTarget.texture;
 
-			if ( texture.isData3DTexture || texture.isDataArrayTexture ) {
+			if ( texture.isData3DTexture || texture.isDataArrayTexture || texture.isCompressedArrayTexture ) {
 
 				isRenderTarget3D = true;
 
@@ -2307,7 +2314,7 @@ function WebGLRenderer( parameters = {} ) {
 
 		} else {
 
-			if ( srcTexture.isCompressedTexture ) {
+			if ( srcTexture.isCompressedArrayTexture ) {
 
 				console.warn( 'THREE.WebGLRenderer.copyTextureToTexture3D: untested support for compressed srcTexture.' );
 				_gl.compressedTexSubImage3D( glTarget, level, position.x, position.y, position.z, width, height, depth, glFormat, image.data );
@@ -2343,7 +2350,7 @@ function WebGLRenderer( parameters = {} ) {
 
 			textures.setTexture3D( texture, 0 );
 
-		} else if ( texture.isDataArrayTexture ) {
+		} else if ( texture.isDataArrayTexture || texture.isCompressedArrayTexture ) {
 
 			textures.setTexture2DArray( texture, 0 );
 
@@ -2375,5 +2382,29 @@ function WebGLRenderer( parameters = {} ) {
 	}
 
 }
+
+Object.defineProperties( WebGLRenderer.prototype, {
+
+	// @deprecated since r150
+
+	physicallyCorrectLights: {
+
+		get: function () {
+
+			console.warn( 'THREE.WebGLRenderer: the property .physicallyCorrectLights has been removed. Set renderer.useLegacyLights instead.' );
+			return ! this.useLegacyLights;
+
+		},
+
+		set: function ( value ) {
+
+			console.warn( 'THREE.WebGLRenderer: the property .physicallyCorrectLights has been removed. Set renderer.useLegacyLights instead.' );
+			this.useLegacyLights = ! value;
+
+		}
+
+	}
+
+} );
 
 export { WebGLRenderer };

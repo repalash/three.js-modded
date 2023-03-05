@@ -12,8 +12,8 @@
 		<h1>[name]</h1>
 
 		<p class="desc">
-		This helps with visualizing what a camera contains in its frustum.<br />
-		It visualizes the frustum of a camera using a [page:LineSegments].
+		This helps with visualizing what a camera contains in its frustum. It visualizes the frustum of a camera using a [page:LineSegments].<br /><br />
+		[name] must be a child of the scene.
 		</p>
 
 		<h2>Code Example</h2>
@@ -61,7 +61,7 @@ scene.add( helper );
 
 		<h3>[method:undefined dispose]()</h3>
 		<p>
-			Disposes of the internally-created [page:Line.material material] and [page:Line.geometry geometry] used by this helper.
+			Frees the GPU-related resources allocated by this instance. Call this method whenever this instance is no longer used in your app.
 		</p>
 
 		<h3>[method:this setColors]( [param:Color frustum], [param:Color cone], [param:Color up], [param:Color target], [param:Color cross] )</h3>

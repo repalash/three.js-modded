@@ -25,6 +25,17 @@
 			and they require special handling during the disposal process. More information in the [link:https://threejs.org/docs/#manual/en/introduction/How-to-dispose-of-objects How to dispose of objects] guide.
 		</p>
 
+		<h2>Import</h2>
+
+		<p>
+			[name] is an add-on, and must be imported explicitly.
+			See [link:#manual/introduction/Installation Installation / Addons].
+		</p>
+
+		<code>
+			import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+		</code>
+
 		<h2>Extensions</h2>
 
 		<p>
@@ -36,7 +47,6 @@
 			<li>KHR_draco_mesh_compression</li>
 			<li>KHR_materials_clearcoat</li>
 			<li>KHR_materials_ior</li>
-			<li>KHR_materials_pbrSpecularGlossiness</li>
 			<li>KHR_materials_specular</li>
 			<li>KHR_materials_transmission</li>
 			<li>KHR_materials_iridescence</li>
@@ -48,6 +58,7 @@
 			<li>KHR_texture_transform<sup>2</sup></li>
 			<li>EXT_texture_webp</li>
 			<li>EXT_meshopt_compression</li>
+			<li>EXT_mesh_gpu_instancing</li>
 		</ul>
 
 		<p>
@@ -83,7 +94,7 @@
 
 		// Optional: Provide a DRACOLoader instance to decode compressed mesh data
 		const dracoLoader = new DRACOLoader();
-		dracoLoader.setDecoderPath( '/examples/js/libs/draco/' );
+		dracoLoader.setDecoderPath( '/examples/jsm/libs/draco/' );
 		loader.setDRACOLoader( dracoLoader );
 
 		// Load a glTF resource
@@ -122,13 +133,6 @@
 		<p>
 			[example:webgl_loader_gltf]
 		</p>
-
-		<h2>Browser compatibility</h2>
-
-		<p>GLTFLoader relies on ES6 [link:https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise Promises],
-		which are not supported in IE11. To use the loader in IE11, you must
-		[link:https://github.com/stefanpenner/es6-promise include a polyfill]
-		providing a Promise replacement.</p>
 
 		<h2>Textures</h2>
 
@@ -211,7 +215,7 @@
 		[page:DRACOLoader dracoLoader] — Instance of THREE.DRACOLoader, to be used for decoding assets compressed with the KHR_draco_mesh_compression extension.
 		</p>
 		<p>
-		Refer to this [link:https://github.com/mrdoob/three.js/tree/dev/examples/js/libs/draco#readme readme] for the details of Draco and its decoder.
+		Refer to this [link:https://github.com/mrdoob/three.js/tree/dev/examples/jsm/libs/draco#readme readme] for the details of Draco and its decoder.
 		</p>
 
 		<h3>[method:this setKTX2Loader]( [param:KTX2Loader ktx2Loader] )</h3>
@@ -221,13 +225,13 @@
 
 		<h3>[method:undefined parse]( [param:ArrayBuffer data], [param:String path], [param:Function onLoad], [param:Function onError] )</h3>
 		<p>
-		[page:ArrayBuffer data] — glTF asset to parse, as an ArrayBuffer or `JSON` string.<br />
+		[page:ArrayBuffer data] — glTF asset to parse, as an `ArrayBuffer`, `JSON` string or object.<br />
 		[page:String path] — The base path from which to find subsequent glTF resources such as textures and .bin data files.<br />
 		[page:Function onLoad] — A function to be called when parse completes.<br />
 		[page:Function onError] — (optional) A function to be called if an error occurs during parsing. The function receives error as an argument.<br />
 		</p>
 		<p>
-		Parse a glTF-based ArrayBuffer or `JSON` String and fire [page:Function onLoad] callback when complete. The argument to [page:Function onLoad] will be an [page:Object] that contains loaded parts: .[page:Group scene], .[page:Array scenes], .[page:Array cameras], .[page:Array animations], and .[page:Object asset].
+		Parse a glTF-based `ArrayBuffer`, `JSON` string or object and fire [page:Function onLoad] callback when complete. The argument to [page:Function onLoad] will be an [page:Object] that contains loaded parts: .[page:Group scene], .[page:Array scenes], .[page:Array cameras], .[page:Array animations], and .[page:Object asset].
 		</p>
 
 		<h2>Source</h2>

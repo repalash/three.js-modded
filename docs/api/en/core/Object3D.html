@@ -75,7 +75,7 @@
 		<h3>[property:Boolean matrixAutoUpdate]</h3>
 		<p>
 		When this is set, it calculates the matrix of position, (rotation or quaternion) and
-		scale every frame and also recalculates the matrixWorld property. Default is [page:Object3D.DefaultMatrixAutoUpdate] (true).
+		scale every frame and also recalculates the matrixWorld property. Default is [page:Object3D.DEFAULT_MATRIX_AUTO_UPDATE] (true).
 		</p>
 
 		<h3>[property:Matrix4 matrixWorld]</h3>
@@ -86,8 +86,9 @@
 
 		<h3>[property:Boolean matrixWorldAutoUpdate]</h3>
 		<p>
-		Default is true. If set, then the renderer checks every frame if the object and its children need matrix updates.
+		If set, then the renderer checks every frame if the object and its children need matrix updates.
 		When it isn't, then you have to maintain all matrices in the object and its children yourself.
+		Default is [page:Object3D.DEFAULT_MATRIX_WORLD_AUTO_UPDATE] (true).
 		</p>
 
 		<h3>[property:Boolean matrixWorldNeedsUpdate]</h3>
@@ -169,7 +170,7 @@
 		<h3>[property:Vector3 up]</h3>
 		<p>
 		This is used by the [page:.lookAt lookAt] method, for example, to determine the orientation of the result.<br />
-		Default is [page:Object3D.DefaultUp] - that is, `( 0, 1, 0 )`.
+		Default is [page:Object3D.DEFAULT_UP] - that is, `( 0, 1, 0 )`.
 		</p>
 
 		<h3>[property:Object userData]</h3>
@@ -193,25 +194,29 @@
 		<h2>Static Properties</h2>
 		<p>
 			Static properties and methods are defined per class rather than per instance of that class.
-			This means that changing [page:Object3D.DefaultUp] or [page:Object3D.DefaultMatrixAutoUpdate]
+			This means that changing [page:Object3D.DEFAULT_UP] or [page:Object3D.DEFAULT_MATRIX_AUTO_UPDATE]
 			will change the values of [page:.up up] and [page:.matrixAutoUpdate matrixAutoUpdate] for
 			`every`	instance of Object3D (or derived classes)	created after the change has
 			been made (already created Object3Ds will not be affected).
 		</p>
 
-		<h3>[property:Vector3 DefaultUp]</h3>
+		<h3>[property:Vector3 DEFAULT_UP]</h3>
 		<p>
 			The default [page:.up up] direction for objects, also used as the default position for [page:DirectionalLight],
 			[page:HemisphereLight] and [page:Spotlight] (which creates lights shining from the top down).<br />
 			Set to ( 0, 1, 0 ) by default.
 		</p>
 
-		<h3>[property:Boolean DefaultMatrixAutoUpdate]</h3>
+		<h3>[property:Boolean DEFAULT_MATRIX_AUTO_UPDATE]</h3>
 		<p>
 			The default setting for [page:.matrixAutoUpdate matrixAutoUpdate] for newly created Object3Ds.<br />
 
 		</p>
 
+		<h3>[property:Boolean DEFAULT_MATRIX_WORLD_AUTO_UPDATE]</h3>
+		<p>
+			The default setting for [page:.matrixWorldAutoUpdate matrixWorldAutoUpdate] for newly created Object3Ds.<br />
+		</p>
 
 		<h2>Methods</h2>
 
@@ -277,6 +282,14 @@
 		Searches through an object and its children, starting with the object itself, and returns the first with a property that matches the value given.
 		</p>
 
+		<h3>[method:Object3D getObjectsByProperty]( [param:String name], [param:Any value] )</h3>
+		<p>
+		name -- the property name to search for. <br />
+		value -- value of the given property. <br /><br />
+
+		Searches through an object and its children, starting with the object itself, and returns all the objects with a property that matches the value given.
+		</p>
+
 		<h3>[method:Vector3 getWorldPosition]( [param:Vector3 target] )</h3>
 		<p>
 		[page:Vector3 target] — the result will be copied into this Vector3. <br /><br />
@@ -324,7 +337,7 @@
 		This method does not support objects having non-uniformly-scaled parent(s).
 		</p>
 
-		<h3>[method:Array raycast]( [param:Raycaster raycaster], [param:Array intersects] )</h3>
+		<h3>[method:undefined raycast]( [param:Raycaster raycaster], [param:Array intersects] )</h3>
 		<p>
 		Abstract (empty) method to get intersections between a casted ray and this object.
 		Subclasses such as [page:Mesh], [page:Line], and [page:Points] implement this method in order
@@ -470,7 +483,13 @@
 		<p>Updates the local transform.</p>
 
 		<h3>[method:undefined updateMatrixWorld]( [param:Boolean force] )</h3>
-		<p>Updates the global transform of the object and its descendants.</p>
+		<p>
+		force - A boolean that can be used to bypass [page:.matrixWorldAutoUpdate],
+		to recalculate the world matrix of the object and descendants on the current frame.
+		Useful if you cannot wait for the renderer to update it on the next frame (assuming [page:.matrixWorldAutoUpdate] set to `true`).<br /><br />
+
+		Updates the global transform of the object and its descendants if the world matrix needs update ([page:.matrixWorldNeedsUpdate] set to true) or if the `force` parameter is set to `true`.
+		</p>
 
 		<h3>[method:undefined updateWorldMatrix]( [param:Boolean updateParents], [param:Boolean updateChildren] )</h3>
 		<p>

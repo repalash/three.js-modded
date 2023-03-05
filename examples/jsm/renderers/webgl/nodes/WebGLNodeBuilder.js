@@ -1,7 +1,6 @@
 import { defaultShaderStages, NodeFrame, MathNode, GLSLNodeParser, NodeBuilder } from 'three/nodes';
 import SlotNode from './SlotNode.js';
-import { PerspectiveCamera, ShaderChunk, ShaderLib, UniformsUtils, UniformsLib,
-	LinearEncoding, RGBAFormat, UnsignedByteType, sRGBEncoding } from 'three';
+import { PerspectiveCamera, ShaderChunk, ShaderLib, UniformsUtils, UniformsLib } from 'three';
 
 const nodeFrame = new NodeFrame();
 nodeFrame.camera = new PerspectiveCamera();
@@ -16,6 +15,12 @@ const nodeShaderLib = {
 
 const glslMethods = {
 	[ MathNode.ATAN2 ]: 'atan'
+};
+
+const precisionLib = {
+	low: 'lowp',
+	medium: 'mediump',
+	high: 'highp'
 };
 
 function getIncludeSnippet( name ) {
@@ -73,7 +78,17 @@ class WebGLNodeBuilder extends NodeBuilder {
 
 	_parseShaderLib() {
 
-		const type = this.material.type;
+		const material = this.material;
+
+		let type = material.type;
+
+		// see https://github.com/mrdoob/three.js/issues/23707
+
+		if ( material.isMeshPhysicalNodeMaterial ) type = 'MeshPhysicalNodeMaterial';
+		else if ( material.isMeshStandardNodeMaterial ) type = 'MeshStandardNodeMaterial';
+		else if ( material.isMeshBasicNodeMaterial ) type = 'MeshBasicNodeMaterial';
+		else if ( material.isPointsNodeMaterial ) type = 'PointsNodeMaterial';
+		else if ( material.isLineBasicNodeMaterial ) type = 'LineBasicNodeMaterial';
 
 		// shader lib
 
@@ -94,7 +109,7 @@ class WebGLNodeBuilder extends NodeBuilder {
 
 		const { material, renderer } = this;
 
-		if ( renderer.toneMappingNode?.isNode === true ) {
+		if ( renderer.toneMappingNode && renderer.toneMappingNode.isNode === true ) {
 
 			this.addSlot( 'fragment', new SlotNode( {
 				node: material.colorNode,
@@ -112,9 +127,8 @@ class WebGLNodeBuilder extends NodeBuilder {
 			this.addSlot( 'fragment', new SlotNode( {
 				node: material.colorNode,
 				nodeType: 'vec4',
-				source: getIncludeSnippet( 'color_fragment' ),
-				target: 'diffuseColor = %RESULT%;',
-				inclusionType: 'append'
+				source: 'vec4 diffuseColor = vec4( diffuse, opacity );',
+				target: 'vec4 diffuseColor = %RESULT%;'
 			} ) );
 
 		}
@@ -128,6 +142,10 @@ class WebGLNodeBuilder extends NodeBuilder {
 				target: 'diffuseColor.a = %RESULT%;',
 				inclusionType: 'append'
 			} ) );
+
+		} else {
+
+			this.addCode( 'fragment', getIncludeSnippet( 'alphatest_fragment' ), 'diffuseColor.a = opacity;', this.shader );
 
 		}
 
@@ -448,29 +466,45 @@ class WebGLNodeBuilder extends NodeBuilder {
 
 		const uniforms = this.uniforms[ shaderStage ];
 
-		let snippet = '';
+		let output = '';
 
 		for ( const uniform of uniforms ) {
 
+			let snippet = null;
+
 			if ( uniform.type === 'texture' ) {
 
-				snippet += `uniform sampler2D ${uniform.name}; `;
+				snippet = `sampler2D ${uniform.name}; `;
 
 			} else if ( uniform.type === 'cubeTexture' ) {
 
-				snippet += `uniform samplerCube ${uniform.name}; `;
+				snippet = `samplerCube ${uniform.name}; `;
 
 			} else {
 
 				const vectorType = this.getVectorType( uniform.type );
 
-				snippet += `uniform ${vectorType} ${uniform.name}; `;
+				snippet = `${vectorType} ${uniform.name}; `;
 
 			}
 
+			const precision = uniform.node.precision;
+
+			if ( precision !== null ) {
+
+				snippet = 'uniform ' + precisionLib[ precision ] + ' ' + snippet;
+
+			} else {
+
+				snippet = 'uniform ' + snippet;
+
+			}
+
+			output += snippet;
+
 		}
 
-		return snippet;
+		return output;
 
 	}
 
@@ -498,15 +532,31 @@ class WebGLNodeBuilder extends NodeBuilder {
 
 	}
 
-	getVaryings( /* shaderStage */ ) {
+	getVaryings( shaderStage ) {
 
 		let snippet = '';
 
 		const varyings = this.varyings;
 
-		for ( const varying of varyings ) {
+		if ( shaderStage === 'vertex' ) {
 
-			snippet += `varying ${varying.type} ${varying.name}; `;
+			for ( const varying of varyings ) {
+
+				snippet += `${varying.needsInterpolation ? 'varying' : '/*varying*/'} ${varying.type} ${varying.name}; `;
+
+			}
+
+		} else if ( shaderStage === 'fragment' ) {
+
+			for ( const varying of varyings ) {
+
+				if ( varying.needsInterpolation ) {
+
+					snippet += `varying ${varying.type} ${varying.name}; `;
+
+				}
+
+			}
 
 		}
 
@@ -514,52 +564,50 @@ class WebGLNodeBuilder extends NodeBuilder {
 
 	}
 
-	addCodeAfterCode( shaderStage, snippet, code ) {
+	addCode( shaderStage, source, code, scope = this ) {
 
 		const shaderProperty = getShaderStageProperty( shaderStage );
 
-		let source = this[ shaderProperty ];
+		let snippet = scope[ shaderProperty ];
 
-		const index = source.indexOf( snippet );
+		const index = snippet.indexOf( source );
 
 		if ( index !== - 1 ) {
 
-			const start = source.substring( 0, index + snippet.length );
-			const end = source.substring( index + snippet.length );
+			const start = snippet.substring( 0, index + source.length );
+			const end = snippet.substring( index + source.length );
 
-			source = `${start}\n${code}\n${end}`;
+			snippet = `${start}\n${code}\n${end}`;
 
 		}
 
-		this[ shaderProperty ] = source;
+		scope[ shaderProperty ] = snippet;
 
 	}
 
-	replaceCode( shaderStage, source, target ) {
+	replaceCode( shaderStage, source, target, scope = this ) {
 
 		const shaderProperty = getShaderStageProperty( shaderStage );
 
-		this[ shaderProperty ] = this[ shaderProperty ].replaceAll( source, target );
-
-	}
-
-	getTextureEncodingFromMap( map ) {
-
-		const isWebGL2 = this.renderer.capabilities.isWebGL2;
-
-		if ( isWebGL2 && map && map.isTexture && map.format === RGBAFormat && map.type === UnsignedByteType && map.encoding === sRGBEncoding ) {
-
-			return LinearEncoding; // disable inline decode for sRGB textures in WebGL 2
-
-		}
-
-		return super.getTextureEncodingFromMap( map );
+		scope[ shaderProperty ] = scope[ shaderProperty ].replaceAll( source, target );
 
 	}
 
 	getFrontFacing() {
 
 		return 'gl_FrontFacing';
+
+	}
+
+	getFragCoord() {
+
+		return 'gl_FragCoord';
+
+	}
+
+	isFlipY() {
+
+		return true;
 
 	}
 
@@ -644,11 +692,6 @@ ${this.shader[ getShaderStageProperty( shaderStage ) ]}
 
 			const slots = this.slots[ shaderStage ].sort( ( slotA, slotB ) => {
 
-				if ( sourceCode.indexOf( slotA.source ) == - 1 ) {
-					//console.log( slotA, sourceCode.indexOf( slotA.source ), sourceCode.indexOf( slotB.source ) );
-					//console.log(sourceCode);
-				}
-
 				return sourceCode.indexOf( slotA.source ) > sourceCode.indexOf( slotB.source ) ? 1 : - 1;
 
 			} );
@@ -677,7 +720,7 @@ ${this.shader[ getShaderStageProperty( shaderStage ) ]}
 
 				if ( inclusionType === 'append' ) {
 
-					this.addCodeAfterCode( shaderStage, source, target );
+					this.addCode( shaderStage, source, target );
 
 				} else if ( inclusionType === 'replace' ) {
 
@@ -691,10 +734,10 @@ ${this.shader[ getShaderStageProperty( shaderStage ) ]}
 
 			}
 
-			this.addCodeAfterCode(
+			this.addCode(
 				shaderStage,
 				'main() {',
-				this.flowCode[ shaderStage ]
+				'\n\t' + this.flowCode[ shaderStage ]
 			);
 
 		}

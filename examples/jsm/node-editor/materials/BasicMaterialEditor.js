@@ -1,17 +1,14 @@
 import { ColorInput, SliderInput, LabelElement } from '../../libs/flow.module.js';
-import { BaseNode } from '../core/BaseNode.js';
+import { MaterialEditor } from './MaterialEditor.js';
 import { MeshBasicNodeMaterial } from 'three/nodes';
-import { MathUtils } from 'three';
 
-export class BasicMaterialEditor extends BaseNode {
+export class BasicMaterialEditor extends MaterialEditor {
 
 	constructor() {
 
 		const material = new MeshBasicNodeMaterial();
 
-		super( 'Basic Material', 1, material );
-
-		this.setWidth( 300 );
+		super( 'Basic Material', material );
 
 		const color = new LabelElement( 'color' ).setInput( 3 );
 		const opacity = new LabelElement( 'opacity' ).setInput( 1 );
@@ -43,8 +40,6 @@ export class BasicMaterialEditor extends BaseNode {
 		this.opacity = opacity;
 		this.position = position;
 
-		this.material = material;
-
 		this.update();
 
 	}
@@ -65,22 +60,20 @@ export class BasicMaterialEditor extends BaseNode {
 
 		this.updateTransparent();
 
-		// TODO: Fix on NodeMaterial System
-		material.customProgramCacheKey = () => {
-
-			return MathUtils.generateUUID();
-
-		};
-
 	}
 
 	updateTransparent() {
 
 		const { material, opacity } = this;
 
-		material.transparent = opacity.getLinkedObject() || material.opacity < 1 ? true : false;
+		const transparent = opacity.getLinkedObject() || material.opacity < 1 ? true : false;
+		const needsUpdate = transparent !== material.transparent;
+
+		material.transparent = transparent;
 
 		opacity.setIcon( material.transparent ? 'ti ti-layers-intersect' : 'ti ti-layers-subtract' );
+
+		if ( needsUpdate === true ) material.dispose();
 
 	}
 
