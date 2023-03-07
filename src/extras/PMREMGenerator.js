@@ -1,5 +1,4 @@
 import {
-	BackSide,
 	CubeReflectionMapping,
 	CubeRefractionMapping,
 	CubeUVReflectionMapping,

@@ -218,7 +218,7 @@ const ShaderLib = {
 		uniforms: {
 			uvTransform: { value: /*@__PURE__*/ new Matrix3() },
 			t2D: { value: null },
-			backgroundIntensity: { value: 1 }
+			backgroundIntensity: { value: 1 },
 
 			flipX: { value: false },
 			flipY: { value: false },

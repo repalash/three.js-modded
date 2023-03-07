@@ -1241,7 +1241,6 @@ function WebGLRenderer( parameters = {} ) {
 
 		if ( _clippingEnabled === true ) clipping.setGlobalState( _this.clippingPlanes, camera );
 
-		if ( transmissiveObjects.length > 0 ) renderTransmissionPass( opaqueObjects, transmissiveObjects, scene, camera );
 		if ( _this.userData.transmissionRender === undefined && _this.userData.renderTransmissionPass !== false )
 			if ( transmissiveObjects.length > 0 ) renderTransmissionPass( [ ...opaqueObjects, ...transparentObjects ], transmissiveObjects, scene, camera );
 
@@ -1279,10 +1278,12 @@ function WebGLRenderer( parameters = {} ) {
 					// texture.magFilter = LinearMipmapLinearFilter;
 					texture.needsUpdate = true;
 
-					// textures.updateMultisampleRenderTarget( _this.userData.transmissionRenderTarget ); // todo?
+					textures.updateMultisampleRenderTarget( _this.userData.transmissionRenderTarget ); // todo?
 					textures.updateRenderTargetMipmap( _this.userData.transmissionRenderTarget );
 
 				}
+
+				// todo; do we need to set backside when double-side like below in renderTransmissionPass.
 
 				renderObjects( transmissiveObjects, scene, camera );
 
@@ -1293,7 +1294,7 @@ function WebGLRenderer( parameters = {} ) {
 					// texture.magFilter = magFilter;
 					texture.needsUpdate = true;
 
-					// textures.updateMultisampleRenderTarget( _this.userData.transmissionRenderTarget ); // todo?
+					textures.updateMultisampleRenderTarget( _this.userData.transmissionRenderTarget ); // todo?
 					textures.updateRenderTargetMipmap( _this.userData.transmissionRenderTarget );
 
 				}
@@ -1315,6 +1316,7 @@ function WebGLRenderer( parameters = {} ) {
 	function renderTransmissionPass( opaqueObjects, transmissiveObjects, scene, camera ) {
 
 		console.error( 'three.js internal render transmission pass should not be called' );
+
 		if ( _transmissionRenderTarget === null ) {
 
 			const isWebGL2 = capabilities.isWebGL2;
