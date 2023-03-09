@@ -1260,6 +1260,7 @@ function WebGLRenderer( parameters = {} ) {
 
 		if ( _this.userData.transmissionRender !== false ) {
 
+			// Custom version of renderTransmissionPass.
 			if ( transmissiveObjects.length > 0 ) {
 
 				if ( ! _transmissionRenderTarget ) _transmissionRenderTarget = new WebGLRenderTarget( 1, 1 );
@@ -1315,7 +1316,7 @@ function WebGLRenderer( parameters = {} ) {
 
 	function renderTransmissionPass( opaqueObjects, transmissiveObjects, scene, camera ) {
 
-		console.error( 'three.js internal render transmission pass should not be called' );
+		console.warn( 'three.js internal render transmission pass should not be called' );
 
 		if ( _transmissionRenderTarget === null ) {
 
