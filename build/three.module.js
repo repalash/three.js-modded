@@ -8663,12 +8663,7 @@ class Material extends EventDispatcher {
 
 		this.toneMapped = source.toneMapped;
 
-		this.userData = {};
-		for ( const [ key, value ] of Object.entries( source.userData ) ) {
-
-			this.userData[ key ] = ! value || ( value && ( value.isTexture || value.isObject3D ) ) ? value : JSON.parse( JSON.stringify( value ) );
-
-		}
+		this.userData = copyMaterialUserData( {}, source.userData );
 
 		return this;
 
@@ -8685,6 +8680,28 @@ class Material extends EventDispatcher {
 		if ( value === true ) this.version ++;
 
 	}
+
+}
+
+function copyMaterialUserData( dest, source ) {
+
+	for ( const key of Object.keys( source ) ) {
+
+		if ( key.startsWith( '__' ) ) continue; // double underscore
+		if ( typeof dest[ key ] === 'function' || typeof source[ key ] === 'function' ) continue;
+		// todo only clone vectors, colors etc
+		const src = source[ key ];
+		const skipClone = ( ! src ) || src.isTexture || src.isObject3D || src.isMaterial;
+		if ( ! skipClone && typeof source[ key ].clone === 'function' )
+			dest[ key ] = source[ key ].clone();
+		else if ( ! skipClone && typeof source[ key ] === 'object' )
+			dest[ key ] = copyMaterialUserData( {}, source[ key ] );
+		else
+			dest[ key ] = source[ key ];
+
+	}
+
+	return dest;
 
 }
 
