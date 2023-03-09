@@ -28751,6 +28751,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 			if ( _this.userData.transmissionRender !== false ) {
 
+				// Custom version of renderTransmissionPass.
 				if ( transmissiveObjects.length > 0 ) {
 
 					if ( ! _transmissionRenderTarget ) _transmissionRenderTarget = new WebGLRenderTarget( 1, 1 );
@@ -28806,7 +28807,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 		function renderTransmissionPass( opaqueObjects, transmissiveObjects, scene, camera ) {
 
-			console.error( 'three.js internal render transmission pass should not be called' );
+			console.warn( 'three.js internal render transmission pass should not be called' );
 
 			if ( _transmissionRenderTarget === null ) {
 
@@ -41729,6 +41730,10 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 				if ( cachedBlob !== undefined && ! cachedBlob.type.startsWith( 'text/plain' ) ) {
 
+					if ( ! cachedBlob.type )
+						if ( url.endsWith( '.svg' ) || url.startsWith( 'data:image/svg' ) )
+							cachedBlob = new Blob( [ cachedBlob ], { type: 'image/svg+xml' } ); // hack for now. todo: blob SHOULD have the type from the content type in the response header or the mime type in the file name
+
 					image.src = URL.createObjectURL( cachedBlob );
 					return;
 
@@ -41740,6 +41745,10 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 				fileLoader.setResponseType( 'blob' );
 
 				fileLoader.load( url, function ( blob ) {
+
+					if ( ! blob.type )
+						if ( url.endsWith( '.svg' ) || url.startsWith( 'data:image/svg' ) )
+							blob = new Blob( [ blob ], { type: 'image/svg+xml' } ); // hack for now. todo: blob SHOULD have the type from the content type in the response header or the mime type in the file name // https://github.com/whatwg/fetch/issues/540
 
 					Cache.add( url, blob, 'blob' );
 					image.src = URL.createObjectURL( blob );
