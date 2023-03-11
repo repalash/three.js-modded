@@ -8701,8 +8701,8 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 			const skipClone = ( ! src ) || src.isTexture || src.isObject3D || src.isMaterial;
 			if ( ! skipClone && typeof source[ key ].clone === 'function' )
 				dest[ key ] = source[ key ].clone();
-			else if ( ! skipClone && typeof source[ key ] === 'object' )
-				dest[ key ] = copyMaterialUserData( {}, source[ key ] );
+			else if ( ! skipClone && ( typeof source[ key ] === 'object' || Array.isArray( source[ key ] ) ) )
+				dest[ key ] = copyMaterialUserData( Array.isArray( source[ key ] ) ? [] : {}, source[ key ] );
 			else
 				dest[ key ] = source[ key ];
 
