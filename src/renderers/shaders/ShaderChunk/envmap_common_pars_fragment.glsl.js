@@ -1,11 +1,6 @@
 export default /* glsl */`
 #ifdef USE_ENVMAP
 
-
-	vec3 transformDirection1( in vec3 dir, in mat4 matrix ) {
-		return normalize( ( matrix * vec4( dir, 0.0 ) ).xyz );
-	}
-
 	mat4 rotationMatrix(vec3 axis, float angle) {
 		axis = normalize(axis);
 		float s = sin(angle);

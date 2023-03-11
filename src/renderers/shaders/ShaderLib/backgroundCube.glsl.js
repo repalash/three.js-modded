@@ -17,17 +17,8 @@ void main() {
 
 export const fragment = /* glsl */`
 
-#ifdef ENVMAP_TYPE_CUBE
+#include <envmap_common_pars_fragment>
 
-	uniform samplerCube envMap;
-
-#elif defined( ENVMAP_TYPE_CUBE_UV )
-
-	uniform sampler2D envMap;
-
-#endif
-
-uniform float flipEnvMap;
 uniform float backgroundBlurriness;
 uniform float backgroundIntensity;
 
@@ -35,15 +26,23 @@ varying vec3 vWorldDirection;
 
 #include <cube_uv_reflection_fragment>
 
+vec3 transformDirection( in vec3 dir, in mat4 matrix ) {
+
+	return normalize( ( matrix * vec4( dir, 0.0 ) ).xyz );
+
+}
+
 void main() {
+
+	vec3 reflectVec = transformDirection(vWorldDirection, rotationMatrix(vec3(0,1,0), envMapRotation));
 
 	#ifdef ENVMAP_TYPE_CUBE
 
-		vec4 texColor = textureCube( envMap, vec3( flipEnvMap * vWorldDirection.x, vWorldDirection.yz ) );
+		vec4 texColor = textureCube( envMap, vec3( flipEnvMap * reflectVec.x, reflectVec.yz ) );
 
 	#elif defined( ENVMAP_TYPE_CUBE_UV )
 
-		vec4 texColor = textureCubeUV( envMap, vWorldDirection, backgroundBlurriness );
+		vec4 texColor = textureCubeUV( envMap, reflectVec, backgroundBlurriness );
 
 	#else
 
@@ -52,6 +51,8 @@ void main() {
 	#endif
 
 	texColor.rgb *= backgroundIntensity;
+
+	texColor.rgb *= envMapIntensity;
 
 	gl_FragColor = texColor;
 

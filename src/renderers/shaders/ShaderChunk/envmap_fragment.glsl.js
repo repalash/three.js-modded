@@ -34,7 +34,7 @@ export default /* glsl */`
 
 	#endif
 
-	reflectVec = transformDirection1(reflectVec, rotationMatrix(vec3(0,1,0), envMapRotation));
+	reflectVec = transformDirection(reflectVec, rotationMatrix(vec3(0,1,0), envMapRotation));
 
 	#ifdef ENVMAP_TYPE_CUBE
 
