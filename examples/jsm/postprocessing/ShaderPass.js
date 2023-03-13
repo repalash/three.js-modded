@@ -57,7 +57,7 @@ class ShaderPass extends Pass {
 		} else {
 
 			if ( ! this.useExistingRenderTarget )
-				renderer.setRenderTarget( writeBuffer );
+				renderer.setRenderTarget( writeBuffer || null ); // use null if undefined
 			// TODO: Avoid using autoClear properties, see https://github.com/mrdoob/three.js/pull/15571#issuecomment-465669600
 			if ( this.clear ) renderer.clear( renderer.autoClearColor, renderer.autoClearDepth, renderer.autoClearStencil );
 			this.fsQuad.render( renderer );
