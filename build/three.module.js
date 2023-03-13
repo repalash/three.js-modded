@@ -29109,7 +29109,7 @@ function WebGLRenderer( parameters = {} ) {
 
 		const fog = scene.fog;
 		const environment = material.isMeshStandardMaterial ? scene.environment : null;
-		const encoding = ( _currentRenderTarget === null ) ? _this.outputEncoding : ( ( _currentRenderTarget.isXRRenderTarget === true || ( _currentRenderTarget.texture.encoding && _currentRenderTarget.texture.encoding !== sRGBEncoding ) ) ? _currentRenderTarget.texture.encoding : LinearEncoding );
+		const encoding = ( ! _currentRenderTarget ) ? _this.outputEncoding : ( ( _currentRenderTarget.isXRRenderTarget === true || ( _currentRenderTarget.texture.encoding && _currentRenderTarget.texture.encoding !== sRGBEncoding ) ) ? _currentRenderTarget.texture.encoding : LinearEncoding );
 		const envMap = ( material.isMeshStandardMaterial ? cubeuvmaps : cubemaps ).get( material.envMap || environment );
 		const vertexAlphas = material.vertexColors === true && !! geometry.attributes.color && geometry.attributes.color.itemSize === 4;
 		const vertexTangents = !! material.normalMap && !! geometry.attributes.tangent;
@@ -29701,7 +29701,7 @@ function WebGLRenderer( parameters = {} ) {
 
 				// restore framebuffer of current render target if necessary
 
-				const framebuffer = ( _currentRenderTarget !== null ) ? properties.get( _currentRenderTarget ).__webglFramebuffer : null;
+				const framebuffer = ( !! _currentRenderTarget ) ? properties.get( _currentRenderTarget ).__webglFramebuffer : null;
 				state.bindFramebuffer( 36160, framebuffer );
 
 			}
