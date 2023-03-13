@@ -1834,7 +1834,7 @@ class GLTFTextureTransformExtension {
 
 		}
 
-		texture = texture.clone();
+		// texture = texture.clone(); // Its done in default three.js, todo: why?. this will create a new uuid and break texture caching. Uncommenting will break mapdef copy in webgi manager importViewer
 
 		if ( transform.offset !== undefined ) {
 
@@ -3013,7 +3013,7 @@ class GLTFParser {
 				if ( sampler.extras.uuid !== undefined ) {
 
 					texture.uuid = sampler.extras.uuid;
-					// delete sampler.extras.uuid; // do not delete this. It can be read for finding texture references by uuid in after parse. Also sampler extras is not copied to user data to no problem.
+					// delete sampler.extras.uuid; // do not delete this. It can be read for finding texture references by uuid in after parse. Also sampler extras is not copied to user data so no problem.
 
 				}
 
