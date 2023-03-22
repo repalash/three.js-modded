@@ -34,15 +34,17 @@ vec3 transformDirection( in vec3 dir, in mat4 matrix ) {
 
 void main() {
 
-	vec3 reflectVec = transformDirection(vWorldDirection, rotationMatrix(vec3(0,1,0), envMapRotation));
+	vec3 vReflect = vWorldDirection;
+
+	vReflect = transformDirection(vReflect, rotationMatrix(vec3(0,1,0), envMapRotation));
 
 	#ifdef ENVMAP_TYPE_CUBE
 
-		vec4 texColor = textureCube( envMap, vec3( flipEnvMap * reflectVec.x, reflectVec.yz ) );
+		vec4 texColor = textureCube( envMap, vec3( flipEnvMap * vReflect.x, vReflect.yz ) );
 
 	#elif defined( ENVMAP_TYPE_CUBE_UV )
 
-		vec4 texColor = textureCubeUV( envMap, reflectVec, backgroundBlurriness );
+		vec4 texColor = textureCubeUV( envMap, vReflect, backgroundBlurriness );
 
 	#else
 
