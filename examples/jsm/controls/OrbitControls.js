@@ -40,6 +40,7 @@ class OrbitControls extends EventDispatcher {
 		this.maxDistance = Infinity;
 
 		this.autoPushTarget = true; // push target when zoomed even after minDistance
+		this.autoPullTarget = true; // push target when zoomed even after minDistance
 
 		// How far you can zoom in and out ( OrthographicCamera only )
 		this.minZoom = 0;
@@ -276,6 +277,9 @@ class OrbitControls extends EventDispatcher {
 				// push target
 				if ( scope.autoPushTarget && spherical.radius < scope.minDistance )
 					pushDelta = scope.minDistance - spherical.radius;
+				// pull target
+				if ( scope.autoPullTarget && spherical.radius > scope.maxDistance )
+					pushDelta = scope.maxDistance - spherical.radius;
 
 				// restrict radius to be between desired limits
 				spherical.radius = Math.max( scope.minDistance, Math.min( scope.maxDistance, spherical.radius ) );
