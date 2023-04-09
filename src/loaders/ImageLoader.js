@@ -107,6 +107,11 @@ class ImageLoader extends Loader {
 				Cache.add( url, blob, 'blob' );
 				image.src = URL.createObjectURL( blob );
 
+			}, onProgress, ( event )=>{
+
+				removeEventListeners();
+				if ( onError ) onError( event );
+
 			} );
 
 		} );

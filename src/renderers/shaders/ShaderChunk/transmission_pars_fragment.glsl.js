@@ -154,7 +154,7 @@ export default /* glsl */`
 
 	vec3 applyVolumeAttenuation( const in vec3 radiance, const in float transmissionDistance, const in vec3 attenuationColor, const in float attenuationDistance ) {
 
-		if ( isinf( attenuationDistance ) ) {
+		if ( isinf( attenuationDistance ) || attenuationDistance == 0.0) {
 
 			// Attenuation distance is +∞, i.e. the transmitted color is not attenuated at all.
 			return radiance;
