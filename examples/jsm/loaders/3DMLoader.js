@@ -92,6 +92,8 @@ class Rhino3dmLoader extends Loader {
 				.then( result => {
 
 					result.userData.warnings = this.warnings;
+					this.warnings = [];
+					this.materials = [];
 					onLoad( result );
 
 				 } )
