@@ -146,6 +146,7 @@ export default /* glsl */`
 	}
 
 	vec4 getTransmissionSample( const in vec2 fragCoord, const in float roughness, const in float ior ) {
+		if(roughness == 0.0) return transmissionSamplerMapTexelToLinear( texture2D( transmissionSamplerMap, fragCoord.xy ) );
 
 		float lod = log2( transmissionSamplerSize.x ) * applyIorToRoughness( roughness, ior );
 		return transmissionSamplerMapTexelToLinear( textureBicubic( transmissionSamplerMap, fragCoord.xy, lod ) );
