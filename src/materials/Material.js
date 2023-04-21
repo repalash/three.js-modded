@@ -497,6 +497,7 @@ class Material extends EventDispatcher {
 
 function copyMaterialUserData( dest, source ) {
 
+	if ( ! source ) return dest;
 	for ( const key of Object.keys( source ) ) {
 
 		if ( key.startsWith( '__' ) ) continue; // double underscore

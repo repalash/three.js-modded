@@ -106,7 +106,7 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 
 			boxMesh.material.uniforms.envMap.value = background;
 			boxMesh.material.uniforms.envMapRotation.value = background ? background.rotation || 0 : 0;
-			boxMesh.material.uniforms.envMapIntensity.value = scene.envMapIntensity || 1; // special for Scene in webgi
+			boxMesh.material.uniforms.envMapIntensity.value = background === scene.environment ? ( scene.envMapIntensity || 1 ) : 1; // special for Scene in webgi
 			boxMesh.material.uniforms.flipEnvMap.value = ( background.isCubeTexture && background.isRenderTargetTexture === false ) ? - 1 : 1;
 			boxMesh.material.uniforms.backgroundBlurriness.value = scene.backgroundBlurriness;
 			boxMesh.material.uniforms.backgroundIntensity.value = scene.backgroundIntensity;
