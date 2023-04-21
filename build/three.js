@@ -8692,6 +8692,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 	function copyMaterialUserData( dest, source ) {
 
+		if ( ! source ) return dest;
 		for ( const key of Object.keys( source ) ) {
 
 			if ( key.startsWith( '__' ) ) continue; // double underscore
@@ -14430,11 +14431,11 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 				boxMesh.material.uniforms.envMap.value = background;
 				boxMesh.material.uniforms.envMapRotation.value = background ? background.rotation || 0 : 0;
-				boxMesh.material.uniforms.envMapIntensity.value = scene.envMapIntensity || 1; // special for Scene in webgi
+				boxMesh.material.uniforms.envMapIntensity.value = background === scene.environment ? ( scene.envMapIntensity || 1 ) : 1; // special for Scene in webgi
 				boxMesh.material.uniforms.flipEnvMap.value = ( background.isCubeTexture && background.isRenderTargetTexture === false ) ? - 1 : 1;
 				boxMesh.material.uniforms.backgroundBlurriness.value = scene.backgroundBlurriness;
 				boxMesh.material.uniforms.backgroundIntensity.value = scene.backgroundIntensity;
-				boxMesh.material.toneMapped = ( background.encoding === sRGBEncoding ) ? false : true;
+				// boxMesh.material.toneMapped = ( background.encoding === sRGBEncoding ) ? false : true;
 
 				if ( currentBackground !== background ||
 					currentBackgroundVersion !== background.version ||
