@@ -14428,7 +14428,7 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 			boxMesh.material.uniforms.flipEnvMap.value = ( background.isCubeTexture && background.isRenderTargetTexture === false ) ? - 1 : 1;
 			boxMesh.material.uniforms.backgroundBlurriness.value = scene.backgroundBlurriness;
 			boxMesh.material.uniforms.backgroundIntensity.value = scene.backgroundIntensity;
-			// boxMesh.material.toneMapped = ( background.encoding === sRGBEncoding ) ? false : true;
+			boxMesh.material.toneMapped = ( background.encoding === sRGBEncoding ) ? false : true;
 
 			if ( currentBackground !== background ||
 				currentBackgroundVersion !== background.version ||

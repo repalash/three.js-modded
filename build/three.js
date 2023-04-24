@@ -14435,7 +14435,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 				boxMesh.material.uniforms.flipEnvMap.value = ( background.isCubeTexture && background.isRenderTargetTexture === false ) ? - 1 : 1;
 				boxMesh.material.uniforms.backgroundBlurriness.value = scene.backgroundBlurriness;
 				boxMesh.material.uniforms.backgroundIntensity.value = scene.backgroundIntensity;
-				// boxMesh.material.toneMapped = ( background.encoding === sRGBEncoding ) ? false : true;
+				boxMesh.material.toneMapped = ( background.encoding === sRGBEncoding ) ? false : true;
 
 				if ( currentBackground !== background ||
 					currentBackgroundVersion !== background.version ||
