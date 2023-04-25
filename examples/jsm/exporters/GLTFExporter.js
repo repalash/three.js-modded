@@ -1078,6 +1078,26 @@ class GLTFWriter {
 
 	}
 
+	processBufferViewImageBuffer( buffer ) {
+
+		const writer = this;
+		const json = writer.json;
+
+		if ( ! json.bufferViews ) json.bufferViews = [];
+
+		buffer = getPaddedArrayBuffer( buffer );
+
+		const bufferViewDef = {
+			buffer: writer.processBuffer( buffer ),
+			byteOffset: writer.byteOffset,
+			byteLength: buffer.byteLength
+		};
+
+		writer.byteOffset += buffer.byteLength;
+		return json.bufferViews.push( bufferViewDef ) - 1;
+
+	}
+
 	/**
 	 * Process attribute to generate an accessor
 	 * @param  {BufferAttribute} attribute Attribute to process
@@ -1346,11 +1366,11 @@ class GLTFWriter {
 
 		const implTypes = [ 'image/jpeg', 'image/png' ];
 
-		if ( mimeType && ! implTypes.includes( mimeType ) ) {
-
-			console.error( 'GLTFExporter: Unsupported mime type: ' + mimeType + '. Cannot export texture.', map );
-
-		}
+		// if ( mimeType && ! implTypes.includes( mimeType ) ) {
+		//
+		// 	console.error( 'GLTFExporter: Unsupported mime type: ' + mimeType + '. Cannot export texture.', map );
+		//
+		// }
 
 		const textureDef = {
 			sampler: this.processSampler( map ),
@@ -1364,6 +1384,13 @@ class GLTFWriter {
 			ext.writeTexture && ext.writeTexture( map, textureDef );
 
 		} );
+
+		if ( textureDef.source === null ) {
+
+			console.error( 'GLTFExporter: Unsupported mime type: ' + mimeType + '. Cannot export texture.', map );
+
+		}
+
 
 		const index = json.textures.push( textureDef ) - 1;
 		cache.textures.set( map, index );
