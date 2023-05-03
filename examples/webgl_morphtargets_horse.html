@@ -69,11 +69,11 @@
 
 				//
 
-				const light1 = new THREE.DirectionalLight( 0xefefff, 1.5 );
+				const light1 = new THREE.DirectionalLight( 0xefefff, 5 );
 				light1.position.set( 1, 1, 1 ).normalize();
 				scene.add( light1 );
 
-				const light2 = new THREE.DirectionalLight( 0xffefef, 1.5 );
+				const light2 = new THREE.DirectionalLight( 0xffefef, 5 );
 				light2.position.set( - 1, - 1, - 1 ).normalize();
 				scene.add( light2 );
 
@@ -96,7 +96,7 @@
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 
-				renderer.outputEncoding = THREE.sRGBEncoding;
+				renderer.useLegacyLights = false;
 
 				container.appendChild( renderer.domElement );
 

@@ -722,6 +722,7 @@ class Object3D extends EventDispatcher {
 
 		object.layers = this.layers.mask;
 		object.matrix = this.matrix.toArray();
+		object.up = this.up.toArray();
 
 		if ( this.matrixAutoUpdate === false ) object.matrixAutoUpdate = false;
 
@@ -948,6 +949,8 @@ class Object3D extends EventDispatcher {
 
 		this.frustumCulled = source.frustumCulled;
 		this.renderOrder = source.renderOrder;
+
+		this.animations = source.animations;
 
 		this.userData = {};
 		for ( const [ key, value ] of Object.entries( source.userData ) ) {

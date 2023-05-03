@@ -1,5 +1,7 @@
 import { Mesh } from './Mesh.js';
+import { Box3 } from '../math/Box3.js';
 import { Matrix4 } from '../math/Matrix4.js';
+import { Sphere } from '../math/Sphere.js';
 import { Vector3 } from '../math/Vector3.js';
 import { Vector4 } from '../math/Vector4.js';
 
@@ -10,6 +12,9 @@ const _skinWeight = /*@__PURE__*/ new Vector4();
 
 const _vector3 = /*@__PURE__*/ new Vector3();
 const _matrix4 = /*@__PURE__*/ new Matrix4();
+const _vertex = /*@__PURE__*/ new Vector3();
+
+//const _sphere = /*@__PURE__*/ new Sphere();
 
 class SkinnedMesh extends Mesh {
 
@@ -25,6 +30,57 @@ class SkinnedMesh extends Mesh {
 		this.bindMatrix = new Matrix4();
 		this.bindMatrixInverse = new Matrix4();
 
+		this.boundingBox = null;
+		this.boundingSphere = null;
+
+	}
+
+	computeBoundingBox() {
+
+		const geometry = this.geometry;
+
+		if ( this.boundingBox === null ) {
+
+			this.boundingBox = new Box3();
+
+		}
+
+		this.boundingBox.makeEmpty();
+
+		const positionAttribute = geometry.getAttribute( 'position' );
+
+		for ( let i = 0; i < positionAttribute.count; i ++ ) {
+
+			_vertex.fromBufferAttribute( positionAttribute, i );
+			this.applyBoneTransform( i, _vertex );
+			this.boundingBox.expandByPoint( _vertex );
+
+		}
+
+	}
+
+	computeBoundingSphere() {
+
+		const geometry = this.geometry;
+
+		if ( this.boundingSphere === null ) {
+
+			this.boundingSphere = new Sphere();
+
+		}
+
+		this.boundingSphere.makeEmpty();
+
+		const positionAttribute = geometry.getAttribute( 'position' );
+
+		for ( let i = 0; i < positionAttribute.count; i ++ ) {
+
+			_vertex.fromBufferAttribute( positionAttribute, i );
+			this.applyBoneTransform( i, _vertex );
+			this.boundingSphere.expandByPoint( _vertex );
+
+		}
+
 	}
 
 	copy( source, recursive ) {
@@ -38,6 +94,29 @@ class SkinnedMesh extends Mesh {
 		this.skeleton = source.skeleton;
 
 		return this;
+
+	}
+
+	// raycast( raycaster, intersects ) {
+
+	// 	if ( this.boundingSphere === null ) this.computeBoundingSphere();
+
+	// 	_sphere.copy( this.boundingSphere );
+	// 	_sphere.applyMatrix4( this.matrixWorld );
+
+	// 	if ( raycaster.ray.intersectsSphere( _sphere ) === false ) return;
+
+	// 	this._computeIntersections( raycaster, intersects );
+
+	// }
+
+	getVertexPosition( index, target ) {
+
+		super.getVertexPosition( index, target );
+
+		this.applyBoneTransform( index, target );
+
+		return target;
 
 	}
 
@@ -146,9 +225,7 @@ class SkinnedMesh extends Mesh {
 
 	}
 
-	// @deprecated
-
-	boneTransform( index, vector ) {
+	boneTransform( index, vector ) { // @deprecated, r151
 
 		console.warn( 'THREE.SkinnedMesh: .boneTransform() was renamed to .applyBoneTransform() in r151.' );
 		return this.applyBoneTransform( index, vector );

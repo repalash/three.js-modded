@@ -54,11 +54,11 @@
 
 				clock = new THREE.Clock();
 
-				const light1 = new THREE.PointLight( 0xff2200, 0.7 );
+				const light1 = new THREE.PointLight( 0xff2200, 50000 );
 				light1.position.set( 100, 100, 100 );
 				scene.add( light1 );
 
-				const light2 = new THREE.PointLight( 0x22ff00, 0.7 );
+				const light2 = new THREE.PointLight( 0x22ff00, 10000 );
 				light2.position.set( - 100, - 100, - 100 );
 				scene.add( light2 );
 
@@ -92,6 +92,9 @@
 				renderer = new THREE.WebGLRenderer();
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
+
+				renderer.useLegacyLights = false;
+
 				container.appendChild( renderer.domElement );
 
 				//

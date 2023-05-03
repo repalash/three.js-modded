@@ -49,9 +49,9 @@
 				camera.position.z = 10;
 				scene.add( camera );
 
-				scene.add( new THREE.AmbientLight( 0x8FBCD4, 0.4 ) );
+				scene.add( new THREE.AmbientLight( 0x8FBCD4, 1.5 ) );
 
-				const pointLight = new THREE.PointLight( 0xffffff, 1 );
+				const pointLight = new THREE.PointLight( 0xffffff, 200 );
 				camera.add( pointLight );
 
 				const geometry = createGeometry();
@@ -69,6 +69,7 @@
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.useLegacyLights = false;
 				renderer.setAnimationLoop( function () {
 
 					renderer.render( scene, camera );

@@ -726,11 +726,9 @@ class BufferGeometry extends EventDispatcher {
 
 	}
 
-	// @deprecated since r144
+	merge() { // @deprecated, r144
 
-	merge() {
-
-		console.error( 'THREE.BufferGeometry.merge() has been removed. Use THREE.BufferGeometryUtils.mergeBufferGeometries() instead.' );
+		console.error( 'THREE.BufferGeometry.merge() has been removed. Use THREE.BufferGeometryUtils.mergeGeometries() instead.' );
 		return this;
 
 	}

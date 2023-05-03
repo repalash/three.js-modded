@@ -5,10 +5,9 @@
 		"Manual": {
 
 			"Getting Started": {
-				"Creating a scene": "manual/en/introduction/Creating-a-scene",
 				"Installation": "manual/en/introduction/Installation",
+				"Creating a scene": "manual/en/introduction/Creating-a-scene",
 				"WebGL compatibility check": "manual/en/introduction/WebGL-compatibility-check",
-				"How to run things locally": "manual/en/introduction/How-to-run-things-locally",
 				"Drawing lines": "manual/en/introduction/Drawing-lines",
 				"Creating text": "manual/en/introduction/Creating-text",
 				"Loading 3D models": "manual/en/introduction/Loading-3D-models",
@@ -18,17 +17,13 @@
 			},
 
 			"Next Steps": {
-				"How to update things": "manual/en/introduction/How-to-update-things",
-				"How to dispose of objects": "manual/en/introduction/How-to-dispose-of-objects",
-				"How to create VR content": "manual/en/introduction/How-to-create-VR-content",
-				"How to use post-processing": "manual/en/introduction/How-to-use-post-processing",
+				"Updating resources": "manual/en/introduction/How-to-update-things",
+				"Disposing resources": "manual/en/introduction/How-to-dispose-of-objects",
+				"Creating VR content": "manual/en/introduction/How-to-create-VR-content",
+				"Post-processing": "manual/en/introduction/How-to-use-post-processing",
 				"Matrix transformations": "manual/en/introduction/Matrix-transformations",
 				"Animation system": "manual/en/introduction/Animation-system",
 				"Color management": "manual/en/introduction/Color-management"
-			},
-
-			"Build Tools": {
-				"Testing with NPM": "manual/en/buildTools/Testing-with-NPM"
 			}
 
 		},
@@ -340,6 +335,7 @@
 				"DragControls": "examples/en/controls/DragControls",
 				"FirstPersonControls": "examples/en/controls/FirstPersonControls",
 				"FlyControls": "examples/en/controls/FlyControls",
+				"MapControls": "examples/en/controls/MapControls",
 				"OrbitControls": "examples/en/controls/OrbitControls",
 				"PointerLockControls": "examples/en/controls/PointerLockControls",
 				"TrackballControls": "examples/en/controls/TrackballControls",
@@ -445,10 +441,9 @@
 		"الكتيب": {
 
 			"البدء": {
-				"إنشاء مشهد": "manual/ar/introduction/Creating-a-scene",
 				"التثبيت": "manual/ar/introduction/Installation",
+				"إنشاء مشهد": "manual/ar/introduction/Creating-a-scene",
 				"فحص توافق WebGL": "manual/ar/introduction/WebGL-compatibility-check",
-				"كيف تدير الأشياء محليًا": "manual/ar/introduction/How-to-run-things-locally",
 				"رسم خطوط": "manual/ar/introduction/Drawing-lines",
 				"إنشاء نص": "manual/ar/introduction/Creating-text",
 				"تحميل نماذج ثلاثية الأبعاد": "manual/ar/introduction/Loading-3D-models",
@@ -463,10 +458,6 @@
 				"كيفية استخدام المعالجة اللاحقة (post-processing)": "manual/ar/introduction/How-to-use-post-processing",
 				"تحولات المصفوفة (Matrix transformations)": "manual/ar/introduction/Matrix-transformations",
 				"نظام الحركات": "manual/ar/introduction/Animation-system"
-			},
-
-			"أدوات البناء": {
-				"الاختبار مع NPM": "manual/ar/buildTools/Testing-with-NPM"
 			}
 
 		},
@@ -516,10 +507,9 @@
 		"手册": {
 
 			"起步": {
-				"创建一个场景": "manual/zh/introduction/Creating-a-scene",
 				"安装": "manual/zh/introduction/Installation",
+				"创建一个场景": "manual/zh/introduction/Creating-a-scene",
 				"WebGL兼容性检查": "manual/zh/introduction/WebGL-compatibility-check",
-				"如何在本地运行Three.js": "manual/zh/introduction/How-to-run-things-locally",
 				"画线": "manual/zh/introduction/Drawing-lines",
 				"创建文字": "manual/zh/introduction/Creating-text",
 				"载入3D模型": "manual/zh/introduction/Loading-3D-models",
@@ -534,10 +524,6 @@
 				"如何使用后期处理": "manual/zh/introduction/How-to-use-post-processing",
 				"矩阵变换": "manual/zh/introduction/Matrix-transformations",
 				"动画系统": "manual/zh/introduction/Animation-system"
-			},
-
-			"构建工具": {
-				"使用NPM进行测试": "manual/zh/buildTools/Testing-with-NPM"
 			}
 
 		},
@@ -907,10 +893,9 @@
 		"매뉴얼": {
 
 			"시작하기": {
-				"장면 만들기": "manual/ko/introduction/Creating-a-scene",
 				"설치": "manual/ko/introduction/Installation",
+				"장면 만들기": "manual/ko/introduction/Creating-a-scene",
 				"WebGL 호환성 검사": "manual/ko/introduction/WebGL-compatibility-check",
-				"로컬 환경에서 구동 방법": "manual/ko/introduction/How-to-run-things-locally",
 				"선 그리기": "manual/ko/introduction/Drawing-lines",
 				"텍스트 만들기": "manual/ko/introduction/Creating-text",
 				"3D 모델 불러오기": "manual/ko/introduction/Loading-3D-models",
@@ -925,11 +910,6 @@
 				"후처리 사용 방법": "manual/ko/introduction/How-to-use-post-processing",
 				"행렬 변환": "manual/ko/introduction/Matrix-transformations",
 				"애니메이션 시스템": "manual/ko/introduction/Animation-system"
-			},
-
-			"빌드 도구": {
-				"NPM 테스트": "manual/ko/buildTools/Testing-with-NPM"
-
 			}
 
 		},
@@ -1081,10 +1061,9 @@
 		"マニュアル": {
 
 			"はじめてみましょう": {
-				"シーンの作成": "manual/ja/introduction/Creating-a-scene",
 				"インストールの方法": "manual/ja/introduction/Installation",
+				"シーンの作成": "manual/ja/introduction/Creating-a-scene",
 				"WebGLの互換性の確認": "manual/ja/introduction/WebGL-compatibility-check",
-				"localで実行する方法": "manual/ja/introduction/How-to-run-things-locally",
 				"線を引く": "manual/ja/introduction/Drawing-lines",
 				"テキストを作成する": "manual/ja/introduction/Creating-text",
 				"3Dモデルをロードする": "manual/ja/introduction/Loading-3D-models",
@@ -1100,10 +1079,6 @@
 				"post-processingの使い方": "manual/ja/introduction/How-to-use-post-processing",
 				"行列の変換": "manual/ja/introduction/Matrix-transformations",
 				"アニメーションシステム": "manual/ja/introduction/Animation-system"
-			},
-
-			"ビルドツール": {
-				"NPMでテストを実行する": "manual/ja/buildTools/Testing-with-NPM"
 			}
 
 		}
@@ -1115,10 +1090,9 @@
 		"Manuale": {
 
 			"Per iniziare": {
-				"Creare una scena": "manual/it/introduction/Creating-a-scene",
 				"Installazione": "manual/it/introduction/Installation",
+				"Creare una scena": "manual/it/introduction/Creating-a-scene",
 				"Controllo compatibilità WebGL": "manual/it/introduction/WebGL-compatibility-check",
-				"Esecuzione in locale": "manual/it/introduction/How-to-run-things-locally",
 				"Disegnare linee": "manual/it/introduction/Drawing-lines",
 				"Creare testo": "manual/it/introduction/Creating-text",
 				"Caricare modelli 3D": "manual/it/introduction/Loading-3D-models",
@@ -1135,10 +1109,6 @@
 				"Trasformazioni di matrici": "manual/it/introduction/Matrix-transformations",
 				"Sistema di animazione": "manual/it/introduction/Animation-system",
 				"Gestione del colore": "manual/it/introduction/Color-management"
-			},
-
-			"Strumenti di build": {
-				"Testare con NPM": "manual/it/buildTools/Testing-with-NPM"
 			}
 
 		},
@@ -1441,10 +1411,9 @@
 		"Manual": {
 
 			"Comece a usar": {
-				"Criando uma cena": "manual/pt-br/introduction/Creating-a-scene",
 				"Instalação": "manual/pt-br/introduction/Installation",
+				"Criando uma cena": "manual/pt-br/introduction/Creating-a-scene",
 				"Compatibilidade WebGL": "manual/pt-br/introduction/WebGL-compatibility-check",
-				"Como executar localmente": "manual/pt-br/introduction/How-to-run-things-locally",
 				"Desenhando linhas": "manual/pt-br/introduction/Drawing-lines",
 				"Criando texto": "manual/pt-br/introduction/Creating-text",
 				"Carregando modelos 3D": "manual/pt-br/introduction/Loading-3D-models",
@@ -1461,10 +1430,6 @@
 				"Transformações de matriz": "manual/pt-br/introduction/Matrix-transformations",
 				"Sistema de animação": "manual/pt-br/introduction/Animation-system",
 				"Gerenciamento de cor": "manual/pt-br/introduction/Color-management"
-			},
-
-			"Ferramentas de Build": {
-				"Testando com NPM": "manual/pt-br/buildTools/Testing-with-NPM"
 			}
 
 		},
@@ -1527,10 +1492,9 @@
 		"Manuel": {
 
 			"Débuter": {
-				"Créer une scène": "manual/fr/introduction/Creating-a-scene",
 				"Installation": "manual/fr/introduction/Installation",
+				"Créer une scène": "manual/fr/introduction/Creating-a-scene",
 				"Compatibilité WebGL": "manual/fr/introduction/WebGL-compatibility-check",
-				"Exécuter localement": "manual/fr/introduction/How-to-run-things-locally",
 				"Dessiner des lignes": "manual/fr/introduction/Drawing-lines",
 				"Créer un texte": "manual/fr/introduction/Creating-text",
 				"Importer des modèles 3D": "manual/fr/introduction/Loading-3D-models",
@@ -1547,16 +1511,7 @@
 				"Matrices de transformation": "manual/fr/introduction/Matrix-transformations",
 				"Système d'animation": "manual/fr/introduction/Animation-system",
 				"Gestion des couleurs": "manual/fr/introduction/Color-management"
-			},
-
-			"Outils de build": {
-				"Tests avec NPM": "manual/fr/buildTools/Testing-with-NPM"
-			},
-			"Noyau": {
-				"BufferAttribute": "api/fr/core/BufferAttribute",
-				"BufferGeometry": "api/fr/core/BufferGeometry"
 			}
-
 
 		},
 
@@ -1629,6 +1584,31 @@
 				"TorusKnotGeometry": "api/fr/geometries/TorusKnotGeometry",
 				"TubeGeometry": "api/fr/geometries/TubeGeometry",
 				"WireframeGeometry": "api/fr/geometries/WireframeGeometry"
+			},
+			"Matériaux": {
+				"LineBasicMaterial": "api/fr/materials/LineBasicMaterial",
+				"LineDashedMaterial": "api/fr/materials/LineDashedMaterial",
+				"Material": "api/fr/materials/Material",
+				"MeshBasicMaterial": "api/fr/materials/MeshBasicMaterial",
+				"MeshDepthMaterial": "api/fr/materials/MeshDepthMaterial",
+				"MeshDistanceMaterial": "api/fr/materials/MeshDistanceMaterial",
+				"MeshLambertMaterial": "api/fr/materials/MeshLambertMaterial",
+				"MeshMatcapMaterial": "api/fr/materials/MeshMatcapMaterial",
+				"MeshNormalMaterial": "api/fr/materials/MeshNormalMaterial",
+				"MeshPhongMaterial": "api/fr/materials/MeshPhongMaterial",
+				"MeshPhysicalMaterial": "api/fr/materials/MeshPhysicalMaterial",
+				"MeshStandardMaterial": "api/fr/materials/MeshStandardMaterial",
+				"MeshToonMaterial": "api/fr/materials/MeshToonMaterial",
+				"PointsMaterial": "api/fr/materials/PointsMaterial",
+				"RawShaderMaterial": "api/fr/materials/RawShaderMaterial",
+				"ShaderMaterial": "api/fr/materials/ShaderMaterial",
+				"ShadowMaterial": "api/fr/materials/ShadowMaterial",
+				"SpriteMaterial": "api/fr/materials/SpriteMaterial"
+			},
+
+			"Noyau": {
+				"BufferAttribute": "api/fr/core/BufferAttribute",
+				"BufferGeometry": "api/fr/core/BufferGeometry"
 			}
 
 		}
@@ -1640,10 +1620,9 @@
 		"Руководство": {
 
 			"Приступая к работе": {
-				"Создание сцены": "manual/ru/introduction/Creating-a-scene",
 				"Установка": "manual/ru/introduction/Installation",
+				"Создание сцены": "manual/ru/introduction/Creating-a-scene",
 				"Проверка совместимости с WebGL": "manual/ru/introduction/WebGL-compatibility-check",
-				"Локальная разработка ": "manual/ru/introduction/How-to-run-things-locally",
 				"Рисование линий": "manual/ru/introduction/Drawing-lines",
 				"Создание текста": "manual/ru/introduction/Creating-text",
 				"Загрузка 3D-моделей": "manual/ru/introduction/Loading-3D-models",
@@ -1660,10 +1639,6 @@
 				"Matrix transformations": "manual/en/introduction/Matrix-transformations",
 				"Animation system": "manual/en/introduction/Animation-system",
 				"Color management": "manual/en/introduction/Color-management"
-			},
-
-			"Build Tools": {
-				"Testing with NPM": "manual/en/buildTools/Testing-with-NPM"
 			}
 
 		},

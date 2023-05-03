@@ -60,7 +60,7 @@ import {
 	Vector2,
 	Vector3,
 	VectorKeyframeTrack,
-	sRGBEncoding
+	SRGBColorSpace
 } from 'three';
 import { toTrianglesDrawMode } from '../utils/BufferGeometryUtils.js';
 
@@ -663,7 +663,7 @@ class GLTFMaterialsUnlitExtension {
 
 			if ( metallicRoughness.baseColorTexture !== undefined ) {
 
-				pending.push( parser.assignTexture( materialParams, 'map', metallicRoughness.baseColorTexture, sRGBEncoding ) );
+				pending.push( parser.assignTexture( materialParams, 'map', metallicRoughness.baseColorTexture, SRGBColorSpace ) );
 
 			}
 
@@ -944,7 +944,7 @@ class GLTFMaterialsSheenExtension {
 
 		if ( extension.sheenColorTexture !== undefined ) {
 
-			pending.push( parser.assignTexture( materialParams, 'sheenColorMap', extension.sheenColorTexture, sRGBEncoding ) );
+			pending.push( parser.assignTexture( materialParams, 'sheenColorMap', extension.sheenColorTexture, SRGBColorSpace ) );
 
 		}
 
@@ -1184,7 +1184,7 @@ class GLTFMaterialsSpecularExtension {
 
 		if ( extension.specularColorTexture !== undefined ) {
 
-			pending.push( parser.assignTexture( materialParams, 'specularColorMap', extension.specularColorTexture, sRGBEncoding ) );
+			pending.push( parser.assignTexture( materialParams, 'specularColorMap', extension.specularColorTexture, SRGBColorSpace ) );
 
 		}
 
@@ -1625,8 +1625,6 @@ class GLTFMeshGpuInstancing {
 				// Just in case
 				Object3D.prototype.copy.call( instancedMesh, mesh );
 
-				// https://github.com/mrdoob/three.js/issues/18334
-				instancedMesh.frustumCulled = false;
 				this.parser.assignFinalMaterial( instancedMesh );
 
 				instancedMeshes.push( instancedMesh );
@@ -1821,13 +1819,10 @@ class GLTFTextureTransformExtension {
 
 	extendTexture( texture, transform ) {
 
-		if ( transform.texCoord !== undefined ) {
-
-			console.warn( 'THREE.GLTFLoader: Custom UV sets in "' + this.name + '" extension not yet supported.' );
-
-		}
-
-		if ( transform.offset === undefined && transform.rotation === undefined && transform.scale === undefined ) {
+		if ( ( transform.texCoord === undefined || transform.texCoord === texture.channel )
+			&& transform.offset === undefined
+			&& transform.rotation === undefined
+			&& transform.scale === undefined ) {
 
 			// See https://github.com/mrdoob/three.js/issues/21819.
 			return texture;
@@ -1835,6 +1830,12 @@ class GLTFTextureTransformExtension {
 		}
 
 		// texture = texture.clone(); // Its done in default three.js, todo: why?. this will create a new uuid and break texture caching. Uncommenting will break mapdef copy in webgi manager importViewer
+
+		if ( transform.texCoord !== undefined ) {
+
+			texture.channel = transform.texCoord;
+
+		}
 
 		if ( transform.offset !== undefined ) {
 
@@ -2038,7 +2039,9 @@ const ATTRIBUTES = {
 	NORMAL: 'normal',
 	TANGENT: 'tangent',
 	TEXCOORD_0: 'uv',
-	TEXCOORD_1: 'uv2',
+	TEXCOORD_1: 'uv1',
+	TEXCOORD_2: 'uv2',
+	TEXCOORD_3: 'uv3',
 	COLOR_0: 'color',
 	WEIGHTS_0: 'skinWeight',
 	JOINTS_0: 'skinIndex',
@@ -3000,6 +3003,12 @@ class GLTFParser {
 
 			texture.name = textureDef.name || sourceDef.name || '';
 
+			if ( texture.name === '' && typeof sourceDef.uri === 'string' && sourceDef.uri.startsWith( 'data:image/' ) === false ) {
+
+				texture.name = sourceDef.uri;
+
+			}
+
 			const samplers = json.samplers || {};
 			const sampler = samplers[ textureDef.sampler ] || {};
 
@@ -3196,7 +3205,7 @@ class GLTFParser {
 	 * @param {Object} mapDef
 	 * @return {Promise<Texture>}
 	 */
-	assignTexture( materialParams, mapName, mapDef, encoding ) {
+	assignTexture( materialParams, mapName, mapDef, colorSpace ) {
 
 		const parser = this;
 
@@ -3204,11 +3213,10 @@ class GLTFParser {
 
 			if ( ! texture ) return null;
 
-			// Materials sample aoMap from UV set 1 and other maps from UV set 0 - this can't be configured
-			// However, we will copy UV set 0 to UV set 1 on demand for aoMap
-			if ( mapDef.texCoord !== undefined && mapDef.texCoord != 0 && ! ( mapName === 'aoMap' && mapDef.texCoord == 1 ) ) {
+			if ( mapDef.texCoord !== undefined && mapDef.texCoord > 0 ) {
 
-				console.warn( 'THREE.GLTFLoader: Custom UV set ' + mapDef.texCoord + ' for texture ' + mapName + ' not yet supported.' );
+				texture = texture.clone();
+				texture.channel = mapDef.texCoord;
 
 			}
 
@@ -3226,9 +3234,9 @@ class GLTFParser {
 
 			}
 
-			if ( encoding !== undefined ) {
+			if ( colorSpace !== undefined ) {
 
-				texture.encoding = encoding;
+				texture.colorSpace = colorSpace;
 
 			}
 
@@ -3288,6 +3296,7 @@ class GLTFParser {
 				lineMaterial = new LineBasicMaterial();
 				Material.prototype.copy.call( lineMaterial, material );
 				lineMaterial.color.copy( material.color );
+				lineMaterial.map = material.map;
 
 				this.cache.add( cacheKey, lineMaterial );
 
@@ -3330,14 +3339,6 @@ class GLTFParser {
 			}
 
 			material = cachedMaterial;
-
-		}
-
-		// workarounds for mesh and geometry
-
-		if ( material.aoMap && geometry.attributes.uv2 === undefined && geometry.attributes.uv !== undefined ) {
-
-			geometry.setAttribute( 'uv2', geometry.attributes.uv );
 
 		}
 
@@ -3396,7 +3397,7 @@ class GLTFParser {
 
 			if ( metallicRoughness.baseColorTexture !== undefined ) {
 
-				pending.push( parser.assignTexture( materialParams, 'map', metallicRoughness.baseColorTexture, sRGBEncoding ) );
+				pending.push( parser.assignTexture( materialParams, 'map', metallicRoughness.baseColorTexture, SRGBColorSpace ) );
 
 			}
 
@@ -3487,7 +3488,7 @@ class GLTFParser {
 
 		if ( materialDef.emissiveTexture !== undefined && materialType !== MeshBasicMaterial ) {
 
-			pending.push( parser.assignTexture( materialParams, 'emissiveMap', materialDef.emissiveTexture, sRGBEncoding ) );
+			pending.push( parser.assignTexture( materialParams, 'emissiveMap', materialDef.emissiveTexture, SRGBColorSpace ) );
 
 		}
 
@@ -3860,6 +3861,7 @@ class GLTFParser {
 		const json = this.json;
 
 		const animationDef = json.animations[ animationIndex ];
+		const animationName = animationDef.name ? animationDef.name : 'animation_' + animationIndex;
 
 		const pendingNodes = [];
 		const pendingInputAccessors = [];
@@ -3875,6 +3877,8 @@ class GLTFParser {
 			const name = target.node;
 			const input = animationDef.parameters !== undefined ? animationDef.parameters[ sampler.input ] : sampler.input;
 			const output = animationDef.parameters !== undefined ? animationDef.parameters[ sampler.output ] : sampler.output;
+
+			if ( target.node === undefined ) continue;
 
 			pendingNodes.push( this.getDependency( 'node', name ) );
 			pendingInputAccessors.push( this.getDependency( 'accessor', input ) );
@@ -4013,9 +4017,7 @@ class GLTFParser {
 
 			}
 
-			const name = animationDef.name ? animationDef.name : 'animation_' + animationIndex;
-
-			return new AnimationClip( name, undefined, tracks );
+			return new AnimationClip( animationName, undefined, tracks );
 
 		} );
 

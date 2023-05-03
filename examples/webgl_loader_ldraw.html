@@ -89,7 +89,6 @@
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
-				renderer.outputEncoding = THREE.sRGBEncoding;
 				renderer.toneMapping = THREE.ACESFilmicToneMapping;
 				container.appendChild( renderer.domElement );
 
@@ -102,6 +101,7 @@
 				scene.environment = pmremGenerator.fromScene( new RoomEnvironment() ).texture;
 
 				controls = new OrbitControls( camera, renderer.domElement );
+				controls.enableDamping = true;
 
 				//
 
@@ -326,6 +326,7 @@
 			function animate() {
 
 				requestAnimationFrame( animate );
+				controls.update();
 				render();
 
 			}
