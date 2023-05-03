@@ -26,6 +26,8 @@ class RenderPass extends Pass {
 
 	render( renderer, writeBuffer, readBuffer, deltaTime, maskActive, depthRenderBuffer ) {
 
+		if ( ! this.scene || ! this.camera ) return;
+
 		const oldAutoClear = renderer.autoClear;
 		renderer.autoClear = false;
 
