@@ -144,11 +144,11 @@ class WebGLRenderer {
 		this.toneMapping = NoToneMapping;
 		this.toneMappingExposure = 1.0;
 
-	// user data
+		// user data
 
-	this.userData = {};
+		this.userData = {};
 
-	// internal properties
+		// internal properties
 
 		const _this = this;
 
@@ -617,15 +617,15 @@ class WebGLRenderer {
 
 		};
 
-	// Events
+		// Events
 
-	this.onContextLost = ()=>{};
+		this.onContextLost = ()=>{};
 
-	this.onContextRestore = ()=>{};
+		this.onContextRestore = ()=>{};
 
-	this.onContextCreationError = ()=>{};
+		this.onContextCreationError = ()=>{};
 
-	function onContextLost( event ) {
+		function onContextLost( event ) {
 
 			event.preventDefault();
 
@@ -633,9 +633,9 @@ class WebGLRenderer {
 
 			_isContextLost = true;
 
-		_this.onContextLost( event );
+			_this.onContextLost( event );
 
-	}
+		}
 
 		function onContextRestore( /* event */ ) {
 
@@ -657,19 +657,19 @@ class WebGLRenderer {
 			shadowMap.needsUpdate = shadowMapNeedsUpdate;
 			shadowMap.type = shadowMapType;
 
-		_this.onContextRestore();
+			_this.onContextRestore();
 
-		console.log( 'restored' );
+			console.log( 'restored' );
 
-	}
+		}
 
 		function onContextCreationError( event ) {
 
 			console.error( 'THREE.WebGLRenderer: A WebGL context could not be created. Reason: ', event.statusMessage );
 
-		_this.onContextCreationError( event );
+			_this.onContextCreationError( event );
 
-	}
+		}
 
 		function onMaterialDispose( event ) {
 

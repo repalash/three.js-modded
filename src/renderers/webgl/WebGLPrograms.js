@@ -181,7 +181,7 @@ function WebGLPrograms( renderer, cubemaps, cubeuvmaps, extensions, capabilities
 			instancingColor: IS_INSTANCEDMESH && object.instanceColor !== null,
 
 			supportsVertexTextures: SUPPORTS_VERTEX_TEXTURES,
-			outputColorSpace: ( currentRenderTarget === null ) ? renderer.outputColorSpace : ( ( currentRenderTarget.isXRRenderTarget === true || ( Array.isArray( currentRenderTarget.texture ) ? currentRenderTarget.texture[ 0 ] : currentRenderTarget.texture ).encoding !== LinearSRGBColorSpace ) ? ( Array.isArray( currentRenderTarget.texture ) ? currentRenderTarget.texture[ 0 ] : currentRenderTarget.texture ).colorSpace : LinearSRGBColorSpace ),
+			outputColorSpace: ( currentRenderTarget === null ) ? renderer.outputColorSpace : ( ( currentRenderTarget.isXRRenderTarget === true || ( Array.isArray( currentRenderTarget.texture ) ? currentRenderTarget.texture[ 0 ] : currentRenderTarget.texture ).colorSpace !== LinearSRGBColorSpace ) ? ( Array.isArray( currentRenderTarget.texture ) ? currentRenderTarget.texture[ 0 ] : currentRenderTarget.texture ).colorSpace : LinearSRGBColorSpace ),
 
 			map: HAS_MAP,
 			matcap: HAS_MATCAP,
@@ -222,7 +222,7 @@ function WebGLPrograms( renderer, cubemaps, cubeuvmaps, extensions, capabilities
 			transmissionMap: HAS_TRANSMISSIONMAP,
 			thicknessMap: HAS_THICKNESSMAP,
 
-			transmissionSamplerMapEncoding: transmissionRenderTarget ? transmissionRenderTarget.texture.encoding : LinearSRGBColorSpace,
+			transmissionSamplerMapEncoding: transmissionRenderTarget ? transmissionRenderTarget.texture.colorSpace : LinearSRGBColorSpace,
 
 			gradientMap: HAS_GRADIENTMAP,
 

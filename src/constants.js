@@ -144,8 +144,6 @@ export const TriangleFanDrawMode = 2;
 export const LinearEncoding = 3000;
 /** @deprecated Use SRGBColorSpace in three.js r152+. */
 export const sRGBEncoding = 3001;
-export const RGBM7Encoding = 3004;
-export const RGBM16Encoding = 3005;
 export const BasicDepthPacking = 3200;
 export const RGBADepthPacking = 3201;
 export const TangentSpaceNormalMap = 0;
@@ -156,6 +154,7 @@ export const NoColorSpace = '';
 export const SRGBColorSpace = 'srgb';
 export const LinearSRGBColorSpace = 'srgb-linear';
 export const DisplayP3ColorSpace = 'display-p3';
+export const RGBM16ColorSpace = 'rgbm-16';
 
 export const ZeroStencilOp = 0;
 export const KeepStencilOp = 7680;

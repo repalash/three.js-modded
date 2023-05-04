@@ -193,6 +193,7 @@ class Texture extends EventDispatcher {
 			internalFormat: this.internalFormat,
 			type: this.type,
 			colorSpace: this.colorSpace,
+			encoding: this.colorSpace === SRGBColorSpace ? sRGBEncoding : LinearEncoding, // deprecated in r152, added for backwards compatibility, remove later
 
 			minFilter: this.minFilter,
 			magFilter: this.magFilter,
