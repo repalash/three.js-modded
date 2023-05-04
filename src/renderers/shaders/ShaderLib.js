@@ -220,6 +220,8 @@ const ShaderLib = {
 			t2D: { value: null },
 			backgroundIntensity: { value: 1 },
 
+			backgroundColor: { value: new Color( 0xffffff ) },
+
 			flipX: { value: false },
 			flipY: { value: false },
 		},

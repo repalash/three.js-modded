@@ -25,6 +25,9 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 
 		let forceClear = false;
 		let background = scene.isScene === true ? scene.background : null;
+		const backgroundColor = scene.isScene && scene.backgroundColor !== undefined ? scene.backgroundColor : null;
+
+		if ( background === 'environment' ) background = scene.environment;
 
 		if ( background && background.isTexture ) {
 
@@ -138,7 +141,7 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 			// push to the pre-sorted opaque render list
 			renderList.unshift( boxMesh, boxMesh.geometry, boxMesh.material, 0, 0, null );
 
-		} else if ( background && background.isTexture ) {
+		} else if ( ( background && background.isTexture ) || ( ! background && backgroundColor ) ) {
 
 			if ( planeMesh === undefined ) {
 
@@ -173,29 +176,42 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 
 			}
 
+			planeMesh.material.uniforms.backgroundColor.value.set( backgroundColor || 0xffffff );
 			planeMesh.material.uniforms.t2D.value = background;
 			planeMesh.material.uniforms.backgroundIntensity.value = scene.backgroundIntensity;
-			planeMesh.material.toneMapped = ( background.colorSpace === SRGBColorSpace ) ? false : true;
 
-			planeMesh.material.uniforms.flipX.value = background.userData.flipX || false;
-			planeMesh.material.uniforms.flipY.value = background.userData.flipY || false;
+			if ( background ) {
 
-			if ( background.matrixAutoUpdate === true ) {
+				planeMesh.material.toneMapped = ( background.colorSpace === SRGBColorSpace ) ? false : true;
 
-				background.updateMatrix();
+				planeMesh.material.uniforms.flipX.value = background.userData.flipX || false;
+				planeMesh.material.uniforms.flipY.value = background.userData.flipY || false;
+
+				if ( background.matrixAutoUpdate === true ) {
+
+					background.updateMatrix();
+
+				}
+
+				planeMesh.material.uniforms.uvTransform.value.copy( background.matrix );
+
+				planeMesh.material.defines.HAS_TEXTURE = '1';
+
+			} else if ( planeMesh.material.defines.HAS_TEXTURE ) {
+
+				delete planeMesh.material.defines.HAS_TEXTURE;
 
 			}
 
-			planeMesh.material.uniforms.uvTransform.value.copy( background.matrix );
-
+			const backgroundVersion = ( background ? background.version : - 1 );
 			if ( currentBackground !== background ||
-				currentBackgroundVersion !== background.version ||
+				currentBackgroundVersion !== backgroundVersion ||
 				currentTonemapping !== renderer.toneMapping ) {
 
 				planeMesh.material.needsUpdate = true;
 
 				currentBackground = background;
-				currentBackgroundVersion = background.version;
+				currentBackgroundVersion = backgroundVersion;
 				currentTonemapping = renderer.toneMapping;
 
 			}
