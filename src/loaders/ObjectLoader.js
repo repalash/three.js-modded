@@ -15,7 +15,7 @@ import {
 	NearestMipmapLinearFilter,
 	LinearFilter,
 	LinearMipmapNearestFilter,
-	LinearMipmapLinearFilter
+	LinearMipmapLinearFilter, LinearSRGBColorSpace,
 } from '../constants.js';
 import { InstancedBufferAttribute } from '../core/InstancedBufferAttribute.js';
 import { Color } from '../math/Color.js';
@@ -686,6 +686,9 @@ class ObjectLoader extends Loader {
 
 		let object;
 
+		// only for legacy files. Note: color values of lights is not handled.
+		const hexColorSpace = ( data.metadata && data.metadata.version <= 4.5 ) ? LinearSRGBColorSpace : undefined;
+
 		function getGeometry( name ) {
 
 			if ( geometries[ name ] === undefined ) {
@@ -758,7 +761,7 @@ class ObjectLoader extends Loader {
 
 					if ( Number.isInteger( data.background ) ) {
 
-						object.background = new Color( data.background );
+						object.background = new Color().setHex( data.background, hexColorSpace );
 
 					} else {
 

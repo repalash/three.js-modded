@@ -26,6 +26,7 @@ import {
 	LineBasicMaterial,
 	Material,
 } from '../materials/Materials.js';
+import { LinearSRGBColorSpace } from '../constants.js';
 
 class MaterialLoader extends Loader {
 
@@ -86,20 +87,23 @@ class MaterialLoader extends Loader {
 
 		}
 
+		// only for legacy files.
+		const hexColorSpace = json.metadata.version <= 4.5 ? LinearSRGBColorSpace : undefined;
+
 		const material = MaterialLoader.createMaterialFromType( json.type );
 
 		if ( json.uuid !== undefined ) material.uuid = json.uuid;
 		if ( json.name !== undefined ) material.name = json.name;
-		if ( json.color !== undefined && material.color !== undefined ) material.color.setHex( json.color );
+		if ( json.color !== undefined && material.color !== undefined ) material.color.setHex( json.color, hexColorSpace );
 		if ( json.roughness !== undefined ) material.roughness = json.roughness;
 		if ( json.metalness !== undefined ) material.metalness = json.metalness;
 		if ( json.sheen !== undefined ) material.sheen = json.sheen;
-		if ( json.sheenColor !== undefined ) material.sheenColor = new Color().setHex( json.sheenColor );
+		if ( json.sheenColor !== undefined ) material.sheenColor = new Color().setHex( json.sheenColor, hexColorSpace );
 		if ( json.sheenRoughness !== undefined ) material.sheenRoughness = json.sheenRoughness;
-		if ( json.emissive !== undefined && material.emissive !== undefined ) material.emissive.setHex( json.emissive );
-		if ( json.specular !== undefined && material.specular !== undefined ) material.specular.setHex( json.specular );
+		if ( json.emissive !== undefined && material.emissive !== undefined ) material.emissive.setHex( json.emissive, hexColorSpace );
+		if ( json.specular !== undefined && material.specular !== undefined ) material.specular.setHex( json.specular, hexColorSpace );
 		if ( json.specularIntensity !== undefined ) material.specularIntensity = json.specularIntensity;
-		if ( json.specularColor !== undefined && material.specularColor !== undefined ) material.specularColor.setHex( json.specularColor );
+		if ( json.specularColor !== undefined && material.specularColor !== undefined ) material.specularColor.setHex( json.specularColor, hexColorSpace );
 		if ( json.shininess !== undefined ) material.shininess = json.shininess;
 		if ( json.clearcoat !== undefined ) material.clearcoat = json.clearcoat;
 		if ( json.clearcoatRoughness !== undefined ) material.clearcoatRoughness = json.clearcoatRoughness;
@@ -109,7 +113,7 @@ class MaterialLoader extends Loader {
 		if ( json.transmission !== undefined ) material.transmission = json.transmission;
 		if ( json.thickness !== undefined ) material.thickness = json.thickness;
 		if ( json.attenuationDistance !== undefined ) material.attenuationDistance = json.attenuationDistance;
-		if ( json.attenuationColor !== undefined && material.attenuationColor !== undefined ) material.attenuationColor.setHex( json.attenuationColor );
+		if ( json.attenuationColor !== undefined && material.attenuationColor !== undefined ) material.attenuationColor.setHex( json.attenuationColor, hexColorSpace );
 		if ( json.fog !== undefined ) material.fog = json.fog;
 		if ( json.flatShading !== undefined ) material.flatShading = json.flatShading;
 		if ( json.blending !== undefined ) material.blending = json.blending;
@@ -191,7 +195,7 @@ class MaterialLoader extends Loader {
 						break;
 
 					case 'c':
-						material.uniforms[ name ].value = new Color().setHex( uniform.value );
+						material.uniforms[ name ].value = new Color().setHex( uniform.value, hexColorSpace );
 						break;
 
 					case 'v2':
