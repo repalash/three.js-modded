@@ -20138,6 +20138,7 @@ function WebGLPrograms( renderer, cubemaps, cubeuvmaps, extensions, capabilities
 
 		const currentRenderTarget = renderer.getRenderTarget();
 		const transmissionRenderTarget = renderer.userData && renderer.userData.transmissionRenderTarget;
+		const currentRTTexture = ! currentRenderTarget ? null : ( Array.isArray( currentRenderTarget.texture ) ? currentRenderTarget.texture[ 0 ] : currentRenderTarget.texture );
 
 		const IS_INSTANCEDMESH = object.isInstancedMesh === true;
 
@@ -20211,7 +20212,7 @@ function WebGLPrograms( renderer, cubemaps, cubeuvmaps, extensions, capabilities
 			instancingColor: IS_INSTANCEDMESH && object.instanceColor !== null,
 
 			supportsVertexTextures: SUPPORTS_VERTEX_TEXTURES,
-			outputColorSpace: ( currentRenderTarget === null ) ? renderer.outputColorSpace : ( ( currentRenderTarget.isXRRenderTarget === true || ( Array.isArray( currentRenderTarget.texture ) ? currentRenderTarget.texture[ 0 ] : currentRenderTarget.texture ).colorSpace !== LinearSRGBColorSpace ) ? ( Array.isArray( currentRenderTarget.texture ) ? currentRenderTarget.texture[ 0 ] : currentRenderTarget.texture ).colorSpace : LinearSRGBColorSpace ),
+			outputColorSpace: ( currentRenderTarget === null ) ? renderer.outputColorSpace : ( ( currentRenderTarget.isXRRenderTarget === true || currentRTTexture.colorSpace !== '' ) ? currentRTTexture.colorSpace : LinearSRGBColorSpace ),
 
 			map: HAS_MAP,
 			matcap: HAS_MATCAP,
@@ -28804,7 +28805,7 @@ class WebGLRenderer {
 
 			//
 
-			if ( _this.userData.shadowMapRender ) {
+			if ( _this.userData.shadowMapRender !== false ) {
 
 				if ( _clippingEnabled === true ) clipping.beginShadows();
 
@@ -42042,6 +42043,8 @@ class ImageLoader extends Loader {
 
 	load( url, onLoad, onProgress, onError ) {
 
+		const origUrl = url;
+
 		if ( this.path !== undefined ) url = this.path + url;
 
 		url = this.manager.resolveURL( url );
@@ -42125,9 +42128,10 @@ class ImageLoader extends Loader {
 			const fileLoader = new FileLoader( this.manager );
 			fileLoader.useCache = false;
 			fileLoader.setPath( this.path );
+			fileLoader.setCrossOrigin( this.crossOrigin );
 			fileLoader.setResponseType( 'blob' );
 
-			fileLoader.load( url, function ( blob ) {
+			fileLoader.load( origUrl, function ( blob ) {
 
 				if ( ! blob.type )
 					if ( url.endsWith( '.svg' ) || url.startsWith( 'data:image/svg' ) )
@@ -43285,7 +43289,7 @@ class MaterialLoader extends Loader {
 		}
 
 		// only for legacy files.
-		const hexColorSpace = json.metadata.version <= 4.5 ? LinearSRGBColorSpace : undefined;
+		const hexColorSpace = ( json.metadata && json.metadata.version <= 4.5 ) ? LinearSRGBColorSpace : undefined;
 
 		const material = MaterialLoader.createMaterialFromType( json.type );
 
