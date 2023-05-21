@@ -88,7 +88,7 @@ class MaterialLoader extends Loader {
 		}
 
 		// only for legacy files.
-		const hexColorSpace = json.metadata.version <= 4.5 ? LinearSRGBColorSpace : undefined;
+		const hexColorSpace = ( json.metadata && json.metadata.version <= 4.5 ) ? LinearSRGBColorSpace : undefined;
 
 		const material = MaterialLoader.createMaterialFromType( json.type );
 

@@ -1030,7 +1030,7 @@ class WebGLRenderer {
 
 			//
 
-			if ( _this.userData.shadowMapRender ) {
+			if ( _this.userData.shadowMapRender !== false ) {
 
 				if ( _clippingEnabled === true ) clipping.beginShadows();
 

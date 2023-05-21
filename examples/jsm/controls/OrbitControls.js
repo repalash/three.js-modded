@@ -36,7 +36,7 @@ class OrbitControls extends EventDispatcher {
 		this.target = new Vector3();
 
 		// How far you can dolly in and out ( PerspectiveCamera only )
-		this.minDistance = 0.01;
+		this.minDistance = 0.00001;
 		this.maxDistance = Infinity;
 
 		this.autoPushTarget = true; // push target when zoomed even after minDistance
@@ -82,6 +82,8 @@ class OrbitControls extends EventDispatcher {
 		// If auto-rotate is enabled, you must call controls.update() in your animation loop
 		this.autoRotate = false;
 		this.autoRotateSpeed = 2.0; // 30 seconds per orbit when fps is 60
+
+		this.throttleUpdate = 0; // limit to n updates per second, set to 0 to disable throttling
 
 		// The four arrow keys
 		this.keys = { LEFT: 'ArrowLeft', UP: 'ArrowUp', RIGHT: 'ArrowRight', BOTTOM: 'ArrowDown' };
@@ -177,9 +179,13 @@ class OrbitControls extends EventDispatcher {
 
 			return function update() {
 
-				const now = Date.now();
-				const deltaTime = now - lastUpdateTime;
-				if ( deltaTime < 1000 / 60 ) return;
+				if ( this.throttleUpdate && this.throttleUpdate >= 1 ) {
+
+					const now = Date.now();
+					const deltaTime = now - lastUpdateTime;
+					if ( deltaTime < 1000 / this.throttleUpdate ) return;
+
+				}
 
 				const position = scope.object.position;
 

@@ -13,6 +13,8 @@ class ImageLoader extends Loader {
 
 	load( url, onLoad, onProgress, onError ) {
 
+		const origUrl = url;
+
 		if ( this.path !== undefined ) url = this.path + url;
 
 		url = this.manager.resolveURL( url );
@@ -96,9 +98,10 @@ class ImageLoader extends Loader {
 			const fileLoader = new FileLoader( this.manager );
 			fileLoader.useCache = false;
 			fileLoader.setPath( this.path );
+			fileLoader.setCrossOrigin( this.crossOrigin );
 			fileLoader.setResponseType( 'blob' );
 
-			fileLoader.load( url, function ( blob ) {
+			fileLoader.load( origUrl, function ( blob ) {
 
 				if ( ! blob.type )
 					if ( url.endsWith( '.svg' ) || url.startsWith( 'data:image/svg' ) )
