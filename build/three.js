@@ -2040,7 +2040,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 			const output = {
 
 				metadata: {
-					version: 4.5,
+					version: 4.6,
 					type: 'Texture',
 					generator: 'Texture.toJSON'
 				},
@@ -11138,7 +11138,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 			const data = {
 				metadata: {
-					version: 4.5,
+					version: 4.6,
 					type: 'BufferGeometry',
 					generator: 'BufferGeometry.toJSON'
 				}
@@ -31754,7 +31754,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 			const data = {
 				metadata: {
-					version: 4.5,
+					version: 4.6,
 					type: 'Skeleton',
 					generator: 'Skeleton.toJSON'
 				},
@@ -33058,7 +33058,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 			const data = {
 				metadata: {
-					version: 4.5,
+					version: 4.6,
 					type: 'Curve',
 					generator: 'Curve.toJSON'
 				}
