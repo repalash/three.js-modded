@@ -94,7 +94,6 @@ class Rhino3dmLoader extends Loader {
 
 					result.userData.warnings = this.warnings;
 					this.warnings = [];
-					this.materials = [];
 					onLoad( result );
 
 				 } )
@@ -184,6 +183,8 @@ class Rhino3dmLoader extends Loader {
 
 	_compareMaterials( material ) {
 
+		if ( this.materials.includes( material ) ) return material;
+
 		const mat = {};
 		mat.name = material.name;
 		mat.color = {};
@@ -218,6 +219,7 @@ class Rhino3dmLoader extends Loader {
 		return material;
 
 	}
+
 
 	_createMaterial( material ) {
 
@@ -317,6 +319,7 @@ class Rhino3dmLoader extends Loader {
 		object.userData[ 'layers' ] = data.layers;
 		object.userData[ 'groups' ] = data.groups;
 		object.userData[ 'settings' ] = data.settings;
+		object.userData[ 'strings' ] = data.strings;
 		object.userData[ 'objectType' ] = 'File3dm';
 		object.userData[ 'materials' ] = null;
 		object.name = this.url;
@@ -369,7 +372,7 @@ class Rhino3dmLoader extends Loader {
 
 					const layer = data.layers[ attributes.layerIndex ];
 
-					_object.visible = layer ? data.layers[ attributes.layerIndex ].visible : true;
+					_object.visible = layer ? layer : true;
 
 					if ( attributes.isInstanceDefinitionObject ) {
 
@@ -419,21 +422,53 @@ class Rhino3dmLoader extends Loader {
 
 				if ( iRef.geometry.parentIdefId === iDef.attributes.id ) {
 
-					const iRefObject = new Object3D();
 					const xf = iRef.geometry.xform.array;
-
 					const matrix = new Matrix4();
 					matrix.set( ...xf );
 
-					iRefObject.applyMatrix4( matrix );
+					if ( objects.length === 1 ) {
 
-					for ( let p = 0; p < objects.length; p ++ ) {
+						const clone = objects[ 0 ].clone( true );
 
-						iRefObject.add( objects[ p ].clone( true ) );
+						clone.name = iRef.attributes.name || clone.name;
+						clone.applyMatrix4( matrix );
+
+						if ( iRef.attributes.materialIndex >= 0 && iRef.attributes.materialIndex !== objects[ 0 ].userData.attributes.materialIndex ) {
+
+							const rMaterial = materials[ iRef.attributes.materialIndex ];
+							const material = this._createMaterial( rMaterial );
+							clone.material = this._compareMaterials( material );
+
+						}
+
+						clone.userData[ 'defAttributes' ] = clone.userData.attributes;
+						clone.userData[ 'defObjectType' ] = clone.userData.objectType;
+						clone.userData[ 'attributes' ] = { ...clone.userData.attributes, ...iRef.attributes };
+						clone.userData[ 'objectType' ] = iRef.objectType;
+						if ( iRef.attributes.layerIndex !== undefined ) {
+
+							const layer = data.layers[ iRef.attributes.layerIndex ];
+							clone.visible = layer ? layer.visible : clone.visible;
+
+						}
+
+						object.add( clone );
+
+					} else {
+
+						console.warn( 'THREE.Rhino3dmLoader: InstanceReference with multiple/no objects, not all properties will be copied.' );
+
+						const iRefObject = new Object3D();
+
+						for ( let p = 0; p < objects.length; p ++ ) {
+
+							iRefObject.add( objects[ p ].clone( true ) );
+
+						}
+
+						object.add( iRefObject );
 
 					}
-
-					object.add( iRefObject );
 
 				}
 
@@ -518,6 +553,7 @@ class Rhino3dmLoader extends Loader {
 				if ( attributes.name ) {
 
 					mesh.name = attributes.name;
+					geometry.name = attributes.name;
 
 				}
 
@@ -698,7 +734,7 @@ class Rhino3dmLoader extends Loader {
 					//this.libraryBinary = binaryContent;
 					this.libraryConfig.wasmBinary = binaryContent;
 
-					const fn = Rhino3dmWorker.toString();
+					const fn = DRACOWorkerStr;
 
 					const body = [
 						'/* rhino3dm.js */',
@@ -808,6 +844,7 @@ class Rhino3dmLoader extends Loader {
 
 /* WEB WORKER */
 
+const DRACOWorkerStr = `
 function Rhino3dmWorker() {
 
 	let libraryPending;
@@ -902,7 +939,7 @@ function Rhino3dmWorker() {
 		}
 
 		// Handle instance definitions
-		// console.log( `Instance Definitions Count: ${doc.instanceDefinitions().count()}` );
+		// console.log( \`Instance Definitions Count: \$\{doc.instanceDefinitions().count()\}\` );
 
 		for ( let i = 0; i < doc.instanceDefinitions().count(); i ++ ) {
 
@@ -981,7 +1018,7 @@ function Rhino3dmWorker() {
 					} else {
 
 						self.postMessage( { type: 'warning', id: taskID, data: {
-							message: `THREE.3DMLoader: Image for ${textureType} texture not embedded in file.`,
+							message: \`THREE.3DMLoader: Image for \$\{textureType\} texture not embedded in file.\`,
 							type: 'missing resource'
 						}
 
@@ -1092,15 +1129,15 @@ function Rhino3dmWorker() {
 		//TODO: Handle other document stuff like dimstyles, instance definitions, bitmaps etc.
 
 		// Handle dimstyles
-		// console.log( `Dimstyle Count: ${doc.dimstyles().count()}` );
+		// console.log( \`Dimstyle Count: \$\{doc.dimstyles().count()\}\` );
 
 		// Handle bitmaps
-		// console.log( `Bitmap Count: ${doc.bitmaps().count()}` );
+		// console.log( \`Bitmap Count: \$\{doc.bitmaps().count()\}\` );
 
 		// Handle strings
-		// console.log( `Document Strings Count: ${doc.strings().count()}` );
+		// console.log( \`Document Strings Count: \$\{doc.strings().count()\}\` );
 		// Note: doc.strings().documentUserTextCount() counts any doc.strings defined in a section
-		//console.log( `Document User Text Count: ${doc.strings().documentUserTextCount()}` );
+		//console.log( \`Document User Text Count: \$\{doc.strings().documentUserTextCount()\}\` );
 
 		const strings_count = doc.strings().count();
 
@@ -1249,7 +1286,7 @@ function Rhino3dmWorker() {
 				if ( geometry.lightStyle.name === 'LightStyle_WorldLinear' ) {
 
 					self.postMessage( { type: 'warning', id: taskID, data: {
-						message: `THREE.3DMLoader: No conversion exists for ${objectType.constructor.name} ${geometry.lightStyle.name}`,
+						message: \`THREE.3DMLoader: No conversion exists for \$\{objectType.constructor.name} \$\{geometry.lightStyle.name\}\`,
 						type: 'no conversion',
 						guid: _attributes.id
 					}
@@ -1291,7 +1328,7 @@ function Rhino3dmWorker() {
 			default:
 
 				self.postMessage( { type: 'warning', id: taskID, data: {
-					message: `THREE.3DMLoader: Conversion not implemented for ${objectType.constructor.name}`,
+					message: \`THREE.3DMLoader: Conversion not implemented for \$\{objectType.constructor.name\}\`,
 					type: 'not implemented',
 					guid: _attributes.id
 				}
@@ -1335,7 +1372,7 @@ function Rhino3dmWorker() {
 		} else {
 
 			self.postMessage( { type: 'warning', id: taskID, data: {
-				message: `THREE.3DMLoader: ${objectType.constructor.name} has no associated mesh geometry.`,
+				message: \`THREE.3DMLoader: \$\{objectType.constructor.name\} has no associated mesh geometry.\`,
 				type: 'missing mesh',
 				guid: _attributes.id
 			}
@@ -1369,7 +1406,7 @@ function Rhino3dmWorker() {
 			} else {
 
 				// these are functions that could be called to extract more data.
-				//console.log( `${property}: ${object[ property ].constructor.name}` );
+				//console.log( \`\$\{property\}: \$\{object[ property ].constructor.name}\` );
 
 			}
 
@@ -1495,5 +1532,6 @@ function Rhino3dmWorker() {
 	}
 
 }
+`;
 
 export { Rhino3dmLoader };
