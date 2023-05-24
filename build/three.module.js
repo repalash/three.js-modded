@@ -20210,7 +20210,7 @@ function WebGLPrograms( renderer, cubemaps, cubeuvmaps, extensions, capabilities
 			instancingColor: IS_INSTANCEDMESH && object.instanceColor !== null,
 
 			supportsVertexTextures: SUPPORTS_VERTEX_TEXTURES,
-			outputColorSpace: ( currentRenderTarget === null ) ? renderer.outputColorSpace : ( ( currentRenderTarget.isXRRenderTarget === true || currentRTTexture.colorSpace !== '' ) ? currentRTTexture.colorSpace : LinearSRGBColorSpace ),
+			outputColorSpace: ( currentRenderTarget === null ) ? renderer.outputColorSpace : ( ( currentRenderTarget.isXRRenderTarget === true || currentRTTexture.colorSpace !== LinearSRGBColorSpace ) ? currentRTTexture.colorSpace : LinearSRGBColorSpace ),
 
 			map: HAS_MAP,
 			matcap: HAS_MATCAP,
@@ -28328,6 +28328,14 @@ class WebGLRenderer {
 
 		this.clear = function ( color = true, depth = true, stencil = true ) {
 
+			// if ( ! _scissorTest ) {
+			//
+			// 	// https://stackoverflow.com/questions/11544608/how-to-clear-a-rectangle-area-in-webgl
+			// 	_gl.enable( _gl.SCISSOR_TEST );
+			// 	_gl.scissor( _viewport.x, _viewport.y, _viewport.z, _viewport.w );
+			//
+			// }
+
 			let bits = 0;
 
 			if ( color ) bits |= _gl.COLOR_BUFFER_BIT;
@@ -28335,6 +28343,13 @@ class WebGLRenderer {
 			if ( stencil ) bits |= _gl.STENCIL_BUFFER_BIT;
 
 			_gl.clear( bits );
+
+			// if ( ! _scissorTest ) {
+			//
+			// 	_gl.disable( _gl.SCISSOR_TEST );
+			// 	_gl.scissor( _scissor.x, _scissor.y, _scissor.z, _scissor.w );
+			//
+			// }
 
 		};
 
