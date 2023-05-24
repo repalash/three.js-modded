@@ -182,7 +182,7 @@ function WebGLPrograms( renderer, cubemaps, cubeuvmaps, extensions, capabilities
 			instancingColor: IS_INSTANCEDMESH && object.instanceColor !== null,
 
 			supportsVertexTextures: SUPPORTS_VERTEX_TEXTURES,
-			outputColorSpace: ( currentRenderTarget === null ) ? renderer.outputColorSpace : ( ( currentRenderTarget.isXRRenderTarget === true || currentRTTexture.colorSpace !== '' ) ? currentRTTexture.colorSpace : LinearSRGBColorSpace ),
+			outputColorSpace: ( currentRenderTarget === null ) ? renderer.outputColorSpace : ( ( currentRenderTarget.isXRRenderTarget === true || currentRTTexture.colorSpace !== LinearSRGBColorSpace ) ? currentRTTexture.colorSpace : LinearSRGBColorSpace ),
 
 			map: HAS_MAP,
 			matcap: HAS_MATCAP,
