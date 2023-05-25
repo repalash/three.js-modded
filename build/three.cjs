@@ -20216,7 +20216,7 @@ function WebGLPrograms( renderer, cubemaps, cubeuvmaps, extensions, capabilities
 			instancingColor: IS_INSTANCEDMESH && object.instanceColor !== null,
 
 			supportsVertexTextures: SUPPORTS_VERTEX_TEXTURES,
-			outputColorSpace: ( currentRenderTarget === null ) ? renderer.outputColorSpace : ( ( currentRenderTarget.isXRRenderTarget === true || currentRTTexture.colorSpace !== LinearSRGBColorSpace ) ? currentRTTexture.colorSpace : LinearSRGBColorSpace ),
+			outputColorSpace: ( currentRenderTarget === null ) ? renderer.outputColorSpace : ( ( currentRenderTarget.isXRRenderTarget === true || currentRTTexture.colorSpace && currentRTTexture.colorSpace !== SRGBColorSpace ) ? currentRTTexture.colorSpace : LinearSRGBColorSpace ),
 
 			map: HAS_MAP,
 			matcap: HAS_MATCAP,
@@ -29414,9 +29414,7 @@ class WebGLRenderer {
 
 			const fog = scene.fog;
 			const environment = material.isMeshStandardMaterial ? scene.environment : null;
-			// todo
-			// const colorSpace = ( ! _currentRenderTarget ) ? _this.outputColorSpace : ( ( _currentRenderTarget.isXRRenderTarget === true || ( _currentRenderTarget.texture.encoding && _currentRenderTarget.texture.encoding !== sRGBEncoding ) ) ? _currentRenderTarget.texture.encoding : LinearEncoding );
-			const colorSpace = ( _currentRenderTarget === null ) ? _this.outputColorSpace : ( _currentRenderTarget.isXRRenderTarget === true ? _currentRenderTarget.texture.colorSpace : LinearSRGBColorSpace );
+			const colorSpace = ( _currentRenderTarget === null ) ? _this.outputColorSpace : ( ( _currentRenderTarget.isXRRenderTarget === true || _currentRenderTarget.texture.colorSpace && _currentRenderTarget.texture.colorSpace !== SRGBColorSpace ) ? _currentRenderTarget.texture.colorSpace : LinearSRGBColorSpace );
 			const envMap = ( material.isMeshStandardMaterial ? cubeuvmaps : cubemaps ).get( material.envMap || environment );
 			const vertexAlphas = material.vertexColors === true && !! geometry.attributes.color && geometry.attributes.color.itemSize === 4;
 			const vertexTangents = !! material.normalMap && !! geometry.attributes.tangent;
