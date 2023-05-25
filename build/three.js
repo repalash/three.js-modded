@@ -8444,6 +8444,10 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 					currentValue.copy( newValue );
 
+				} else if ( Array.isArray( newValue ) && currentValue && typeof currentValue.fromArray === 'function' ) {
+
+					currentValue.fromArray( newValue );
+
 				} else {
 
 					this[ key ] = newValue;
@@ -44501,7 +44505,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 					if ( data.internalFormat !== undefined ) texture.internalFormat = data.internalFormat;
 					if ( data.type !== undefined ) texture.type = data.type;
 					if ( data.colorSpace !== undefined ) texture.colorSpace = data.colorSpace;
-					if ( data.encoding !== undefined ) texture.encoding = data.encoding; // @deprecated, r152
+					else if ( data.encoding !== undefined ) texture.encoding = data.encoding; // @deprecated, r152
 
 					if ( data.minFilter !== undefined ) texture.minFilter = parseConstant( data.minFilter, TEXTURE_FILTER );
 					if ( data.magFilter !== undefined ) texture.magFilter = parseConstant( data.magFilter, TEXTURE_FILTER );
