@@ -142,6 +142,10 @@ class Material extends EventDispatcher {
 
 				currentValue.copy( newValue );
 
+			} else if ( Array.isArray( newValue ) && currentValue && typeof currentValue.fromArray === 'function' ) {
+
+				currentValue.fromArray( newValue );
+
 			} else {
 
 				this[ key ] = newValue;

@@ -168,7 +168,7 @@ class KTX2Loader extends Loader {
 			this.transcoderPending = Promise.all( [ jsContent, binaryContent ] )
 				.then( ( [ jsContent, binaryContent ] ) => {
 
-					const fn = KTX2Loader.BasisWorker.toString();
+					const fn = KTX2Loader.BasisWorker;
 
 					const body = [
 						'/* constants */',
@@ -362,7 +362,7 @@ KTX2Loader.EngineFormat = {
 
 /* WEB WORKER */
 
-KTX2Loader.BasisWorker = function () {
+KTX2Loader.BasisWorker = `function () {
 
 	let config;
 	let transcoderPending;
@@ -671,7 +671,7 @@ KTX2Loader.BasisWorker = function () {
 
 	}
 
-};
+}`;
 
 //
 // DataTexture and Data3DTexture parsing.
