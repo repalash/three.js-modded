@@ -372,7 +372,7 @@ class Rhino3dmLoader extends Loader {
 
 					const layer = data.layers[ attributes.layerIndex ];
 
-					_object.visible = layer ? layer : true;
+					_object.visible = layer ? layer.visible : true;
 
 					if ( attributes.isInstanceDefinitionObject ) {
 
