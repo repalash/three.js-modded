@@ -7,6 +7,7 @@ on:
       - 'docs/**'
       - 'files/**'
   push:
+    branches: ['master']
     paths-ignore:
       - 'build/**'
       - 'docs/**'
