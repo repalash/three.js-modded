@@ -25,7 +25,7 @@ jobs:
       - name: Build
         run: npm run build
       - name: Pack
-        run: npm pack | xargs -I {} mv {} ${{ github.ref_name }}.tgz
+        run: npm pack | xargs -I {} mv {} package.tgz
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: ${{ github.ref_name }}.tgz
+          artifacts: package.tgz
