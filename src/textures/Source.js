@@ -126,6 +126,8 @@ function serializeImage( image ) {
 
 		} else {
 
+			if ( image.url !== undefined ) return image.url;
+
 			console.warn( 'THREE.Texture: Unable to serialize Texture.' );
 			return {};
 
