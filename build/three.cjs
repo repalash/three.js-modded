@@ -1876,6 +1876,8 @@ function serializeImage( image ) {
 
 		} else {
 
+			if ( image.url !== undefined ) return image.url;
+
 			console.warn( 'THREE.Texture: Unable to serialize Texture.' );
 			return {};
 
@@ -20257,7 +20259,7 @@ function WebGLPrograms( renderer, cubemaps, cubeuvmaps, extensions, capabilities
 			transmissionMap: HAS_TRANSMISSIONMAP,
 			thicknessMap: HAS_THICKNESSMAP,
 
-			transmissionSamplerMapEncoding: transmissionRenderTarget ? transmissionRenderTarget.texture.colorSpace : LinearSRGBColorSpace,
+			transmissionSamplerMapEncoding: transmissionRenderTarget ? transmissionRenderTarget.texture.colorSpace || LinearSRGBColorSpace : LinearSRGBColorSpace,
 
 			gradientMap: HAS_GRADIENTMAP,
 
