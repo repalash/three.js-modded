@@ -2852,7 +2852,7 @@ class GLTFMaterialsSheenExtension {
 
 	writeMaterial( material, materialDef ) {
 
-		if ( ! material.isMeshPhysicalMaterial || material.sheen == 0.0 ) return;
+		if ( ! material.isMeshPhysicalMaterial || material.sheen < 0.001 ) return;
 
 		const writer = this.writer;
 		const extensionsUsed = writer.extensionsUsed;
@@ -2886,6 +2886,9 @@ class GLTFMaterialsSheenExtension {
 
 		materialDef.extensions = materialDef.extensions || {};
 		materialDef.extensions[ this.name ] = extensionDef;
+
+		materialDef.extras = materialDef.extras || {};
+		materialDef.extras.sheenFactor = material.sheen;
 
 		extensionsUsed[ this.name ] = true;
 

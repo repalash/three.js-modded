@@ -41,7 +41,7 @@ class ShaderPass extends Pass {
 
 	render( renderer, writeBuffer, readBuffer /*, deltaTime, maskActive */ ) {
 
-		if ( this.uniforms[ this.textureID ] ) {
+		if ( this.uniforms[ this.textureID ] && readBuffer ) {
 
 			this.uniforms[ this.textureID ].value = readBuffer.texture;
 
