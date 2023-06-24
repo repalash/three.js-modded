@@ -2177,6 +2177,7 @@ class Texture extends EventDispatcher {
 
 			this.version ++;
 			this.source.needsUpdate = true;
+			this.dispatchEvent( { type: 'update' } );
 
 		}
 

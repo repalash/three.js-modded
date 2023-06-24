@@ -2184,6 +2184,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 				this.version ++;
 				this.source.needsUpdate = true;
+				this.dispatchEvent( { type: 'update' } );
 
 			}
 
