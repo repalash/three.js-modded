@@ -3045,13 +3045,13 @@ class GLTFParser {
 	}
 
 	// do not call this from any extension.
-	loadImageSource( sourceIndex, loader ) {
+	loadImageSource( sourceIndex, loader, preferUri = false, skipCache = false ) {
 
 		const parser = this;
 		const json = this.json;
 		const options = this.options;
 
-		if ( this.sourceCache[ sourceIndex ] !== undefined ) {
+		if ( ! skipCache && this.sourceCache[ sourceIndex ] !== undefined ) {
 
 			return this.sourceCache[ sourceIndex ].then( ( texture ) => texture.clone() );
 
@@ -3061,11 +3061,17 @@ class GLTFParser {
 
 		const URL = self.URL || self.webkitURL;
 
+		if ( sourceDef.uri === undefined && sourceDef.extras && sourceDef.extras.uri ) {
+
+			sourceDef.uri = sourceDef.extras.uri;
+
+		}
+
 		let sourceURI = sourceDef.uri || '';
 		let isObjectURL = false;
 		let sourceBlob = null;
 
-		if ( sourceDef.bufferView !== undefined ) {
+		if ( sourceDef.bufferView !== undefined && ( ! preferUri || ! sourceURI ) ) {
 
 			// Load binary image data from bufferView, if provided.
 
@@ -3141,12 +3147,13 @@ class GLTFParser {
 					// https://github.com/mrdoob/three.js/issues/16144
 					if ( loader.isImageBitmapLoader === true && typeof createImageBitmap !== undefined ) {
 
-						const t1 = texture;
+						let t1 = texture;
 						const flip = sourceDef.extras.flipY && ! t1.flipY;
 						createImageBitmap( t1.source.data, {
 							imageOrientation: flip ? 'flipY' : 'none',
 						} ).then( function ( imageBitmap ) { // this is a terrible hack, todo: find a better way
 
+							if ( t1._newTex ) t1 = t1._newTex; // search for _newTex below
 							if ( t1.source.data.close ) t1.source.data.close();
 							t1.source.data = imageBitmap;
 							t1.source.needsUpdate = true;
@@ -3179,10 +3186,30 @@ class GLTFParser {
 
 			}
 
-			if ( sourceURI && typeof sourceURI === 'string' && isObjectURL === false && ! sourceURI.startsWith( '/' ) )
-				texture.userData.rootPath = LoaderUtils.resolveURL( sourceURI, options.path );
+			if ( sourceDef.uri && typeof sourceDef.uri === 'string' && isObjectURL === false && ! sourceDef.uri.startsWith( '/' ) )
+				texture.userData.rootPath = LoaderUtils.resolveURL( sourceDef.uri, options.path );
 
 			if ( sourceBlob ) texture.userData.__sourceBlob = sourceBlob;
+
+			if ( ! preferUri && sourceDef.uri && sourceDef.uri !== sourceURI ) {
+
+				// load again with uri.
+				parser.loadImageSource( sourceIndex, loader, true, true ).then( function ( texture2 ) {
+
+					if ( texture.source.data && texture.source.data.close ) texture.source.data.close();
+					texture.dispose();
+					// texture.source.data = texture2.source.data;
+					texture.source = texture2.source;
+					texture.source.needsUpdate = true;
+					texture.needsUpdate = true;
+					texture.uuid = texture2.uuid;
+					texture.flipY = texture2.flipY;
+					texture.userData = texture2.userData;
+					texture2._newTex = texture;
+
+				} );
+
+			}
 
 			return texture;
 
