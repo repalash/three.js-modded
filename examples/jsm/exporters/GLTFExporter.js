@@ -1211,7 +1211,7 @@ class GLTFWriter {
 	 * @param  {String} mimeType export format
 	 * @return {Integer}     Index of the processed texture in the "images" array
 	 */
-	processImage( image, format, flipY, mimeType = 'image/png' ) {
+	processImage( image, format, flipY, mimeType = 'image/png', width = undefined, height = undefined ) {
 
 		if ( image !== null ) {
 
@@ -1225,7 +1225,7 @@ class GLTFWriter {
 
 			const cachedImages = cache.images.get( image );
 
-			const key = mimeType + ':flipY/' + flipY.toString();
+			const key = mimeType + ':flipY/' + flipY.toString() + ( width || height ? ';' + width + ';' + height : '' );
 
 			if ( cachedImages[ key ] !== undefined ) return cachedImages[ key ];
 
@@ -1235,8 +1235,8 @@ class GLTFWriter {
 
 			const canvas = getCanvas();
 
-			canvas.width = Math.min( image.width, options.maxTextureSize );
-			canvas.height = Math.min( image.height, options.maxTextureSize );
+			canvas.width = Math.min( width || image.width, options.maxTextureSize );
+			canvas.height = Math.min( height || image.height, options.maxTextureSize );
 
 			const ctx = canvas.getContext( '2d' );
 
