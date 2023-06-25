@@ -4547,4 +4547,4 @@ function addPrimitiveAttributes( geometry, primitiveDef, parser ) {
 
 }
 
-export { GLTFLoader };
+export { GLTFLoader, GLTFBinaryExtension, GLTFParser };
