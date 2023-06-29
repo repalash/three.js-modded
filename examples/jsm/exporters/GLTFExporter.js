@@ -1209,6 +1209,8 @@ class GLTFWriter {
 	 * @param  {Integer} format of the image (RGBAFormat)
 	 * @param  {Boolean} flipY before writing out the image
 	 * @param  {String} mimeType export format
+	 * @param  {Integer} width override image width
+	 * @param  {Integer} height override image height
 	 * @return {Integer}     Index of the processed texture in the "images" array
 	 */
 	processImage( image, format, flipY, mimeType = 'image/png', width = undefined, height = undefined ) {

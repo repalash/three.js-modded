@@ -38,7 +38,7 @@ class EXRExporter {
 
 function supported( renderer, renderTarget ) {
 
-	if ( ! renderer || ! renderer.isWebGLRenderer ) {
+	if ( renderTarget.isWebGLRenderTarget && ( ! renderer || ! renderer.isWebGLRenderer ) ) {
 
 		console.error( 'EXRExporter.parse: Unsupported first parameter, expected instance of WebGLRenderer.' );
 
@@ -46,25 +46,27 @@ function supported( renderer, renderTarget ) {
 
 	}
 
-	if ( ! renderTarget || ! renderTarget.isWebGLRenderTarget ) {
+	if ( ! renderTarget || ( ! renderTarget.isWebGLRenderTarget && ! renderTarget.isDataTexture ) ) {
 
-		console.error( 'EXRExporter.parse: Unsupported second parameter, expected instance of WebGLRenderTarget.' );
-
-		return false;
-
-	}
-
-	if ( renderTarget.texture.type !== FloatType && renderTarget.texture.type !== HalfFloatType ) {
-
-		console.error( 'EXRExporter.parse: Unsupported WebGLRenderTarget texture type.' );
+		console.error( 'EXRExporter.parse: Unsupported second parameter, expected instance of WebGLRenderTarget or DataTexture.' );
 
 		return false;
 
 	}
 
-	if ( renderTarget.texture.format !== RGBAFormat ) {
+	const texture = renderTarget.isWebGLRenderTarget ? renderTarget.texture : renderTarget;
 
-		console.error( 'EXRExporter.parse: Unsupported WebGLRenderTarget texture format, expected RGBAFormat.' );
+	if ( texture.type !== FloatType && texture.type !== HalfFloatType ) {
+
+		console.error( 'EXRExporter.parse: Unsupported WebGLRenderTarget or DataTexture texture type.' );
+
+		return false;
+
+	}
+
+	if ( texture.format !== RGBAFormat ) {
+
+		console.error( 'EXRExporter.parse: Unsupported WebGLRenderTarget or DataTexture texture format, expected RGBAFormat.' );
 
 		return false;
 
@@ -83,11 +85,13 @@ function buildInfo( renderTarget, options = {} ) {
 		3: 16
 	};
 
-	const WIDTH = renderTarget.width,
-		HEIGHT = renderTarget.height,
-		TYPE = renderTarget.texture.type,
-		FORMAT = renderTarget.texture.format,
-		COLOR_SPACE = renderTarget.texture.colorSpace,
+	const texture = renderTarget.isTexture ? renderTarget : renderTarget.texture;
+
+	const WIDTH = renderTarget.isWebGLRenderTarget ? renderTarget.width : renderTarget.image.width,
+		HEIGHT = renderTarget.isWebGLRenderTarget ? renderTarget.height : renderTarget.image.height,
+		TYPE = texture.type,
+		FORMAT = texture.format,
+		COLOR_SPACE = texture.colorSpace,
 		COMPRESSION = ( options.compression !== undefined ) ? options.compression : ZIP_COMPRESSION,
 		EXPORTER_TYPE = ( options.type !== undefined ) ? options.type : HalfFloatType,
 		OUT_TYPE = ( EXPORTER_TYPE === FloatType ) ? 2 : 1,
@@ -112,6 +116,12 @@ function buildInfo( renderTarget, options = {} ) {
 }
 
 function getPixelData( renderer, rtt, info ) {
+
+	if ( rtt.isDataTexture ) {
+
+		return rtt.image.data;
+
+	}
 
 	let dataBuffer;
 
