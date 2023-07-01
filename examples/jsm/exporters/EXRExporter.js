@@ -111,6 +111,7 @@ function buildInfo( renderTarget, options = {} ) {
 		numBlocks: Math.ceil( HEIGHT / COMPRESSION_SIZE ),
 		numInputChannels: 4,
 		numOutputChannels: NUM_CHANNELS,
+		flipY: renderTarget.isDataTexture && renderTarget.flipY,
 	};
 
 }
@@ -164,7 +165,7 @@ function reorganizeDataBuffer( inBuffer, info ) {
 			const b = getValue( inBuffer, i + 2 );
 			const a = getValue( inBuffer, i + 3 );
 
-			const line = ( h - y - 1 ) * w * ( 3 + cOffset ) * info.dataSize;
+			const line = ( info.flipY ? y : h - y - 1 ) * w * ( 3 + cOffset ) * info.dataSize;
 
 			decodeLinear( dec, r, g, b, a );
 
