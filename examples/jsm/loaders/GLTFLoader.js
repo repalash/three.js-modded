@@ -221,7 +221,7 @@ class GLTFLoader extends Loader {
 
 					scope.manager.itemEnd( url );
 
-				}, _onError );
+				}, _onError, url );
 
 			} catch ( e ) {
 
@@ -288,7 +288,7 @@ class GLTFLoader extends Loader {
 
 	}
 
-	parse( data, path, onLoad, onError ) {
+	parse( data, path, onLoad, onError, url ) {
 
 		let json;
 		const extensions = {};
