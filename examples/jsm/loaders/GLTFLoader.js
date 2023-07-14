@@ -3729,9 +3729,17 @@ class GLTFParser {
 
 				mesh.name = parser.createUniqueName( meshDef.name || ( 'mesh_' + meshIndex ) );
 
-				assignExtrasToUserData( mesh, meshDef );
+				if ( mesh.geometry && meshDef.extras && meshDef.extras.isGeometryUserData ) {
 
-				if ( primitive.extensions ) addUnknownExtensionsToUserData( extensions, mesh, primitive );
+					assignExtrasToUserData( mesh.geometry, meshDef );
+					if ( primitive.extensions ) addUnknownExtensionsToUserData( extensions, mesh.geometry, primitive );
+
+				} else {
+
+					assignExtrasToUserData( mesh, meshDef );
+					if ( primitive.extensions ) addUnknownExtensionsToUserData( extensions, mesh, primitive );
+
+				}
 
 				parser.assignFinalMaterial( mesh );
 
@@ -4481,7 +4489,8 @@ function computeBounds( geometry, primitiveDef, parser ) {
 	const sphere = new Sphere();
 
 	box.getCenter( sphere.center );
-	sphere.radius = box.min.distanceTo( box.max ) / 2;
+	console.log( geometry, box.min, box.max, sphere.radius, box.min.distanceTo( box.max ) / 2 );
+	// sphere.radius = box.min.distanceTo( box.max ) / 2;
 
 	geometry.boundingSphere = sphere;
 
