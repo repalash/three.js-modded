@@ -4489,8 +4489,7 @@ function computeBounds( geometry, primitiveDef, parser ) {
 	const sphere = new Sphere();
 
 	box.getCenter( sphere.center );
-	console.log( geometry, box.min, box.max, sphere.radius, box.min.distanceTo( box.max ) / 2 );
-	// sphere.radius = box.min.distanceTo( box.max ) / 2;
+	sphere.radius = box.min.distanceTo( box.max ) / 2;
 
 	geometry.boundingSphere = sphere;
 
