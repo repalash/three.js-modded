@@ -3191,6 +3191,7 @@ class GLTFParser {
 
 			if ( sourceBlob ) texture.userData.__sourceBlob = sourceBlob;
 
+			// load image again if preferUri is false to replace embedded preview images
 			if ( ! preferUri && sourceDef.uri && sourceDef.uri !== sourceURI ) {
 
 				// load again with uri.
@@ -3205,6 +3206,7 @@ class GLTFParser {
 					texture.uuid = texture2.uuid;
 					texture.flipY = texture2.flipY;
 					texture.userData = texture2.userData;
+					texture.setDirty && texture.setDirty();
 					texture2._newTex = texture;
 
 				} );
