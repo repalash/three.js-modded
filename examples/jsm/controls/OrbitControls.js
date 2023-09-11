@@ -42,6 +42,10 @@ class OrbitControls extends EventDispatcher {
 		this.autoPushTarget = true; // push target when zoomed even after minDistance
 		this.autoPullTarget = true; // push target when zoomed even after minDistance
 
+		this.clampMax = new Vector3( Infinity, Infinity, Infinity ); // clamp position and target
+		this.clampMin = new Vector3( - Infinity, - Infinity, - Infinity ); // clamp position and target
+		// this.clampBounds = new Box3( new Vector3( - 0.3, - 0.2, - 0.8 ), new Vector3( 1.25, 0.3, 0.2 ) ); // Box3 or null
+
 		// How far you can zoom in and out ( OrthographicCamera only )
 		this.minZoom = 0;
 		this.maxZoom = Infinity;
@@ -311,6 +315,10 @@ class OrbitControls extends EventDispatcher {
 				position.copy( scope.target ).add( offset );
 
 				scope.target.add( offset.normalize().multiplyScalar( - pushDelta ) );
+
+				// restrict position and target in clamp bounds
+				position.clamp( scope.clampMin, scope.clampMax );
+				scope.target.clamp( scope.clampMin, scope.clampMax );
 
 				scope.object.lookAt( scope.target );
 
