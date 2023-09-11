@@ -19619,6 +19619,9 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 				customDefines,
 
+				parameters.instancing ? '#define USE_INSTANCING' : '',
+				parameters.instancingColor ? '#define USE_INSTANCING_COLOR' : '',
+
 				parameters.useFog && parameters.fog ? '#define USE_FOG' : '',
 				parameters.useFog && parameters.fogExp2 ? '#define FOG_EXP2' : '',
 
