@@ -25,6 +25,8 @@ class InstancedMesh extends Mesh {
 		this.instanceMatrix = new InstancedBufferAttribute( new Float32Array( count * 16 ), 16 );
 		this.instanceColor = null;
 
+		this.sourceTrs = null;
+
 		this.count = count;
 
 		this.boundingBox = null;
@@ -103,6 +105,8 @@ class InstancedMesh extends Mesh {
 	copy( source, recursive ) {
 
 		super.copy( source, recursive );
+
+		if ( ! source.isInstancedMesh ) return this;
 
 		this.instanceMatrix.copy( source.instanceMatrix );
 

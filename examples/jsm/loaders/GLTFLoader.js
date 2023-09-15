@@ -1609,6 +1609,8 @@ class GLTFMeshGpuInstancing {
 
 				}
 
+				instancedMesh.sourceTrs = attributes;
+
 				// Add instance attributes to the geometry, excluding TRS.
 				for ( const attributeName in attributes ) {
 
