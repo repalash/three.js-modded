@@ -10541,13 +10541,20 @@ class BufferGeometry extends EventDispatcher {
 
 	}
 
-	center() {
+	/**
+	 * Centers the geometry based on the bounding box.
+	 * @param targetOffset Optional target vector to copy translation into.
+	 * @return {BufferGeometry}
+	 */
+	center( targetOffset = undefined ) {
 
 		this.computeBoundingBox();
 
 		this.boundingBox.getCenter( _offset ).negate();
 
 		this.translate( _offset.x, _offset.y, _offset.z );
+
+		if ( targetOffset ) targetOffset.copy( _offset );
 
 		return this;
 
@@ -11409,6 +11416,8 @@ class Mesh extends Object3D {
 	copy( source, recursive ) {
 
 		super.copy( source, recursive );
+
+		if ( ! source.isMesh ) return this;
 
 		if ( source.morphTargetInfluences !== undefined ) {
 
@@ -31857,6 +31866,8 @@ class InstancedMesh extends Mesh {
 		this.instanceMatrix = new InstancedBufferAttribute( new Float32Array( count * 16 ), 16 );
 		this.instanceColor = null;
 
+		this.sourceTrs = null;
+
 		this.count = count;
 
 		this.boundingBox = null;
@@ -31935,6 +31946,8 @@ class InstancedMesh extends Mesh {
 	copy( source, recursive ) {
 
 		super.copy( source, recursive );
+
+		if ( ! source.isInstancedMesh ) return this;
 
 		this.instanceMatrix.copy( source.instanceMatrix );
 
