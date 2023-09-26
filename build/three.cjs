@@ -27425,6 +27425,7 @@ function WebGLMaterials( renderer, properties ) {
 	}
 
 	return {
+		refreshTransformUniform: refreshTransformUniform,
 		refreshFogUniforms: refreshFogUniforms,
 		refreshMaterialUniforms: refreshMaterialUniforms
 	};
@@ -28140,6 +28141,7 @@ class WebGLRenderer {
 			_this.info = info;
 			_this.background = background;
 			_this.cubeuvmaps = cubeuvmaps;
+			_this.materials = materials;
 
 		}
 

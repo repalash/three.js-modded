@@ -27430,6 +27430,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 		}
 
 		return {
+			refreshTransformUniform: refreshTransformUniform,
 			refreshFogUniforms: refreshFogUniforms,
 			refreshMaterialUniforms: refreshMaterialUniforms
 		};
@@ -28145,6 +28146,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 				_this.info = info;
 				_this.background = background;
 				_this.cubeuvmaps = cubeuvmaps;
+				_this.materials = materials;
 
 			}
 
