@@ -550,6 +550,7 @@ function WebGLMaterials( renderer, properties ) {
 	}
 
 	return {
+		refreshTransformUniform: refreshTransformUniform,
 		refreshFogUniforms: refreshFogUniforms,
 		refreshMaterialUniforms: refreshMaterialUniforms
 	};

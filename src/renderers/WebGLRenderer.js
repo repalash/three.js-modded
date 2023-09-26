@@ -345,7 +345,9 @@ class WebGLRenderer {
 			_this.state = state;
 			_this.info = info;
 			_this.background = background;
+			_this.cubemaps = cubemaps;
 			_this.cubeuvmaps = cubeuvmaps;
+			_this.materials = materials;
 
 		}
 
