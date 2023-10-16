@@ -148,6 +148,14 @@ class WebGLRenderer {
 
 		this.userData = {};
 
+		// extra context events
+
+		this.onContextLost = () => {};
+
+		this.onContextRestore = () => {};
+
+		this.onContextCreationError = () => {};
+
 		// internal properties
 
 		const _this = this;
@@ -635,12 +643,6 @@ class WebGLRenderer {
 		};
 
 		// Events
-
-		this.onContextLost = ()=>{};
-
-		this.onContextRestore = ()=>{};
-
-		this.onContextCreationError = ()=>{};
 
 		function onContextLost( event ) {
 
