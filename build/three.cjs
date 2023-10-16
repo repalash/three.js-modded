@@ -27943,6 +27943,14 @@ class WebGLRenderer {
 
 		this.userData = {};
 
+		// extra context events
+
+		this.onContextLost = ()=>{};
+
+		this.onContextRestore = ()=>{};
+
+		this.onContextCreationError = ()=>{};
+
 		// internal properties
 
 		const _this = this;
@@ -28140,6 +28148,7 @@ class WebGLRenderer {
 			_this.state = state;
 			_this.info = info;
 			_this.background = background;
+			_this.cubemaps = cubemaps;
 			_this.cubeuvmaps = cubeuvmaps;
 			_this.materials = materials;
 
@@ -28429,12 +28438,6 @@ class WebGLRenderer {
 		};
 
 		// Events
-
-		this.onContextLost = ()=>{};
-
-		this.onContextRestore = ()=>{};
-
-		this.onContextCreationError = ()=>{};
 
 		function onContextLost( event ) {
 

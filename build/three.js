@@ -27948,6 +27948,14 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 			this.userData = {};
 
+			// extra context events
+
+			this.onContextLost = ()=>{};
+
+			this.onContextRestore = ()=>{};
+
+			this.onContextCreationError = ()=>{};
+
 			// internal properties
 
 			const _this = this;
@@ -28145,6 +28153,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 				_this.state = state;
 				_this.info = info;
 				_this.background = background;
+				_this.cubemaps = cubemaps;
 				_this.cubeuvmaps = cubeuvmaps;
 				_this.materials = materials;
 
@@ -28434,12 +28443,6 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 			};
 
 			// Events
-
-			this.onContextLost = ()=>{};
-
-			this.onContextRestore = ()=>{};
-
-			this.onContextCreationError = ()=>{};
 
 			function onContextLost( event ) {
 
