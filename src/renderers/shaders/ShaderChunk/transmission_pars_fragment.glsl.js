@@ -82,6 +82,14 @@ export default /* glsl */`
 
 	}
 
+	#ifndef WebGL2Context
+
+	#define textureLod texture2DLodEXT
+	#define textureSize(s, lod) vec2(1024./pow(2.,float(lod)),1024./pow(2.,float(lod)))
+	#define isinf(x) (x > 1e20 || x < -1e20)
+
+	#endif
+
 	vec4 bicubic( sampler2D tex, vec2 uv, vec4 texelSize, float lod ) {
 
 		uv = uv * texelSize.zw + 0.5;

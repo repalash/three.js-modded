@@ -805,7 +805,8 @@ function WebGLProgram( renderer, cacheKey, parameters, bindingStates ) {
 			'#define textureCubeLodEXT textureLod',
 			'#define texture2DGradEXT textureGrad',
 			'#define texture2DProjGradEXT textureProjGrad',
-			'#define textureCubeGradEXT textureGrad'
+			'#define textureCubeGradEXT textureGrad',
+			'#define WebGL2Context 1'
 		].join( '\n' ) + '\n' + prefixFragment;
 
 	}

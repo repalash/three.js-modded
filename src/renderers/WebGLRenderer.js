@@ -662,7 +662,7 @@ class WebGLRenderer {
 
 			_isContextLost = false;
 
-			const infoAutoReset = info.autoReset;
+			const infoAutoReset = _this.info ? _this.info.autoReset : undefined;
 			const shadowMapEnabled = shadowMap.enabled;
 			const shadowMapAutoUpdate = shadowMap.autoUpdate;
 			const shadowMapNeedsUpdate = shadowMap.needsUpdate;
@@ -670,13 +670,13 @@ class WebGLRenderer {
 
 			initGLContext();
 
-			info.autoReset = infoAutoReset;
+			if ( _this.info && infoAutoReset !== undefined ) _this.info.autoReset = infoAutoReset;
 			shadowMap.enabled = shadowMapEnabled;
 			shadowMap.autoUpdate = shadowMapAutoUpdate;
 			shadowMap.needsUpdate = shadowMapNeedsUpdate;
 			shadowMap.type = shadowMapType;
 
-			_this.onContextRestore();
+			_this.onContextRestore && _this.onContextRestore();
 
 			console.log( 'restored' );
 
