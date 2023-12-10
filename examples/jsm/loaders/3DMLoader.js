@@ -460,6 +460,8 @@ class Rhino3dmLoader extends Loader {
 
 						const iRefObject = new Object3D();
 
+						iRefObject.applyMatrix4( matrix );
+
 						for ( let p = 0; p < objects.length; p ++ ) {
 
 							iRefObject.add( objects[ p ].clone( true ) );
