@@ -422,6 +422,19 @@ class GLTFLoader extends Loader {
 
 }
 
+GLTFLoader.ObjectConstructors = {
+	'DirectionalLight': DirectionalLight,
+	'PointLight': PointLight,
+	'SpotLight': SpotLight,
+	'MeshStandardMaterial': MeshStandardMaterial,
+	'MeshBasicMaterial': MeshBasicMaterial,
+	'MeshPhysicalMaterial': MeshPhysicalMaterial,
+	'LineBasicMaterial': LineBasicMaterial,
+	'PointsMaterial': PointsMaterial,
+	'PerspectiveCamera': PerspectiveCamera,
+	'OrthographicCamera': OrthographicCamera
+};
+
 /* GLTFREGISTRY */
 
 function GLTFRegistry() {
@@ -545,18 +558,18 @@ class GLTFLightsExtension {
 		switch ( lightDef.type ) {
 
 			case 'directional':
-				lightNode = new DirectionalLight( color );
+				lightNode = new GLTFLoader.ObjectConstructors.DirectionalLight( color );
 				lightNode.target.position.set( 0, 0, - 1 );
 				lightNode.add( lightNode.target );
 				break;
 
 			case 'point':
-				lightNode = new PointLight( color );
+				lightNode = new GLTFLoader.ObjectConstructors.PointLight( color );
 				lightNode.distance = range;
 				break;
 
 			case 'spot':
-				lightNode = new SpotLight( color );
+				lightNode = new GLTFLoader.ObjectConstructors.SpotLight( color );
 				lightNode.distance = range;
 				// Handle spotlight properties.
 				lightDef.spot = lightDef.spot || {};
@@ -637,7 +650,7 @@ class GLTFMaterialsUnlitExtension {
 
 	getMaterialType() {
 
-		return MeshBasicMaterial;
+		return GLTFLoader.ObjectConstructors.MeshBasicMaterial;
 
 	}
 
@@ -735,7 +748,7 @@ class GLTFMaterialsClearcoatExtension {
 
 		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
 
-		return MeshPhysicalMaterial;
+		return GLTFLoader.ObjectConstructors.MeshPhysicalMaterial;
 
 	}
 
@@ -819,7 +832,7 @@ class GLTFMaterialsIridescenceExtension {
 
 		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
 
-		return MeshPhysicalMaterial;
+		return GLTFLoader.ObjectConstructors.MeshPhysicalMaterial;
 
 	}
 
@@ -907,7 +920,7 @@ class GLTFMaterialsSheenExtension {
 
 		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
 
-		return MeshPhysicalMaterial;
+		return GLTFLoader.ObjectConstructors.MeshPhysicalMaterial;
 
 	}
 
@@ -989,7 +1002,7 @@ class GLTFMaterialsTransmissionExtension {
 
 		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
 
-		return MeshPhysicalMaterial;
+		return GLTFLoader.ObjectConstructors.MeshPhysicalMaterial;
 
 	}
 
@@ -1047,7 +1060,7 @@ class GLTFMaterialsVolumeExtension {
 
 		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
 
-		return MeshPhysicalMaterial;
+		return GLTFLoader.ObjectConstructors.MeshPhysicalMaterial;
 
 	}
 
@@ -1106,7 +1119,7 @@ class GLTFMaterialsIorExtension {
 
 		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
 
-		return MeshPhysicalMaterial;
+		return GLTFLoader.ObjectConstructors.MeshPhysicalMaterial;
 
 	}
 
@@ -1152,7 +1165,7 @@ class GLTFMaterialsSpecularExtension {
 
 		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
 
-		return MeshPhysicalMaterial;
+		return GLTFLoader.ObjectConstructors.MeshPhysicalMaterial;
 
 	}
 
@@ -2076,7 +2089,7 @@ function createDefaultMaterial( cache ) {
 
 	if ( cache[ 'DefaultMaterial' ] === undefined ) {
 
-		cache[ 'DefaultMaterial' ] = new MeshStandardMaterial( {
+		cache[ 'DefaultMaterial' ] = new GLTFLoader.ObjectConstructors.MeshStandardMaterial( {
 			color: 0xFFFFFF,
 			emissive: 0x000000,
 			metalness: 1,
@@ -3304,7 +3317,7 @@ class GLTFParser {
 
 			if ( ! pointsMaterial ) {
 
-				pointsMaterial = new PointsMaterial();
+				pointsMaterial = new GLTFLoader.ObjectConstructors.PointsMaterial();
 				Material.prototype.copy.call( pointsMaterial, material );
 				pointsMaterial.color.copy( material.color );
 				pointsMaterial.map = material.map;
@@ -3324,7 +3337,7 @@ class GLTFParser {
 
 			if ( ! lineMaterial ) {
 
-				lineMaterial = new LineBasicMaterial();
+				lineMaterial = new GLTFLoader.ObjectConstructors.LineBasicMaterial();
 				Material.prototype.copy.call( lineMaterial, material );
 				lineMaterial.color.copy( material.color );
 				lineMaterial.map = material.map;
@@ -3379,7 +3392,7 @@ class GLTFParser {
 
 	getMaterialType( /* materialIndex */ ) {
 
-		return MeshStandardMaterial;
+		return GLTFLoader.ObjectConstructors.MeshStandardMaterial;
 
 	}
 
@@ -3483,7 +3496,7 @@ class GLTFParser {
 
 		}
 
-		if ( materialDef.normalTexture !== undefined && materialType !== MeshBasicMaterial ) {
+		if ( materialDef.normalTexture !== undefined && materialType !== GLTFLoader.ObjectConstructors.MeshBasicMaterial ) {
 
 			pending.push( parser.assignTexture( materialParams, 'normalMap', materialDef.normalTexture ) );
 
@@ -3499,7 +3512,7 @@ class GLTFParser {
 
 		}
 
-		if ( materialDef.occlusionTexture !== undefined && materialType !== MeshBasicMaterial ) {
+		if ( materialDef.occlusionTexture !== undefined && materialType !== GLTFLoader.ObjectConstructors.MeshBasicMaterial ) {
 
 			pending.push( parser.assignTexture( materialParams, 'aoMap', materialDef.occlusionTexture ) );
 
@@ -3511,13 +3524,13 @@ class GLTFParser {
 
 		}
 
-		if ( materialDef.emissiveFactor !== undefined && materialType !== MeshBasicMaterial ) {
+		if ( materialDef.emissiveFactor !== undefined && materialType !== GLTFLoader.ObjectConstructors.MeshBasicMaterial ) {
 
 			materialParams.emissive = new Color().fromArray( materialDef.emissiveFactor );
 
 		}
 
-		if ( materialDef.emissiveTexture !== undefined && materialType !== MeshBasicMaterial ) {
+		if ( materialDef.emissiveTexture !== undefined && materialType !== GLTFLoader.ObjectConstructors.MeshBasicMaterial ) {
 
 			pending.push( parser.assignTexture( materialParams, 'emissiveMap', materialDef.emissiveTexture, SRGBColorSpace ) );
 
@@ -3804,11 +3817,11 @@ class GLTFParser {
 
 		if ( cameraDef.type === 'perspective' ) {
 
-			camera = new PerspectiveCamera( MathUtils.radToDeg( params.yfov ), params.aspectRatio || 1, params.znear || 1, params.zfar || 2e6 );
+			camera = new GLTFLoader.ObjectConstructors.PerspectiveCamera( MathUtils.radToDeg( params.yfov ), params.aspectRatio || 1, params.znear || 1, params.zfar || 2e6 );
 
 		} else if ( cameraDef.type === 'orthographic' ) {
 
-			camera = new OrthographicCamera( - params.xmag, params.xmag, params.ymag, - params.ymag, params.znear, params.zfar );
+			camera = new GLTFLoader.ObjectConstructors.OrthographicCamera( - params.xmag, params.xmag, params.ymag, - params.ymag, params.znear, params.zfar );
 
 		}
 
