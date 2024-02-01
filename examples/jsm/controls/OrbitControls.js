@@ -1000,7 +1000,8 @@ class OrbitControls extends EventDispatcher {
 
 			} else {
 
-				onMouseMove( event );
+				if ( ! event.buttons ) onPointerUp( event );
+				else onMouseMove( event );
 
 			}
 
