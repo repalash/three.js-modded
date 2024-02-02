@@ -112,6 +112,7 @@ function buildInfo( renderTarget, options = {} ) {
 		numInputChannels: 4,
 		numOutputChannels: NUM_CHANNELS,
 		flipY: renderTarget.isDataTexture && renderTarget.flipY,
+		textureIndex: options.textureIndex || 0
 	};
 
 }
@@ -136,7 +137,7 @@ function getPixelData( renderer, rtt, info ) {
 
 	}
 
-	renderer.readRenderTargetPixels( rtt, 0, 0, info.width, info.height, dataBuffer );
+	renderer.readRenderTargetPixels( rtt, 0, 0, info.width, info.height, dataBuffer, undefined, info.textureIndex );
 
 	return dataBuffer;
 

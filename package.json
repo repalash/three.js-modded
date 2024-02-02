@@ -1,6 +1,6 @@
 {
   "name": "three",
-  "version": "0.152.2019",
+  "version": "0.152.2020",
   "description": "JavaScript 3D library",
   "type": "module",
   "main": "./build/three.js",

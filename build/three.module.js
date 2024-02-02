@@ -29968,7 +29968,7 @@ class WebGLRenderer {
 
 		};
 
-		this.readRenderTargetPixels = function ( renderTarget, x, y, width, height, buffer, activeCubeFaceIndex ) {
+		this.readRenderTargetPixels = function ( renderTarget, x, y, width, height, buffer, activeCubeFaceIndex, textureIndex ) {
 
 			if ( ! ( renderTarget && renderTarget.isWebGLRenderTarget ) ) {
 
@@ -29989,9 +29989,11 @@ class WebGLRenderer {
 
 				state.bindFramebuffer( _gl.FRAMEBUFFER, framebuffer );
 
+
 				try {
 
-					const texture = renderTarget.texture;
+					const isMultipleRenderTargets = ( renderTarget.isWebGLMultipleRenderTargets === true );
+					const texture = Array.isArray( renderTarget.texture ) ? renderTarget.texture[ textureIndex || 0 ] : renderTarget.texture;
 					const textureFormat = texture.format;
 					const textureType = texture.type;
 
@@ -30016,6 +30018,16 @@ class WebGLRenderer {
 					// the following if statement ensures valid read requests (no out-of-bounds pixels, see #8604)
 
 					if ( ( x >= 0 && x <= ( renderTarget.width - width ) ) && ( y >= 0 && y <= ( renderTarget.height - height ) ) ) {
+
+
+						// https://stackoverflow.com/a/62485031/2229899
+						if ( isMultipleRenderTargets ) {
+
+							// _gl.framebufferTexture2D( _gl.FRAMEBUFFER, _gl.COLOR_ATTACHMENT0 + textureIndex, _gl.TEXTURE_2D, properties.get( texture ).__webglTexture, 0 );
+							console.log( textureIndex, texture );
+							_gl.readBuffer( _gl.COLOR_ATTACHMENT0 + textureIndex );
+
+						}
 
 						_gl.readPixels( x, y, width, height, utils.convert( textureFormat ), utils.convert( textureType ), buffer );
 
