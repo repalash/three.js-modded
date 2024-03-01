@@ -2033,7 +2033,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 			const isRootObject = ( meta === undefined || typeof meta === 'string' );
 
-			if ( ! isRootObject && meta.textures[ this.uuid ] !== undefined ) {
+			if ( ! isRootObject && meta.textures && meta.textures[ this.uuid ] !== undefined ) {
 
 				return meta.textures[ this.uuid ];
 
@@ -7124,7 +7124,11 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 		}
 
-		onAfterRender( /* renderer, scene, camera, geometry, material, group */ ) {}
+		onAfterRender( renderer, scene, camera, geometry, material, group ) {
+
+			this.dispatchEvent( { type: 'afterRender', renderer, scene, camera, geometry, material, group } );
+
+		}
 
 		applyMatrix4( matrix ) {
 
@@ -29996,10 +30000,8 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 					state.bindFramebuffer( _gl.FRAMEBUFFER, framebuffer );
 
-
 					try {
 
-						const isMultipleRenderTargets = ( renderTarget.isWebGLMultipleRenderTargets === true );
 						const texture = Array.isArray( renderTarget.texture ) ? renderTarget.texture[ textureIndex || 0 ] : renderTarget.texture;
 						const textureFormat = texture.format;
 						const textureType = texture.type;
@@ -30026,12 +30028,10 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 						if ( ( x >= 0 && x <= ( renderTarget.width - width ) ) && ( y >= 0 && y <= ( renderTarget.height - height ) ) ) {
 
-
 							// https://stackoverflow.com/a/62485031/2229899
-							if ( isMultipleRenderTargets ) {
+							if ( renderTarget.isWebGLMultipleRenderTargets ) {
 
 								// _gl.framebufferTexture2D( _gl.FRAMEBUFFER, _gl.COLOR_ATTACHMENT0 + textureIndex, _gl.TEXTURE_2D, properties.get( texture ).__webglTexture, 0 );
-								console.log( textureIndex, texture );
 								_gl.readBuffer( _gl.COLOR_ATTACHMENT0 + textureIndex );
 
 							}

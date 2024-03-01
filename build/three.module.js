@@ -2026,7 +2026,7 @@ class Texture extends EventDispatcher {
 
 		const isRootObject = ( meta === undefined || typeof meta === 'string' );
 
-		if ( ! isRootObject && meta.textures[ this.uuid ] !== undefined ) {
+		if ( ! isRootObject && meta.textures && meta.textures[ this.uuid ] !== undefined ) {
 
 			return meta.textures[ this.uuid ];
 
@@ -7117,7 +7117,11 @@ class Object3D extends EventDispatcher {
 
 	}
 
-	onAfterRender( /* renderer, scene, camera, geometry, material, group */ ) {}
+	onAfterRender( renderer, scene, camera, geometry, material, group ) {
+
+		this.dispatchEvent( { type: 'afterRender', renderer, scene, camera, geometry, material, group } );
+
+	}
 
 	applyMatrix4( matrix ) {
 
@@ -29989,10 +29993,8 @@ class WebGLRenderer {
 
 				state.bindFramebuffer( _gl.FRAMEBUFFER, framebuffer );
 
-
 				try {
 
-					const isMultipleRenderTargets = ( renderTarget.isWebGLMultipleRenderTargets === true );
 					const texture = Array.isArray( renderTarget.texture ) ? renderTarget.texture[ textureIndex || 0 ] : renderTarget.texture;
 					const textureFormat = texture.format;
 					const textureType = texture.type;
@@ -30019,12 +30021,10 @@ class WebGLRenderer {
 
 					if ( ( x >= 0 && x <= ( renderTarget.width - width ) ) && ( y >= 0 && y <= ( renderTarget.height - height ) ) ) {
 
-
 						// https://stackoverflow.com/a/62485031/2229899
-						if ( isMultipleRenderTargets ) {
+						if ( renderTarget.isWebGLMultipleRenderTargets ) {
 
 							// _gl.framebufferTexture2D( _gl.FRAMEBUFFER, _gl.COLOR_ATTACHMENT0 + textureIndex, _gl.TEXTURE_2D, properties.get( texture ).__webglTexture, 0 );
-							console.log( textureIndex, texture );
 							_gl.readBuffer( _gl.COLOR_ATTACHMENT0 + textureIndex );
 
 						}
