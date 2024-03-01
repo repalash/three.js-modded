@@ -160,7 +160,7 @@ class Texture extends EventDispatcher {
 
 		const isRootObject = ( meta === undefined || typeof meta === 'string' );
 
-		if ( ! isRootObject && meta.textures[ this.uuid ] !== undefined ) {
+		if ( ! isRootObject && meta.textures && meta.textures[ this.uuid ] !== undefined ) {
 
 			return meta.textures[ this.uuid ];
 

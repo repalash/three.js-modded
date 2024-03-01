@@ -123,7 +123,11 @@ class Object3D extends EventDispatcher {
 
 	}
 
-	onAfterRender( /* renderer, scene, camera, geometry, material, group */ ) {}
+	onAfterRender( renderer, scene, camera, geometry, material, group ) {
+
+		this.dispatchEvent( { type: 'afterRender', renderer, scene, camera, geometry, material, group } );
+
+	}
 
 	applyMatrix4( matrix ) {
 
