@@ -2082,7 +2082,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 			if ( Object.keys( this.userData ).length > 0 ) output.userData = this.userData;
 
-			if ( ! isRootObject ) {
+			if ( ! isRootObject && meta.textures ) {
 
 				meta.textures[ this.uuid ] = output;
 

@@ -2075,7 +2075,7 @@ class Texture extends EventDispatcher {
 
 		if ( Object.keys( this.userData ).length > 0 ) output.userData = this.userData;
 
-		if ( ! isRootObject ) {
+		if ( ! isRootObject && meta.textures ) {
 
 			meta.textures[ this.uuid ] = output;
 
