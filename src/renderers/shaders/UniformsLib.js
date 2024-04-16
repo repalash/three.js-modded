@@ -206,6 +206,7 @@ const UniformsLib = {
 		scale: { value: 1.0 },
 		map: { value: null },
 		alphaMap: { value: null },
+		alphaMapTransform: { value: /*@__PURE__*/ new Matrix3() },
 		alphaTest: { value: 0 },
 		uvTransform: { value: /*@__PURE__*/ new Matrix3() }
 
@@ -220,6 +221,7 @@ const UniformsLib = {
 		map: { value: null },
 		mapTransform: { value: /*@__PURE__*/ new Matrix3() },
 		alphaMap: { value: null },
+		alphaMapTransform: { value: /*@__PURE__*/ new Matrix3() },
 		alphaTest: { value: 0 }
 
 	}
