@@ -1844,7 +1844,10 @@ class GLTFTextureTransformExtension {
 
 		}
 
-		// texture = texture.clone(); // Its done in default three.js, todo: why?. this will create a new uuid and break texture caching. Uncommenting will break mapdef copy in webgi manager importViewer
+		if ( ! texture.__hasGLTFUuid ) // uuid of the sampler not considered in this texture, so we can clone.
+			texture = texture.clone(); // Its done always in default three.js,
+		// todo: why?. this will create a new uuid and break texture caching. Uncommenting will break mapdef copy in webgi manager importViewer
+		// answer - this is actually done because samplers can be different for textures with the same source on different objects
 
 		if ( transform.texCoord !== undefined ) {
 
@@ -3037,6 +3040,7 @@ class GLTFParser {
 				if ( sampler.extras.uuid !== undefined ) {
 
 					texture.uuid = sampler.extras.uuid;
+					texture.__hasGLTFUuid = true; // this is read in GLTFTextureTransformExtension.extendTexture
 					// delete sampler.extras.uuid; // do not delete this. It can be read for finding texture references by uuid in after parse. Also sampler extras is not copied to user data so no problem.
 
 				}
@@ -3195,6 +3199,7 @@ class GLTFParser {
 				if ( sourceDef.extras.t_uuid !== undefined ) {
 
 					texture.uuid = sourceDef.extras.t_uuid;
+					texture.__hasGLTFUuid = true; // this is read in GLTFTextureTransformExtension.extendTexture
 					// delete sourceDef.extras.t_uuid; // do not delete
 
 				}
@@ -3219,6 +3224,7 @@ class GLTFParser {
 					texture.source.needsUpdate = true;
 					texture.needsUpdate = true;
 					texture.uuid = texture2.uuid;
+					if ( texture2.__hasGLTFUuid ) texture.__hasGLTFUuid = true;
 					texture.flipY = texture2.flipY;
 					texture.userData = texture2.userData;
 					texture.setDirty && texture.setDirty();
