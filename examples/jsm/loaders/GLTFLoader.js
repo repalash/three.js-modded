@@ -3438,8 +3438,11 @@ class GLTFParser {
 
 		}
 
+		// do not clone the material if the properties are in the extras extension
+		const hasExtrasExtension = ( material.userData && material.userData.gltfExtensions ) ? !! material.userData.gltfExtensions[ 'WEBGI_material_extras' ] : false;
+
 		// Clone the material if it will be modified
-		if ( useDerivativeTangents || useVertexColors || useFlatShading ) {
+		if ( ( useDerivativeTangents || useVertexColors || useFlatShading ) && ! ( hasExtrasExtension ) ) {
 
 			let cacheKey = 'ClonedMaterial:' + material.uuid + ':';
 
