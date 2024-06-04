@@ -3631,6 +3631,9 @@ class GLTFParser {
 
 			const material = new materialType( materialParams );
 
+			if ( materialDef.extras && materialDef.extras.uuid )
+				material.uuid = materialDef.extras.uuid;
+
 			if ( materialDef.name ) material.name = materialDef.name;
 
 			assignExtrasToUserData( material, materialDef );
