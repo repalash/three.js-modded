@@ -29691,7 +29691,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 				// always update environment and fog - changing these trigger an getProgram call, but it's possible that the program doesn't change
 
-				materialProperties.environment = material.isMeshStandardMaterial ? scene.environment : null;
+				materialProperties.environment = material.userData && material.userData.envMapSlotKey && scene.textureSlots && scene.textureSlots[ material.userData.envMapSlotKey ] ? scene.textureSlots[ material.userData.envMapSlotKey ] : material.isMeshStandardMaterial ? scene.environment : null;
 				materialProperties.fog = scene.fog;
 				materialProperties.envMap = ( material.isMeshStandardMaterial ? cubeuvmaps : cubemaps ).get( material.envMap || materialProperties.environment );
 
@@ -29814,7 +29814,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 				textures.resetTextureUnits();
 
 				const fog = scene.fog;
-				const environment = material.isMeshStandardMaterial ? scene.environment : null;
+				const environment = material.userData && material.userData.envMapSlotKey && scene.textureSlots && scene.textureSlots[ material.userData.envMapSlotKey ] ? scene.textureSlots[ material.userData.envMapSlotKey ] : material.isMeshStandardMaterial ? scene.environment : null;
 				const colorSpace = ( _currentRenderTarget === null ) ? _this.outputColorSpace : ( ( _currentRenderTarget.isXRRenderTarget === true || _currentRenderTarget.texture.colorSpace && _currentRenderTarget.texture.colorSpace !== SRGBColorSpace ) ? _currentRenderTarget.texture.colorSpace : LinearSRGBColorSpace );
 				const envMap = ( material.isMeshStandardMaterial ? cubeuvmaps : cubemaps ).get( material.envMap || environment );
 				const vertexAlphas = material.vertexColors === true && !! geometry.attributes.color && geometry.attributes.color.itemSize === 4;
