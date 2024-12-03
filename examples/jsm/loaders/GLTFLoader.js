@@ -3063,8 +3063,23 @@ class GLTFParser {
 
 		const json = this.json;
 		const options = this.options;
+		if ( textureIndex < 0 || textureIndex >= json.textures.length ) {
+
+			console.warn( 'THREE.GLTFLoader: Invalid texture index:', textureIndex );
+			return null;
+
+		}
+
 		const textureDef = json.textures[ textureIndex ];
 		const sourceIndex = textureDef.source;
+
+		if ( sourceIndex < 0 || sourceIndex >= json.images.length ) {
+
+			console.warn( 'THREE.GLTFLoader: Invalid source index:', sourceIndex );
+			return null;
+
+		}
+
 		const sourceDef = json.images[ sourceIndex ];
 
 		let loader = this.textureLoader;
