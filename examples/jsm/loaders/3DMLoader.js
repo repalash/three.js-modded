@@ -297,7 +297,7 @@ class Rhino3dmLoader extends Loader {
 
 				map.wrapS = texture.wrapU === 0 ? RepeatWrapping : ClampToEdgeWrapping;
 				map.wrapT = texture.wrapV === 0 ? RepeatWrapping : ClampToEdgeWrapping;
-				map.repeat.set( texture.repeat[ 0 ], texture.repeat[ 1 ] );
+				if ( texture.repeat ) map.repeat.set( texture.repeat[ 0 ], texture.repeat[ 1 ] );
 
 			}
 
