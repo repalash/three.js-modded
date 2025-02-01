@@ -228,7 +228,7 @@ class Rhino3dmLoader extends Loader {
 			return new MeshStandardMaterial( {
 				color: new Color( 1, 1, 1 ),
 				metalness: 0.8,
-				name: 'default',
+				name: Loader.DEFAULT_MATERIAL_NAME,
 				side: DoubleSide
 			} );
 

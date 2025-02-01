@@ -1,9 +1,13 @@
+/*// debugger tools
+import 'https://greggman.github.io/webgpu-avoid-redundant-state-setting/webgpu-check-redundant-state-setting.js';
+//*/
+
 import { GPUFeatureName, GPUTextureFormat, GPULoadOp, GPUStoreOp, GPUIndexFormat, GPUTextureViewDimension } from './utils/WebGPUConstants.js';
 
-import WebGPUNodeBuilder from './nodes/WGSLNodeBuilder.js';
+import WGSLNodeBuilder from './nodes/WGSLNodeBuilder.js';
 import Backend from '../common/Backend.js';
 
-import { DepthFormat, WebGPUCoordinateSystem } from 'three';
+import { DepthTexture, DepthFormat, DepthStencilFormat, UnsignedInt248Type, UnsignedIntType, WebGPUCoordinateSystem } from 'three';
 
 import WebGPUUtils from './utils/WebGPUUtils.js';
 import WebGPUAttributeUtils from './utils/WebGPUAttributeUtils.js';
@@ -49,7 +53,9 @@ class WebGPUBackend extends Backend {
 		this.device = null;
 		this.context = null;
 		this.colorBuffer = null;
-		this.depthBuffer = null;
+
+		this.defaultDepthTexture = new DepthTexture();
+		this.defaultDepthTexture.name = 'depthBuffer';
 
 		this.utils = new WebGPUUtils( this );
 		this.attributeUtils = new WebGPUAttributeUtils( this );
@@ -118,9 +124,9 @@ class WebGPUBackend extends Backend {
 
 	}
 
-	async getArrayBuffer( attribute ) {
+	async getArrayBufferAsync( attribute ) {
 
-		return await this.attributeUtils.getArrayBuffer( attribute );
+		return await this.attributeUtils.getArrayBufferAsync( attribute );
 
 	}
 
@@ -149,14 +155,24 @@ class WebGPUBackend extends Backend {
 			const textureData = this.get( renderContext.texture );
 			const depthTextureData = this.get( renderContext.depthTexture );
 
-			// @TODO: Support RenderTarget with antialiasing.
-
-			colorAttachment.view = textureData.texture.createView( {
+			const view = textureData.texture.createView( {
 				baseMipLevel: 0,
 				mipLevelCount: 1,
 				baseArrayLayer: renderContext.activeCubeFace,
 				dimension: GPUTextureViewDimension.TwoD
 			} );
+
+			if ( textureData.msaaTexture !== undefined ) {
+
+				colorAttachment.view = textureData.msaaTexture.createView();
+				colorAttachment.resolveTarget = view;
+
+			} else {
+
+				colorAttachment.view = view;
+				colorAttachment.resolveTarget = undefined;
+
+			}
 
 			depthStencilAttachment.view = depthTextureData.texture.createView();
 
@@ -180,7 +196,7 @@ class WebGPUBackend extends Backend {
 
 			}
 
-			depthStencilAttachment.view = this.depthBuffer.createView();
+			depthStencilAttachment.view = this._getDepthBufferGPU( renderContext ).createView();
 
 		}
 
@@ -243,6 +259,7 @@ class WebGPUBackend extends Backend {
 		renderContextData.descriptor = descriptor;
 		renderContextData.encoder = encoder;
 		renderContextData.currentPass = currentPass;
+		renderContextData.currentAttributesSet = {};
 
 		//
 
@@ -316,7 +333,7 @@ class WebGPUBackend extends Backend {
 
 		}
 
-		descriptor.depthStencilAttachment.view = this.depthBuffer.createView();
+		descriptor.depthStencilAttachment.view = this._getDepthBufferGPU( renderContext ).createView();
 
 		if ( color ) {
 
@@ -395,6 +412,7 @@ class WebGPUBackend extends Backend {
 		const bindingsData = this.get( renderObject.getBindings() );
 		const contextData = this.get( context );
 		const pipelineGPU = this.get( pipeline ).pipeline;
+		const attributesSet = contextData.currentAttributesSet;
 
 		// pipeline
 
@@ -406,29 +424,45 @@ class WebGPUBackend extends Backend {
 		const bindGroupGPU = bindingsData.group;
 		passEncoderGPU.setBindGroup( 0, bindGroupGPU );
 
-		// index
+		// attributes
 
 		const index = renderObject.getIndex();
 
 		const hasIndex = ( index !== null );
 
+		// index
+
 		if ( hasIndex === true ) {
 
-			const buffer = this.get( index ).buffer;
-			const indexFormat = ( index.array instanceof Uint16Array ) ? GPUIndexFormat.Uint16 : GPUIndexFormat.Uint32;
+			if ( attributesSet.index !== index ) {
+			
+				const buffer = this.get( index ).buffer;
+				const indexFormat = ( index.array instanceof Uint16Array ) ? GPUIndexFormat.Uint16 : GPUIndexFormat.Uint32;
 
-			passEncoderGPU.setIndexBuffer( buffer, indexFormat );
+				passEncoderGPU.setIndexBuffer( buffer, indexFormat );
+
+				attributesSet.index = index;
+
+			}
 
 		}
 
 		// vertex buffers
 
-		const attributes = renderObject.getAttributes();
+		const vertexBuffers = renderObject.getVertexBuffers();
 
-		for ( let i = 0, l = attributes.length; i < l; i ++ ) {
+		for ( let i = 0, l = vertexBuffers.length; i < l; i ++ ) {
 
-			const buffer = this.get( attributes[ i ] ).buffer;
-			passEncoderGPU.setVertexBuffer( i, buffer );
+			const vertexBuffer = vertexBuffers[ i ];
+
+			if ( attributesSet[ i ] !== vertexBuffer ) {
+
+				const buffer = this.get( vertexBuffer ).buffer;
+				passEncoderGPU.setVertexBuffer( i, buffer );
+
+				attributesSet[ i ] = vertexBuffer;
+
+			}
 
 		}
 
@@ -531,9 +565,9 @@ class WebGPUBackend extends Backend {
 
 	}
 
-	createTexture( texture ) {
+	createTexture( texture, options ) {
 
-		this.textureUtils.createTexture( texture );
+		this.textureUtils.createTexture( texture, options );
 
 	}
 
@@ -549,11 +583,17 @@ class WebGPUBackend extends Backend {
 
 	}
 
+	copyTextureToBuffer( texture, x, y, width, height ) {
+
+		return this.textureUtils.copyTextureToBuffer( texture, x, y, width, height );
+
+	}
+
 	// node builder
 
-	createNodeBuilder( object, renderer ) {
+	createNodeBuilder( object, renderer, scene = null ) {
 
-		return new WebGPUNodeBuilder( object, renderer );
+		return new WGSLNodeBuilder( object, renderer, scene );
 
 	}
 
@@ -584,23 +624,23 @@ class WebGPUBackend extends Backend {
 
 	}
 
-	createComputePipeline( computePipeline ) {
+	createComputePipeline( computePipeline, bindings ) {
 
-		this.pipelineUtils.createComputePipeline( computePipeline );
+		this.pipelineUtils.createComputePipeline( computePipeline, bindings );
 
 	}
 
 	// bindings
 
-	createBindings( bindings, pipeline ) {
+	createBindings( bindings ) {
 
-		this.bindingUtils.createBindings( bindings, pipeline );
+		this.bindingUtils.createBindings( bindings );
 
 	}
 
-	updateBindings( bindings, pipeline ) {
+	updateBindings( bindings ) {
 
-		this.bindingUtils.createBindings( bindings, pipeline );
+		this.bindingUtils.createBindings( bindings );
 
 	}
 
@@ -648,7 +688,6 @@ class WebGPUBackend extends Backend {
 
 		this._configureContext();
 		this._setupColorBuffer();
-		this._setupDepthBuffer();
 
 	}
 
@@ -674,39 +713,99 @@ class WebGPUBackend extends Backend {
 
 	}
 
-	copyFramebufferToTexture( framebufferTexture, renderContext ) {
+	copyFramebufferToTexture( texture, renderContext ) {
 
 		const renderContextData = this.get( renderContext );
 
 		const { encoder, descriptor } = renderContextData;
 
-		const sourceGPU = this.context.getCurrentTexture();
-		const destinationGPU = this.get( framebufferTexture ).texture;
+		let sourceGPU = null;
+
+		if ( texture.isFramebufferTexture ) {
+
+			sourceGPU = this.context.getCurrentTexture();
+
+		} else if ( texture.isDepthTexture ) {
+
+			sourceGPU = this._getDepthBufferGPU( renderContext );
+
+		}
+
+		const destinationGPU = this.get( texture ).texture;
 
 		renderContextData.currentPass.end();
 
 		encoder.copyTextureToTexture(
 			{
-			  texture: sourceGPU
+				texture: sourceGPU,
+				origin: { x: 0, y: 0, z: 0 }
 			},
 			{
-			  texture: destinationGPU
+				texture: destinationGPU
 			},
 			[
-				framebufferTexture.image.width,
-				framebufferTexture.image.height
+				texture.image.width,
+				texture.image.height
 			]
 		);
+
+		if ( texture.generateMipmaps ) this.textureUtils.generateMipmaps( texture );
 
 		descriptor.colorAttachments[ 0 ].loadOp = GPULoadOp.Load;
 		if ( renderContext.depth ) descriptor.depthStencilAttachment.depthLoadOp = GPULoadOp.Load;
 		if ( renderContext.stencil ) descriptor.depthStencilAttachment.stencilLoadOp = GPULoadOp.Load;
 
 		renderContextData.currentPass = encoder.beginRenderPass( descriptor );
+		renderContextData.currentAttributesSet = {};
 
 	}
 
 	// utils
+
+	_getDepthBufferGPU( renderContext ) {
+
+		const { width, height } = this.getDrawingBufferSize();
+
+		const depthTexture = this.defaultDepthTexture;
+		const depthTextureGPU = this.get( depthTexture ).texture;
+
+		let format, type;
+
+		if ( renderContext.stencil ) {
+
+			format = DepthStencilFormat;
+			type = UnsignedInt248Type;
+
+		} else if ( renderContext.depth ) {
+
+			format = DepthFormat;
+			type = UnsignedIntType;
+
+		}
+
+		if ( depthTextureGPU !== undefined ) {
+
+			if ( depthTexture.image.width === width && depthTexture.image.height === height && depthTexture.format === format && depthTexture.type === type ) {
+
+				return depthTextureGPU;
+
+			}
+
+			this.textureUtils.destroyTexture( depthTexture );
+
+		}
+
+		depthTexture.name = 'depthBuffer';
+		depthTexture.format = format;
+		depthTexture.type = type;
+		depthTexture.image.width = width;
+		depthTexture.image.height = height;
+
+		this.textureUtils.createTexture( depthTexture, { sampleCount: this.parameters.sampleCount } );
+
+		return this.get( depthTexture ).texture;
+
+	}
 
 	_configureContext() {
 
@@ -735,26 +834,6 @@ class WebGPUBackend extends Backend {
 			},
 			sampleCount: this.parameters.sampleCount,
 			format: GPUTextureFormat.BGRA8Unorm,
-			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
-		} );
-
-	}
-
-	_setupDepthBuffer() {
-
-		if ( this.depthBuffer ) this.depthBuffer.destroy();
-
-		const { width, height } = this.getDrawingBufferSize();
-
-		this.depthBuffer = this.device.createTexture( {
-			label: 'depthBuffer',
-			size: {
-				width: width,
-				height: height,
-				depthOrArrayLayers: 1
-			},
-			sampleCount: this.parameters.sampleCount,
-			format: GPUTextureFormat.Depth24PlusStencil8,
 			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
 		} );
 

@@ -73,7 +73,7 @@
 				controls.rotateSpeed = 0.35;
 				controls.minZoom = 1;
 
-				scene.add( new THREE.HemisphereLight( 0xffffff, 0x444444 ) );
+				scene.add( new THREE.HemisphereLight( 0xffffff, 0x444444, 3 ) );
 
 				new OBJLoader().load(
 					'./models/obj/cerberus/Cerberus.obj',

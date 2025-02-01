@@ -954,7 +954,7 @@ class Object3D extends EventDispatcher {
 		this.frustumCulled = source.frustumCulled;
 		this.renderOrder = source.renderOrder;
 
-		this.animations = source.animations;
+		this.animations = source.animations.slice();
 
 		this.userData = {};
 		for ( const [ key, value ] of Object.entries( source.userData ) ) {
