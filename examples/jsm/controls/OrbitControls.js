@@ -76,6 +76,7 @@ class OrbitControls extends EventDispatcher {
 		this.enableZoom = true;
 		this.zoomSpeed = 1.0;
 		this.maxZoomSpeed = 1.0; // only used while damping
+		this.maxZoomSpeed = 1.0; // only used while damping
 		this.dollyZoom = false; // only for PerspectiveCamera, control zoom with wheel.
 
 		// Set to false to disable rotating
@@ -189,13 +190,13 @@ class OrbitControls extends EventDispatcher {
 
 			const lastUpdateTime = 0;
 
-			return function update() {
+			return function update( deltaTime = null ) {
 
 				if ( this.throttleUpdate && this.throttleUpdate >= 1 ) {
 
 					const now = Date.now();
-					const deltaTime = now - lastUpdateTime;
-					if ( deltaTime < 1000 / this.throttleUpdate ) return;
+					const dt = now - lastUpdateTime;
+					if ( dt < 1000 / this.throttleUpdate ) return;
 
 				}
 
@@ -211,7 +212,7 @@ class OrbitControls extends EventDispatcher {
 
 				if ( scope.autoRotate && state === STATE.NONE ) {
 
-					rotateLeft( getAutoRotationAngle() );
+					rotateLeft( getAutoRotationAngle( deltaTime ) );
 
 				}
 
@@ -561,9 +562,17 @@ class OrbitControls extends EventDispatcher {
 		const pointers = [];
 		const pointerPositions = {};
 
-		function getAutoRotationAngle() {
+		function getAutoRotationAngle( deltaTime ) {
 
-			return 2 * Math.PI / 60 / 60 * scope.autoRotateSpeed;
+			if ( deltaTime !== null ) {
+
+				return ( 2 * Math.PI / 60 * scope.autoRotateSpeed ) * deltaTime;
+
+			} else {
+
+				return 2 * Math.PI / 60 / 60 * scope.autoRotateSpeed;
+
+			}
 
 		}
 
@@ -732,7 +741,7 @@ class OrbitControls extends EventDispatcher {
 			mouse.x = ( x / w ) * 2 - 1;
 			mouse.y = - ( y / h ) * 2 + 1;
 
-			dollyDirection.set( mouse.x, mouse.y, 1 ).unproject( object ).sub( object.position ).normalize();
+			dollyDirection.set( mouse.x, mouse.y, 1 ).unproject( scope.object ).sub( scope.object.position ).normalize();
 
 		}
 

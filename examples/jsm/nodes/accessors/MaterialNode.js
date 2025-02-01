@@ -3,6 +3,8 @@ import { reference } from './ReferenceNode.js';
 import { materialReference } from './MaterialReferenceNode.js';
 import { nodeImmutable, float } from '../shadernode/ShaderNode.js';
 
+const _propertyCache = new Map();
+
 class MaterialNode extends Node {
 
 	constructor( scope ) {
@@ -13,33 +15,41 @@ class MaterialNode extends Node {
 
 	}
 
+	getCache( property, type ) {
+
+		let node = _propertyCache.get( property );
+
+		if ( node === undefined ) {
+
+			node = materialReference( property, type );
+
+			_propertyCache.set( property, node );
+
+		}
+
+		return node;
+
+	}
+
 	getFloat( property ) {
 
-		//@TODO: Check if it can be cached by property name.
-
-		return materialReference( property, 'float' );
+		return this.getCache( property, 'float' );
 
 	}
 
 	getColor( property ) {
 
-		//@TODO: Check if it can be cached by property name.
-
-		return materialReference( property, 'color' );
+		return this.getCache( property, 'color' );
 
 	}
 
 	getTexture( property ) {
 
-		//@TODO: Check if it can be cached by property name.
-
-		const textureRefNode = materialReference( property, 'texture' );
-
-		return textureRefNode;
+		return this.getCache( property, 'texture' );
 
 	}
 
-	construct( builder ) {
+	setup( builder ) {
 
 		const material = builder.context.material;
 		const scope = this.scope;
@@ -264,4 +274,4 @@ export const materialIridescence = nodeImmutable( MaterialNode, MaterialNode.IRI
 export const materialIridescenceIOR = nodeImmutable( MaterialNode, MaterialNode.IRIDESCENCE_IOR );
 export const materialIridescenceThickness = nodeImmutable( MaterialNode, MaterialNode.IRIDESCENCE_THICKNESS );
 
-addNodeClass( MaterialNode );
+addNodeClass( 'MaterialNode', MaterialNode );

@@ -2,7 +2,7 @@ import { EventDispatcher } from '../core/EventDispatcher.js';
 import { FrontSide, NormalBlending, LessEqualDepth, AddEquation, OneMinusSrcAlphaFactor, SrcAlphaFactor, AlwaysStencilFunc, KeepStencilOp } from '../constants.js';
 import * as MathUtils from '../math/MathUtils.js';
 
-let materialId = 0;
+let _materialId = 0;
 
 class Material extends EventDispatcher {
 
@@ -12,7 +12,7 @@ class Material extends EventDispatcher {
 
 		this.isMaterial = true;
 
-		Object.defineProperty( this, 'id', { value: materialId ++ } );
+		Object.defineProperty( this, 'id', { value: _materialId ++ } );
 
 		this.uuid = MathUtils.generateUUID();
 
@@ -326,10 +326,10 @@ class Material extends EventDispatcher {
 
 		if ( this.blending !== NormalBlending ) data.blending = this.blending;
 		if ( this.side !== FrontSide ) data.side = this.side;
-		if ( this.vertexColors ) data.vertexColors = true;
+		if ( this.vertexColors === true ) data.vertexColors = true;
 
 		if ( this.opacity < 1 ) data.opacity = this.opacity;
-		if ( this.transparent === true ) data.transparent = this.transparent;
+		if ( this.transparent === true ) data.transparent = true;
 
 		data.depthFunc = this.depthFunc;
 		data.depthTest = this.depthTest;
@@ -360,17 +360,17 @@ class Material extends EventDispatcher {
 		if ( this.dithering === true ) data.dithering = true;
 
 		if ( this.alphaTest > 0 ) data.alphaTest = this.alphaTest;
-		if ( this.alphaHash === true ) data.alphaHash = this.alphaHash;
-		if ( this.alphaToCoverage === true ) data.alphaToCoverage = this.alphaToCoverage;
-		if ( this.premultipliedAlpha === true ) data.premultipliedAlpha = this.premultipliedAlpha;
-		if ( this.forceSinglePass === true ) data.forceSinglePass = this.forceSinglePass;
+		if ( this.alphaHash === true ) data.alphaHash = true;
+		if ( this.alphaToCoverage === true ) data.alphaToCoverage = true;
+		if ( this.premultipliedAlpha === true ) data.premultipliedAlpha = true;
+		if ( this.forceSinglePass === true ) data.forceSinglePass = true;
 
-		if ( this.wireframe === true ) data.wireframe = this.wireframe;
+		if ( this.wireframe === true ) data.wireframe = true;
 		if ( this.wireframeLinewidth > 1 ) data.wireframeLinewidth = this.wireframeLinewidth;
 		if ( this.wireframeLinecap !== 'round' ) data.wireframeLinecap = this.wireframeLinecap;
 		if ( this.wireframeLinejoin !== 'round' ) data.wireframeLinejoin = this.wireframeLinejoin;
 
-		if ( this.flatShading === true ) data.flatShading = this.flatShading;
+		if ( this.flatShading === true ) data.flatShading = true;
 
 		if ( this.visible === false ) data.visible = false;
 

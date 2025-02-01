@@ -16,6 +16,7 @@ import { lightsWithoutWrap } from '../lighting/LightsNode.js';
 import { mix, dFdx, dFdy } from '../math/MathNode.js';
 import { float, vec3, vec4 } from '../shadernode/ShaderNode.js';
 import AONode from '../lighting/AONode.js';
+import { lightingContext } from '../lighting/LightingContextNode.js';
 import EnvironmentNode from '../lighting/EnvironmentNode.js';
 
 const NodeMaterials = new Map();
@@ -28,7 +29,7 @@ class NodeMaterial extends ShaderMaterial {
 
 		this.isNodeMaterial = true;
 
-		this.type = this.constructor.name;
+		this.type = this.constructor.type;
 
 		this.forceSinglePass = false;
 
@@ -64,17 +65,17 @@ class NodeMaterial extends ShaderMaterial {
 
 	build( builder ) {
 
-		this.construct( builder );
+		this.setup( builder );
 
 	}
 
-	construct( builder ) {
+	setup( builder ) {
 
 		// < VERTEX STAGE >
 
 		builder.addStack();
 
-		builder.stack.outputNode = this.constructPosition( builder );
+		builder.stack.outputNode = this.setupPosition( builder );
 
 		builder.addFlow( 'vertex', builder.removeStack() );
 
@@ -86,14 +87,14 @@ class NodeMaterial extends ShaderMaterial {
 
 		if ( this.unlit === false ) {
 
-			if ( this.normals === true ) this.constructNormal( builder );
+			if ( this.normals === true ) this.setupNormal( builder );
 
-			this.constructDiffuseColor( builder );
-			this.constructVariants( builder );
+			this.setupDiffuseColor( builder );
+			this.setupVariants( builder );
 
-			const outgoingLightNode = this.constructLighting( builder );
+			const outgoingLightNode = this.setupLighting( builder );
 
-			outputNode = this.constructOutput( builder, vec4( outgoingLightNode, diffuseColor.a ) );
+			outputNode = this.setupOutput( builder, vec4( outgoingLightNode, diffuseColor.a ) );
 
 			// OUTPUT NODE
 
@@ -105,7 +106,7 @@ class NodeMaterial extends ShaderMaterial {
 
 		} else {
 
-			outputNode = this.constructOutput( builder, this.outputNode || vec4( 0, 0, 0, 1 ) );
+			outputNode = this.setupOutput( builder, this.outputNode || vec4( 0, 0, 0, 1 ) );
 
 		}
 
@@ -115,7 +116,7 @@ class NodeMaterial extends ShaderMaterial {
 
 	}
 
-	constructPosition( builder ) {
+	setupPosition( builder ) {
 
 		const object = builder.object;
 		const geometry = object.geometry;
@@ -152,7 +153,7 @@ class NodeMaterial extends ShaderMaterial {
 
 	}
 
-	constructDiffuseColor( { stack, geometry } ) {
+	setupDiffuseColor( { stack, geometry } ) {
 
 		let colorNode = this.colorNode ? vec4( this.colorNode ) : materialColor;
 
@@ -185,20 +186,20 @@ class NodeMaterial extends ShaderMaterial {
 
 	}
 
-	constructVariants( /*builder*/ ) {
+	setupVariants( /*builder*/ ) {
 
 		// Interface function.
 
 	}
 
-	constructNormal( { stack } ) {
+	setupNormal( { stack } ) {
 
 		// NORMAL VIEW
 
 		if ( this.flatShading === true ) {
 
 			const fdx = dFdx( positionView );
-			const fdy = dFdy( positionView.negate() ); // use -positionView ?
+			const fdy = dFdy( positionView );
 			const normalNode = fdx.cross( fdy ).normalize();
 
 			stack.assign( transformedNormalView, normalNode );
@@ -235,7 +236,7 @@ class NodeMaterial extends ShaderMaterial {
 
 	}
 
-	constructLights( builder ) {
+	setupLights( builder ) {
 
 		const envNode = this.getEnvNode( builder );
 
@@ -267,13 +268,13 @@ class NodeMaterial extends ShaderMaterial {
 
 	}
 
-	constructLightingModel( /*builder*/ ) {
+	setupLightingModel( /*builder*/ ) {
 
 		// Interface function.
 
 	}
 
-	constructLighting( builder ) {
+	setupLighting( builder ) {
 
 		const { material } = builder;
 		const { backdropNode, backdropAlphaNode, emissiveNode } = this;
@@ -282,15 +283,15 @@ class NodeMaterial extends ShaderMaterial {
 
 		const lights = this.lights === true || this.lightsNode !== null;
 
-		const lightsNode = lights ? this.constructLights( builder ) : null;
+		const lightsNode = lights ? this.setupLights( builder ) : null;
 
 		let outgoingLightNode = diffuseColor.rgb;
 
 		if ( lightsNode && lightsNode.hasLight !== false ) {
 
-			const lightingModelNode = this.constructLightingModel( builder );
+			const lightingModelNode = this.setupLightingModel( builder );
 
-			outgoingLightNode = lightsNode.lightingContext( lightingModelNode, backdropNode, backdropAlphaNode );
+			outgoingLightNode = lightingContext( lightsNode, lightingModelNode, backdropNode, backdropAlphaNode );
 
 		} else if ( backdropNode !== null ) {
 
@@ -302,7 +303,7 @@ class NodeMaterial extends ShaderMaterial {
 
 		if ( ( emissiveNode && emissiveNode.isNode === true ) || ( material.emissive && material.emissive.isColor === true ) ) {
 
-			outgoingLightNode = outgoingLightNode.add( emissiveNode ? vec3( emissiveNode ) : materialEmissive );
+			outgoingLightNode = outgoingLightNode.add( vec3( emissiveNode ? emissiveNode : materialEmissive ) );
 
 		}
 
@@ -310,7 +311,7 @@ class NodeMaterial extends ShaderMaterial {
 
 	}
 
-	constructOutput( builder, outputNode ) {
+	setupOutput( builder, outputNode ) {
 
 		const renderer = builder.renderer;
 
@@ -344,7 +345,15 @@ class NodeMaterial extends ShaderMaterial {
 
 			if ( renderTarget !== null ) {
 
-				outputColorSpace = renderTarget.texture.colorSpace;
+				if ( Array.isArray( renderTarget.texture ) ) {
+
+					outputColorSpace = renderTarget.texture[ 0 ].colorSpace;
+
+				} else {
+
+					outputColorSpace = renderTarget.texture.colorSpace;
+
+				}
 
 			} else {
 
@@ -512,12 +521,13 @@ class NodeMaterial extends ShaderMaterial {
 
 export default NodeMaterial;
 
-export function addNodeMaterial( nodeMaterial ) {
+export function addNodeMaterial( type, nodeMaterial ) {
 
-	if ( typeof nodeMaterial !== 'function' || ! nodeMaterial.name ) throw new Error( `Node material ${ nodeMaterial.name } is not a class` );
-	if ( NodeMaterials.has( nodeMaterial.name ) ) throw new Error( `Redefinition of node material ${ nodeMaterial.name }` );
+	if ( typeof nodeMaterial !== 'function' || ! type ) throw new Error( `Node material ${ type } is not a class` );
+	if ( NodeMaterials.has( type ) ) throw new Error( `Redefinition of node material ${ type }` );
 
-	NodeMaterials.set( nodeMaterial.name, nodeMaterial );
+	NodeMaterials.set( type, nodeMaterial );
+	nodeMaterial.type = type;
 
 }
 
@@ -533,4 +543,4 @@ export function createNodeMaterialFromType( type ) {
 
 }
 
-addNodeMaterial( NodeMaterial );
+addNodeMaterial( 'NodeMaterial', NodeMaterial );

@@ -1,5 +1,3 @@
-// @TODO: Is this needed? Can it be moved in MaterialNode?
-
 import MaterialNode from './MaterialNode.js';
 import { materialReference } from './MaterialReferenceNode.js';
 import { normalView } from './NormalNode.js';
@@ -31,7 +29,7 @@ class ExtendedMaterialNode extends MaterialNode {
 
 	}
 
-	construct( builder ) {
+	setup( builder ) {
 
 		const material = builder.material;
 		const scope = this.scope;
@@ -46,6 +44,7 @@ class ExtendedMaterialNode extends MaterialNode {
 
 			} else if ( material.bumpMap ) {
 
+				// @TODO: Replace material.bumpMap to this.getTexture( 'bumpMap' )
 				node = bumpMap( material.bumpMap, materialReference( 'bumpScale', 'float' ) );
 
 			} else {
@@ -60,7 +59,7 @@ class ExtendedMaterialNode extends MaterialNode {
 
 		}
 
-		return node || super.construct( builder );
+		return node || super.setup( builder );
 
 	}
 
@@ -74,4 +73,4 @@ export default ExtendedMaterialNode;
 export const materialNormal = nodeImmutable( ExtendedMaterialNode, ExtendedMaterialNode.NORMAL );
 export const materialClearcoatNormal = nodeImmutable( ExtendedMaterialNode, ExtendedMaterialNode.CLEARCOAT_NORMAL );
 
-addNodeClass( ExtendedMaterialNode );
+addNodeClass( 'ExtendedMaterialNode', ExtendedMaterialNode );
