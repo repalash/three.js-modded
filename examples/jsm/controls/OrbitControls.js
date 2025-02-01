@@ -320,9 +320,6 @@ class OrbitControls extends EventDispatcher {
 					if ( scope.autoPullTarget && spherical.radius > scope.maxDistance )
 						pushDelta = scope.maxDistance - spherical.radius;
 
-					// restrict radius to be between desired limits
-					spherical.radius = Math.max( scope.minDistance, Math.min( scope.maxDistance, spherical.radius ) );
-
 					spherical.radius = clampDistance( spherical.radius );
 
 				}
@@ -369,6 +366,7 @@ class OrbitControls extends EventDispatcher {
 
 				}
 
+				// todo this should be moved above previous `if`
 				// adjust camera position
 				let zoomChanged = false;
 				if ( scope.zoomToCursor && performCursorZoom ) {
@@ -378,8 +376,10 @@ class OrbitControls extends EventDispatcher {
 
 						// move the camera down the pointer ray
 						// this method avoids floating point error
-						const prevRadius = offset.length();
-						newRadius = clampDistance( prevRadius * scale );
+						const prevRadius = spherical.radius;
+						newRadius = spherical.radius * scale;
+						// newRadius = spherical.radius * ( 1 + sphericalDelta.radius * ( scope.enableDamping ? scope.dampingFactor : 1 ) );
+						newRadius = clampDistance( newRadius );
 
 						const radiusDelta = prevRadius - newRadius;
 						scope.object.position.addScaledVector( dollyDirection, radiusDelta );
@@ -569,7 +569,7 @@ class OrbitControls extends EventDispatcher {
 
 		function getZoomScale() {
 
-			return scope.enableDamping ? 1 : Math.pow( 0.95, scope.zoomSpeed );
+			return scope.enableDamping && ! scope.zoomToCursor ? 1 : Math.pow( 0.95, scope.zoomSpeed );
 
 		}
 
@@ -846,15 +846,19 @@ class OrbitControls extends EventDispatcher {
 
 			if ( event.deltaY < 0 ) {
 
-				// todo repalash
-				// dollyIn( 1, delta * scope.zoomSpeed );
-				dollyIn( getZoomScale() );
+				// todo repalash zoom delta
+				if ( scope.zoomToCursor )
+					dollyIn( getZoomScale() );
+				else
+					dollyIn( 1, delta * scope.zoomSpeed );
 
 			} else if ( event.deltaY > 0 ) {
 
-				// todo repalash
-				// dollyOut( 1, - delta * scope.zoomSpeed );
-				dollyOut( getZoomScale() );
+				// todo repalash zoom delta
+				if ( scope.zoomToCursor )
+					dollyOut( getZoomScale() );
+				else
+					dollyOut( 1, - delta * scope.zoomSpeed );
 
 			}
 
@@ -1068,7 +1072,7 @@ class OrbitControls extends EventDispatcher {
 
 			dollyEnd.set( 0, distance );
 
-			// todo ` * 6`
+			// todo ` * 6`?
 			dollyDelta.set( 0, Math.pow( dollyEnd.y / dollyStart.y, scope.zoomSpeed * 6 ) );
 
 			dollyOut( dollyDelta.y );
