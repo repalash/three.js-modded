@@ -402,7 +402,7 @@ class OrbitControls extends EventDispatcher {
 						scope.object.position.sub( mouseAfter ).add( mouseBefore );
 						scope.object.updateMatrixWorld();
 
-						newRadius = offset.length();
+						newRadius = spherical.radius;
 
 					} else {
 
@@ -578,7 +578,7 @@ class OrbitControls extends EventDispatcher {
 
 		function getZoomScale() {
 
-			return scope.enableDamping && ! scope.zoomToCursor ? 1 : Math.pow( 0.95, scope.zoomSpeed );
+			return scope.enableDamping && ! scope.zoomToCursor && ! scope.object.isOrthographicCamera ? 1 : Math.pow( 0.95, scope.zoomSpeed );
 
 		}
 
@@ -855,16 +855,14 @@ class OrbitControls extends EventDispatcher {
 
 			if ( event.deltaY < 0 ) {
 
-				// todo repalash zoom delta
-				if ( scope.zoomToCursor )
+				if ( scope.zoomToCursor || scope.object.isOrthographicCamera )
 					dollyIn( getZoomScale() );
 				else
 					dollyIn( 1, delta * scope.zoomSpeed );
 
 			} else if ( event.deltaY > 0 ) {
 
-				// todo repalash zoom delta
-				if ( scope.zoomToCursor )
+				if ( scope.zoomToCursor || scope.object.isOrthographicCamera )
 					dollyOut( getZoomScale() );
 				else
 					dollyOut( 1, - delta * scope.zoomSpeed );
