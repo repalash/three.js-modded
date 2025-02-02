@@ -87,7 +87,7 @@ float D_GGX( const in float alpha, const in float dotNH ) {
 }
 
 // https://google.github.io/filament/Filament.md.html#materialsystem/anisotropicmodel/anisotropicspecularbrdf
-#ifdef USE_ANISOTROPY
+#if defined( USE_ANISOTROPY ) || defined( USE_ANISOTROPY_BRDF )
 
 	float V_GGX_SmithCorrelated_Anisotropic( const in float alphaT, const in float alphaB, const in float dotTV, const in float dotBV, const in float dotTL, const in float dotBL, const in float dotNV, const in float dotNL ) {
 
@@ -348,7 +348,7 @@ vec3 BRDF_Sheen( const in vec3 lightDir, const in vec3 viewDir, const in vec3 no
 
 #endif
 
-// This is a curve-fit approxmation to the "Charlie sheen" BRDF integrated over the hemisphere from 
+// This is a curve-fit approxmation to the "Charlie sheen" BRDF integrated over the hemisphere from
 // Estevez and Kulla 2017, "Production Friendly Microfacet Sheen BRDF". The analysis can be found
 // in the Sheen section of https://drive.google.com/file/d/1T0D1VSyR4AllqIJTQAraEIzjlb5h4FKH/view?usp=sharing
 float IBLSheenBRDF( const in vec3 normal, const in vec3 viewDir, const in float roughness ) {

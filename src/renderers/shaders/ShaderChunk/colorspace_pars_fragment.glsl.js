@@ -60,4 +60,16 @@ vec4 LinearToRGBM( in vec4 value, in float maxRange ) {
 	return vec4( value.rgb / ( M * maxRange ), M );
 }
 
+
+// reference: http://iwasbeingirony.blogspot.ca/2010/06/difference-between-rgbm-and-rgbd.html
+vec4 RGBM16ToLinear( in vec4 value ) {
+	return vec4( value.rgb * value.a * 16.0, 1.0 );
+}
+
+vec4 LinearToRGBM16( in vec4 value ) {
+	float maxRGB = max( value.r, max( value.g, value.b ) );
+	float M = clamp( maxRGB / 16.0, 0.0, 1.0 );
+	M = ceil( M * 255.0 ) / 255.0;
+	return vec4( value.rgb / ( M * 16.0 ), M );
+}
 `;

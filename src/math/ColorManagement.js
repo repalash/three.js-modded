@@ -1,5 +1,6 @@
 import { SRGBColorSpace, LinearSRGBColorSpace, DisplayP3ColorSpace, LinearDisplayP3ColorSpace, Rec709Primaries, P3Primaries, SRGBTransfer, LinearTransfer, NoColorSpace, } from '../constants.js';
 import { Matrix3 } from './Matrix3.js';
+import { RGBM16ColorSpace } from '../constants.js';
 
 /**
  * Matrices converting P3 <-> Rec. 709 primaries, without gamut mapping
@@ -133,7 +134,7 @@ export const ColorManagement = {
 
 	getTransfer: function ( colorSpace ) {
 
-		if ( colorSpace === NoColorSpace ) return LinearTransfer;
+		if ( colorSpace === NoColorSpace || colorSpace === RGBM16ColorSpace ) return LinearTransfer;
 
 		return COLOR_SPACES[ colorSpace ].transfer;
 
