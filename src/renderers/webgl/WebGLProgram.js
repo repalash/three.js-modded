@@ -28,11 +28,11 @@ function handleSource( string, errorLine ) {
 function getEncodingComponents( colorSpace ) {
 
 	const workingPrimaries = ColorManagement.getPrimaries( ColorManagement.workingColorSpace );
-	const encodingPrimaries = ColorManagement.getPrimaries( colorSpace );
+	const encodingPrimaries = colorSpace === NoColorSpace || colorSpace === RGBM16ColorSpace ? null : ColorManagement.getPrimaries( colorSpace );
 
 	let gamutMapping;
 
-	if ( workingPrimaries === encodingPrimaries ) {
+	if ( workingPrimaries === encodingPrimaries || ! encodingPrimaries ) {
 
 		gamutMapping = '';
 
@@ -48,8 +48,8 @@ function getEncodingComponents( colorSpace ) {
 
 	switch ( colorSpace ) {
 
-		case NoColorSpace: // todo remove?
-			return [ 'Linear', '( value )' ];
+		case NoColorSpace:
+			return [ '', '' ];
 		case LinearSRGBColorSpace:
 		case LinearDisplayP3ColorSpace:
 			return [ gamutMapping, 'LinearTransferOETF' ];
@@ -59,7 +59,7 @@ function getEncodingComponents( colorSpace ) {
 			return [ gamutMapping, 'sRGBTransferOETF' ];
 
 		case RGBM16ColorSpace:
-			return [ 'RGBM', '( value, 16.0 )' ];
+			return [ '', 'LinearToRGBM16' ];
 
 		default:
 			console.warn( 'THREE.WebGLProgram: Unsupported color space:', colorSpace );
@@ -95,8 +95,27 @@ function getShaderErrors( gl, shader, type ) {
 
 function getTexelDecodingFunction( functionName, colorSpace ) {
 
-	const components = getEncodingComponents( colorSpace );
-	return `vec4 ${functionName}( vec4 value ) { return ${components[ 0 ]}ToLinear${components[ 1 ]}; }`;
+	let fn;
+	switch ( colorSpace ) {
+
+		case LinearSRGBColorSpace:
+			fn = '';
+			break;
+		case SRGBColorSpace:
+			fn = 'sRGBToLinear'; // todo required?
+			break;
+		case RGBM16ColorSpace:
+			fn = 'RGBM16ToLinear';
+			break;
+		default:
+			console.warn( 'THREE.WebGLProgram: Unsupported color space:', colorSpace );
+			fn = '';
+			break;
+
+	}
+
+	// return `vec4 ${functionName}( vec4 value ) { return ${components[ 0 ]}ToLinear${components[ 1 ]}; }`;
+	return `vec4 ${functionName}( vec4 value ) { return ${fn} ( value ); }`;
 
 }
 
@@ -784,7 +803,7 @@ function WebGLProgram( renderer, cacheKey, parameters, bindingStates ) {
 			parameters.transmissionMap ? '#define USE_TRANSMISSIONMAP' : '',
 			parameters.thicknessMap ? '#define USE_THICKNESSMAP' : '',
 
-			parameters.vertexTangents && parameters.flatShading === false ? '#define USE_TANGENT' : '',
+			parameters.vertexTangents && parameters.flatShading === false ? '#define USE_TANGENT' : '', // todo this might break stuff, flatShading should not be related to tangents
 			parameters.vertexColors || parameters.instancingColor ? '#define USE_COLOR' : '',
 			parameters.vertexAlphas ? '#define USE_COLOR_ALPHA' : '',
 			parameters.vertexUv1s ? '#define USE_UV1' : '',

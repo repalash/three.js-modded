@@ -1740,7 +1740,7 @@ class WebGLRenderer {
 			const colorSpace = ( _currentRenderTarget === null ) ? _this.outputColorSpace : ( ( _currentRenderTarget.isXRRenderTarget === true || _currentRenderTarget.texture.colorSpace && _currentRenderTarget.texture.colorSpace !== SRGBColorSpace ) ? _currentRenderTarget.texture.colorSpace : LinearSRGBColorSpace );
 			const envMap = ( material.isMeshStandardMaterial ? cubeuvmaps : cubemaps ).get( material.envMap || environment );
 			const vertexAlphas = material.vertexColors === true && !! geometry.attributes.color && geometry.attributes.color.itemSize === 4;
-			const vertexTangents = !! geometry.attributes.tangent && ( !! material.normalMap || material.anisotropy > 0 );
+			const vertexTangents = !! geometry.attributes.tangent && ( !! material.normalMap || material.anisotropy > 0 || geometry.userData.__forceUseTangent );
 			const morphTargets = !! geometry.morphAttributes.position;
 			const morphNormals = !! geometry.morphAttributes.normal;
 			const morphColors = !! geometry.morphAttributes.color;

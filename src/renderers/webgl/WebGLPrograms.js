@@ -1,4 +1,15 @@
-import { BackSide, DoubleSide, CubeUVReflectionMapping, ObjectSpaceNormalMap, TangentSpaceNormalMap, NoToneMapping, NormalBlending, LinearSRGBColorSpace, SRGBTransfer } from '../../constants.js';
+import {
+	BackSide,
+	DoubleSide,
+	CubeUVReflectionMapping,
+	ObjectSpaceNormalMap,
+	TangentSpaceNormalMap,
+	NoToneMapping,
+	NormalBlending,
+	LinearSRGBColorSpace,
+	SRGBTransfer,
+	SRGBColorSpace,
+} from '../../constants.js';
 import { Layers } from '../../core/Layers.js';
 import { WebGLProgram } from './WebGLProgram.js';
 import { WebGLShaderCache } from './WebGLShaderCache.js';
@@ -291,7 +302,7 @@ function WebGLPrograms( renderer, cubemaps, cubeuvmaps, extensions, capabilities
 
 			//
 
-			vertexTangents: !! geometry.attributes.tangent && ( HAS_NORMALMAP || HAS_ANISOTROPY ),
+			vertexTangents: !! geometry.attributes.tangent && ( HAS_NORMALMAP || HAS_ANISOTROPY || geometry.userData.__forceUseTangent ),
 			vertexColors: material.vertexColors,
 			vertexAlphas: material.vertexColors === true && !! geometry.attributes.color && geometry.attributes.color.itemSize === 4,
 			vertexUv1s: HAS_ATTRIBUTE_UV1,
