@@ -112,7 +112,8 @@ class RenderTarget extends EventDispatcher {
 		this.depthBuffer = source.depthBuffer;
 		this.stencilBuffer = source.stencilBuffer;
 
-		if ( source.depthTexture !== null ) this.depthTexture = source.depthTexture.clone();
+		// it can be set to undefined by mistake (not just null)
+		if ( source.depthTexture ) this.depthTexture = source.depthTexture.clone();
 
 		this.samples = source.samples;
 
