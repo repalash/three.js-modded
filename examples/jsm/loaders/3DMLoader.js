@@ -249,7 +249,7 @@ class Rhino3dmLoader extends Loader {
 			name: material.name,
 			reflectivity: material.reflectivity,
 			opacity: 1.0 - material.transparency,
-			side: DoubleSide,
+			side: DoubleSide, // todo should we change?
 			specularColor: material.specularColor,
 			transparent: material.transparency > 0 ? true : false
 
