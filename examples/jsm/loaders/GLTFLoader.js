@@ -20,13 +20,13 @@ import {
 	InterpolateDiscrete,
 	InterpolateLinear,
 	Line,
-	LineBasicMaterial,
-	LineLoop,
-	LineSegments,
 	LinearFilter,
 	LinearMipmapLinearFilter,
 	LinearMipmapNearestFilter,
 	LinearSRGBColorSpace,
+	LineBasicMaterial,
+	LineLoop,
+	LineSegments,
 	Loader,
 	LoaderUtils,
 	Material,
@@ -55,6 +55,7 @@ import {
 	SkinnedMesh,
 	Sphere,
 	SpotLight,
+	SRGBColorSpace,
 	Texture,
 	TextureLoader,
 	TriangleFanDrawMode,
@@ -62,7 +63,6 @@ import {
 	Vector2,
 	Vector3,
 	VectorKeyframeTrack,
-	SRGBColorSpace
 } from 'three';
 import { toTrianglesDrawMode } from '../utils/BufferGeometryUtils.js';
 
@@ -955,7 +955,7 @@ class GLTFMaterialsSheenExtension {
 		if ( extension.sheenColorFactor !== undefined ) {
 
 			const colorFactor = extension.sheenColorFactor;
-			materialParams.sheenColor.setRGB( colorFactor[ 0 ], colorFactor[ 1 ], colorFactor [ 2 ], LinearSRGBColorSpace );
+			materialParams.sheenColor.setRGB( colorFactor[ 0 ], colorFactor[ 1 ], colorFactor[ 2 ], LinearSRGBColorSpace );
 
 		}
 

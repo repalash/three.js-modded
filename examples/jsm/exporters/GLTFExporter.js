@@ -2,10 +2,10 @@ import {
 	BufferAttribute,
 	ClampToEdgeWrapping,
 	Color,
+	CompressedTexture,
 	DoubleSide,
 	InterpolateDiscrete,
 	InterpolateLinear,
-	NoColorSpace,
 	LinearFilter,
 	LinearMipmapLinearFilter,
 	LinearMipmapNearestFilter,
@@ -15,14 +15,14 @@ import {
 	NearestFilter,
 	NearestMipmapLinearFilter,
 	NearestMipmapNearestFilter,
+	NoColorSpace,
 	PropertyBinding,
-	RGBAFormat,
 	RepeatWrapping,
+	RGBAFormat,
 	Scene,
 	Source,
 	SRGBColorSpace,
-	CompressedTexture,
-	Vector3
+	Vector3,
 } from 'three';
 import { decompress } from './../utils/TextureUtils.js';
 
@@ -512,6 +512,7 @@ class GLTFWriter {
 	 */
 	async write( input, onDone, options = {} ) {
 
+		console.log( options );
 		this.options = Object.assign( {
 			// default options
 			binary: false,
@@ -519,7 +520,9 @@ class GLTFWriter {
 			onlyVisible: true,
 			maxTextureSize: Infinity,
 			animations: [],
-			includeCustomExtensions: false
+			includeCustomExtensions: false,
+			ignoreInvalidMorphTargetTracks: false,
+			ignoreEmptyTextures: false,
 		}, options );
 
 		if ( this.options.animations.length > 0 ) {
@@ -1488,7 +1491,7 @@ class GLTFWriter {
 		}
 
 		// pbrMetallicRoughness.metallicRoughnessTexture
-		if ( material.metalnessMap || material.roughnessMap ) {
+		if ( this.checkEmptyMap( material.metalnessMap ) || this.checkEmptyMap( material.roughnessMap ) ) {
 
 			const metalRoughTexture = this.buildMetalRoughTexture( material.metalnessMap, material.roughnessMap );
 
@@ -1502,7 +1505,7 @@ class GLTFWriter {
 		}
 
 		// pbrMetallicRoughness.baseColorTexture
-		if ( material.map ) {
+		if ( this.checkEmptyMap( material.map ) ) {
 
 			const baseColorMapDef = {
 				index: this.processTexture( material.map ),
@@ -1525,7 +1528,7 @@ class GLTFWriter {
 			}
 
 			// emissiveTexture
-			if ( material.emissiveMap ) {
+			if ( this.checkEmptyMap( material.emissiveMap ) ) {
 
 				const emissiveMapDef = {
 					index: this.processTexture( material.emissiveMap ),
@@ -1539,7 +1542,7 @@ class GLTFWriter {
 		}
 
 		// normalTexture
-		if ( material.normalMap ) {
+		if ( this.checkEmptyMap( material.normalMap ) ) {
 
 			const normalMapDef = {
 				index: this.processTexture( material.normalMap ),
@@ -1560,7 +1563,7 @@ class GLTFWriter {
 		}
 
 		// occlusionTexture
-		if ( material.aoMap ) {
+		if ( this.checkEmptyMap( material.aoMap ) ) {
 
 			const occlusionMapDef = {
 				index: this.processTexture( material.aoMap ),
@@ -2045,7 +2048,21 @@ class GLTFWriter {
 
 		if ( ! json.animations ) json.animations = [];
 
-		clip = GLTFExporter.Utils.mergeMorphTargetTracks( clip.clone(), root );
+		try {
+
+			clip = GLTFExporter.Utils.mergeMorphTargetTracks( clip.clone(), root );
+
+		} catch ( e ) {
+
+			console.log( this.options.ignoreInvalidMorphTargetTracks );
+			console.warn( 'THREE.GLTFExporter: Could not export animation clip "%s".', clip.name );
+
+			if ( ! this.options.ignoreInvalidMorphTargetTracks ) throw e;
+
+			console.error( e );
+			return null;
+
+		}
 
 		const tracks = clip.tracks;
 		const channels = [];
@@ -2421,6 +2438,12 @@ class GLTFWriter {
 
 	}
 
+	checkEmptyMap( map ) {
+
+		return !! map && ( ! this.options.ignoreEmptyTextures || !! map.image );
+
+	}
+
 }
 
 /**
@@ -2576,7 +2599,7 @@ class GLTFMaterialsClearcoatExtension {
 
 		extensionDef.clearcoatFactor = material.clearcoat;
 
-		if ( material.clearcoatMap ) {
+		if ( writer.checkEmptyMap( material.clearcoatMap ) ) {
 
 			const clearcoatMapDef = {
 				index: writer.processTexture( material.clearcoatMap ),
@@ -2589,7 +2612,7 @@ class GLTFMaterialsClearcoatExtension {
 
 		extensionDef.clearcoatRoughnessFactor = material.clearcoatRoughness;
 
-		if ( material.clearcoatRoughnessMap ) {
+		if ( writer.checkEmptyMap( material.clearcoatRoughnessMap ) ) {
 
 			const clearcoatRoughnessMapDef = {
 				index: writer.processTexture( material.clearcoatRoughnessMap ),
@@ -2600,7 +2623,7 @@ class GLTFMaterialsClearcoatExtension {
 
 		}
 
-		if ( material.clearcoatNormalMap ) {
+		if ( writer.checkEmptyMap( material.clearcoatNormalMap ) ) {
 
 			const clearcoatNormalMapDef = {
 				index: writer.processTexture( material.clearcoatNormalMap ),
@@ -2646,7 +2669,7 @@ class GLTFMaterialsIridescenceExtension {
 
 		extensionDef.iridescenceFactor = material.iridescence;
 
-		if ( material.iridescenceMap ) {
+		if ( writer.checkEmptyMap( material.iridescenceMap ) ) {
 
 			const iridescenceMapDef = {
 				index: writer.processTexture( material.iridescenceMap ),
@@ -2661,7 +2684,7 @@ class GLTFMaterialsIridescenceExtension {
 		extensionDef.iridescenceThicknessMinimum = material.iridescenceThicknessRange[ 0 ];
 		extensionDef.iridescenceThicknessMaximum = material.iridescenceThicknessRange[ 1 ];
 
-		if ( material.iridescenceThicknessMap ) {
+		if ( writer.checkEmptyMap( material.iridescenceThicknessMap ) ) {
 
 			const iridescenceThicknessMapDef = {
 				index: writer.processTexture( material.iridescenceThicknessMap ),
@@ -2706,7 +2729,7 @@ class GLTFMaterialsTransmissionExtension {
 
 		extensionDef.transmissionFactor = material.transmission;
 
-		if ( material.transmissionMap ) {
+		if ( writer.checkEmptyMap( material.transmissionMap ) ) {
 
 			const transmissionMapDef = {
 				index: writer.processTexture( material.transmissionMap ),
@@ -2751,7 +2774,7 @@ class GLTFMaterialsVolumeExtension {
 
 		extensionDef.thicknessFactor = material.thickness;
 
-		if ( material.thicknessMap ) {
+		if ( writer.checkEmptyMap( material.thicknessMap ) ) {
 
 			const thicknessMapDef = {
 				index: writer.processTexture( material.thicknessMap ),
@@ -2833,7 +2856,7 @@ class GLTFMaterialsSpecularExtension {
 
 		const extensionDef = {};
 
-		if ( material.specularIntensityMap ) {
+		if ( writer.checkEmptyMap( material.specularIntensityMap ) ) {
 
 			const specularIntensityMapDef = {
 				index: writer.processTexture( material.specularIntensityMap ),
@@ -2844,7 +2867,7 @@ class GLTFMaterialsSpecularExtension {
 
 		}
 
-		if ( material.specularColorMap ) {
+		if ( writer.checkEmptyMap( material.specularColorMap ) ) {
 
 			const specularColorMapDef = {
 				index: writer.processTexture( material.specularColorMap ),
@@ -2890,7 +2913,7 @@ class GLTFMaterialsSheenExtension {
 
 		const extensionDef = {};
 
-		if ( material.sheenRoughnessMap ) {
+		if ( writer.checkEmptyMap( material.sheenRoughnessMap ) ) {
 
 			const sheenRoughnessMapDef = {
 				index: writer.processTexture( material.sheenRoughnessMap ),
@@ -2901,7 +2924,7 @@ class GLTFMaterialsSheenExtension {
 
 		}
 
-		if ( material.sheenColorMap ) {
+		if ( writer.checkEmptyMap( material.sheenColorMap ) ) {
 
 			const sheenColorMapDef = {
 				index: writer.processTexture( material.sheenColorMap ),
@@ -2950,7 +2973,7 @@ class GLTFMaterialsAnisotropyExtension {
 
 		const extensionDef = {};
 
-		if ( material.anisotropyMap ) {
+		if ( writer.checkEmptyMap( material.anisotropyMap ) ) {
 
 			const anisotropyMapDef = { index: writer.processTexture( material.anisotropyMap ) };
 			writer.applyTextureTransform( anisotropyMapDef, material.anisotropyMap );

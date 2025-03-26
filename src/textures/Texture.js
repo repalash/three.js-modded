@@ -1,17 +1,17 @@
 import { EventDispatcher } from '../core/EventDispatcher.js';
 import {
-	MirroredRepeatWrapping,
 	ClampToEdgeWrapping,
-	RepeatWrapping,
-	UnsignedByteType,
-	RGBAFormat,
-	LinearMipmapLinearFilter,
+	LinearEncoding,
 	LinearFilter,
-	UVMapping,
-	sRGBEncoding,
-	SRGBColorSpace,
+	LinearMipmapLinearFilter,
+	MirroredRepeatWrapping,
 	NoColorSpace,
-	LinearEncoding
+	RepeatWrapping,
+	RGBAFormat,
+	SRGBColorSpace,
+	sRGBEncoding,
+	UnsignedByteType,
+	UVMapping,
 } from '../constants.js';
 import * as MathUtils from '../math/MathUtils.js';
 import { Vector2 } from '../math/Vector2.js';
@@ -85,6 +85,10 @@ class Texture extends EventDispatcher {
 
 		this.isRenderTargetTexture = false; // indicates whether a texture belongs to a render target or not
 		this.needsPMREMUpdate = false; // indicates whether this texture should be processed by PMREMGenerator or not (only relevant for render target textures)
+
+		// this is required otherwise the data is not uploaded
+		if ( image instanceof ImageData )
+			this.needsUpdate = true;
 
 	}
 
