@@ -512,7 +512,6 @@ class GLTFWriter {
 	 */
 	async write( input, onDone, options = {} ) {
 
-		console.log( options );
 		this.options = Object.assign( {
 			// default options
 			binary: false,
@@ -2054,7 +2053,6 @@ class GLTFWriter {
 
 		} catch ( e ) {
 
-			console.log( this.options.ignoreInvalidMorphTargetTracks );
 			console.warn( 'THREE.GLTFExporter: Could not export animation clip "%s".', clip.name );
 
 			if ( ! this.options.ignoreInvalidMorphTargetTracks ) throw e;
