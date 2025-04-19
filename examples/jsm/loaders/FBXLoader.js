@@ -445,7 +445,7 @@ class FBXTreeParser {
 			} else {
 
 				loader.setPath( this.textureLoader.path );
-				texture = loader.load( fileName );
+				texture = loader.load( fileName ); // todo - we should save the filename in userdata so the user can pick the file manually if it failed to load
 
 			}
 

@@ -832,13 +832,13 @@ class GLTFWriter {
 
 		console.warn( 'THREE.GLTFExporter: Merged metalnessMap and roughnessMap textures.' );
 
-		if ( metalnessMap instanceof CompressedTexture ) {
+		if ( metalnessMap instanceof CompressedTexture /*&& ! metalnessMap.source._canSerialize*/ ) {
 
 			metalnessMap = decompress( metalnessMap );
 
 		}
 
-		if ( roughnessMap instanceof CompressedTexture ) {
+		if ( roughnessMap instanceof CompressedTexture /*&& ! roughnessMap.source._canSerialize*/ ) {
 
 			roughnessMap = decompress( roughnessMap );
 
@@ -1393,7 +1393,7 @@ class GLTFWriter {
 		if ( ! json.textures ) json.textures = [];
 
 		// make non-readable textures (e.g. CompressedTexture) readable by blitting them into a new texture
-		if ( map instanceof CompressedTexture ) {
+		if ( map instanceof CompressedTexture && ! map.source._canSerialize ) {
 
 			map = decompress( map, options.maxTextureSize );
 

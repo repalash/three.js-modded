@@ -239,6 +239,7 @@ class KTX2Loader extends Loader {
 		const loader = new FileLoader( this.manager );
 
 		loader.setResponseType( 'arraybuffer' );
+		loader.setCrossOrigin( this.crossOrigin );
 		loader.setWithCredentials( this.withCredentials );
 
 		loader.load( url, ( buffer ) => {
@@ -865,8 +866,8 @@ async function createRawTexture( container ) {
 	if ( UNCOMPRESSED_FORMATS.has( FORMAT_MAP[ vkFormat ] ) ) {
 
 		texture = container.pixelDepth === 0
-		? new DataTexture( mipmaps[ 0 ].data, container.pixelWidth, container.pixelHeight )
-		: new Data3DTexture( mipmaps[ 0 ].data, container.pixelWidth, container.pixelHeight, container.pixelDepth );
+			? new DataTexture( mipmaps[ 0 ].data, container.pixelWidth, container.pixelHeight )
+			: new Data3DTexture( mipmaps[ 0 ].data, container.pixelWidth, container.pixelHeight, container.pixelDepth );
 
 	} else {
 
