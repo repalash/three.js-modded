@@ -2,7 +2,6 @@ import {
 	BufferAttribute,
 	ClampToEdgeWrapping,
 	Color,
-	CompressedTexture,
 	DoubleSide,
 	InterpolateDiscrete,
 	InterpolateLinear,
