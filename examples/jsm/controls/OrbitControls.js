@@ -41,6 +41,9 @@ class OrbitControls extends EventDispatcher {
 		// "target" sets the location of focus, where the object orbits around
 		this.target = new Vector3();
 
+		// Sets the 3D cursor (similar to Blender), from which the maxTargetRadius takes effect
+		this.cursor = new Vector3();
+
 		// How far you can dolly in and out ( PerspectiveCamera only )
 		this.minDistance = 0.00001;
 		this.maxDistance = Infinity;
@@ -55,6 +58,10 @@ class OrbitControls extends EventDispatcher {
 		// How far you can zoom in and out ( OrthographicCamera only )
 		this.minZoom = 0;
 		this.maxZoom = Infinity;
+
+		// Limit camera target within a spherical area around the cursor
+		this.minTargetRadius = 0;
+		this.maxTargetRadius = Infinity;
 
 		// How far you can orbit vertically, upper and lower limits.
 		// Range is 0 to Math.PI radians.
@@ -271,6 +278,11 @@ class OrbitControls extends EventDispatcher {
 
 				}
 
+				// Limit the target distance from the cursor to create a sphere around the center of interest
+				scope.target.sub( scope.cursor );
+				scope.target.clampLength( scope.minTargetRadius, scope.maxTargetRadius );
+				scope.target.add( scope.cursor );
+
 				let pushDelta = 0;
 
 				// adjust the camera position based on zoom only if we're not zooming to the cursor or if it's an ortho camera
@@ -324,7 +336,6 @@ class OrbitControls extends EventDispatcher {
 					spherical.radius = clampDistance( spherical.radius );
 
 				}
-
 
 				offset.setFromSpherical( spherical );
 				// transform(offset, spherical); // todo https://math.stackexchange.com/questions/69099/equation-of-a-rectangle
