@@ -2428,6 +2428,7 @@ class WebGLRenderer {
 
 				try {
 
+					// todo change when WebGLMultipleRenderTargets are merged into base in three.js
 					const texture = Array.isArray( renderTarget.texture ) ? renderTarget.texture[ textureIndex || 0 ] : renderTarget.texture;
 					const textureFormat = texture.format;
 					const textureType = texture.type;
@@ -2458,7 +2459,7 @@ class WebGLRenderer {
 						if ( renderTarget.isWebGLMultipleRenderTargets ) {
 
 							// _gl.framebufferTexture2D( _gl.FRAMEBUFFER, _gl.COLOR_ATTACHMENT0 + textureIndex, _gl.TEXTURE_2D, properties.get( texture ).__webglTexture, 0 );
-							_gl.readBuffer( _gl.COLOR_ATTACHMENT0 + textureIndex );
+							_gl.readBuffer( _gl.COLOR_ATTACHMENT0 + ( textureIndex || 0 ) );
 
 						}
 
