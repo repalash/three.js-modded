@@ -9279,7 +9279,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 			const data = {
 				metadata: {
-					version: 4.6,
+					version: 4.6001,
 					type: 'Material',
 					generator: 'Material.toJSON'
 				}
@@ -30818,6 +30818,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 					try {
 
+						// todo change when WebGLMultipleRenderTargets are merged into base in three.js
 						const texture = Array.isArray( renderTarget.texture ) ? renderTarget.texture[ textureIndex || 0 ] : renderTarget.texture;
 						const textureFormat = texture.format;
 						const textureType = texture.type;
@@ -30848,7 +30849,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 							if ( renderTarget.isWebGLMultipleRenderTargets ) {
 
 								// _gl.framebufferTexture2D( _gl.FRAMEBUFFER, _gl.COLOR_ATTACHMENT0 + textureIndex, _gl.TEXTURE_2D, properties.get( texture ).__webglTexture, 0 );
-								_gl.readBuffer( _gl.COLOR_ATTACHMENT0 + textureIndex );
+								_gl.readBuffer( _gl.COLOR_ATTACHMENT0 + ( textureIndex || 0 ) );
 
 							}
 
