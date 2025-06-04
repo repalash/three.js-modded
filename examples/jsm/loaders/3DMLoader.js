@@ -515,17 +515,13 @@ class Rhino3dmLoader extends Loader {
 
 								matId = attributes.materialIndex;
 
-							} else {
-
-								matId = null;
-
 							}
 
 							break;
 
 					}
 
-					let material;
+					let material = null;
 
 					if ( matId >= 0 ) {
 
@@ -918,7 +914,7 @@ class Rhino3dmLoader extends Loader {
 					//this.libraryBinary = binaryContent;
 					this.libraryConfig.wasmBinary = binaryContent;
 
-					const fn = DRACOWorkerStr;
+					const fn = Rhino3DMWorkerStr;
 
 					const body = [
 						'/* rhino3dm.js */',
@@ -1028,7 +1024,7 @@ class Rhino3dmLoader extends Loader {
 
 /* WEB WORKER */
 
-const DRACOWorkerStr = `
+const Rhino3DMWorkerStr = `
 function Rhino3dmWorker() {
 
 	let libraryPending;
