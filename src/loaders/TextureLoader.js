@@ -29,7 +29,21 @@ class TextureLoader extends Loader {
 
 			}
 
-		}, onProgress, onError );
+		}, onProgress, function ( event ) {
+
+			if ( texture.image instanceof ImageData ) { // todo should we do it for all?
+
+				texture.needsUpdate = true;
+
+			}
+
+			if ( onError !== undefined ) {
+
+				onError( event );
+
+			}
+
+		} );
 
 		return texture;
 

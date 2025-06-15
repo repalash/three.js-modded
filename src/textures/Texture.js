@@ -87,7 +87,7 @@ class Texture extends EventDispatcher {
 		this.needsPMREMUpdate = false; // indicates whether this texture should be processed by PMREMGenerator or not (only relevant for render target textures)
 
 		// this is required otherwise the data is not uploaded
-		if ( image instanceof ImageData )
+		if ( image instanceof ImageData && image !== Texture.DEFAULT_IMAGE )
 			this.needsUpdate = true;
 
 	}
