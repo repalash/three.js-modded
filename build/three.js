@@ -2057,7 +2057,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 			this.needsPMREMUpdate = false; // indicates whether this texture should be processed by PMREMGenerator or not (only relevant for render target textures)
 
 			// this is required otherwise the data is not uploaded
-			if ( image instanceof ImageData )
+			if ( image instanceof ImageData && image !== Texture.DEFAULT_IMAGE )
 				this.needsUpdate = true;
 
 		}
@@ -43318,7 +43318,21 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 				}
 
-			}, onProgress, onError );
+			}, onProgress, function ( event ) {
+
+				if ( texture.image instanceof ImageData ) {
+
+					texture.needsUpdate = true;
+
+				}
+
+				if ( onError !== undefined ) {
+
+					onError( event );
+
+				}
+
+			} );
 
 			return texture;
 
