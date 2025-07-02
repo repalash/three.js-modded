@@ -34,7 +34,7 @@ class MeshPhysicalMaterial extends MeshStandardMaterial {
 		Object.defineProperty( this, 'reflectivity', {
 			get: function () {
 
-				return ( MathUtils.clamp( 2.5 * ( this.ior - 1 ) / ( this.ior + 1 ), 0, 1 ) );
+				return ( MathUtils.clamp( 2.5 * ( this.ior - 1 ) / ( this.ior + 1 ), 0, 2.5 ) ); // clamp to 2.5, when ior = infinity, required for https://asset-samples.threepipe.org/tests/spec-gloss-sample-converted.glb (SpecGlossVsMetalRough.glb)
 
 			},
 			set: function ( reflectivity ) {
