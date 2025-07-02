@@ -39799,7 +39799,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 			Object.defineProperty( this, 'reflectivity', {
 				get: function () {
 
-					return ( clamp( 2.5 * ( this.ior - 1 ) / ( this.ior + 1 ), 0, 1 ) );
+					return ( clamp( 2.5 * ( this.ior - 1 ) / ( this.ior + 1 ), 0, 10 ) );
 
 				},
 				set: function ( reflectivity ) {
@@ -43320,7 +43320,7 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 			}, onProgress, function ( event ) {
 
-				if ( texture.image instanceof ImageData ) {
+				if ( texture.image instanceof ImageData ) { // todo should we do it for all?
 
 					texture.needsUpdate = true;
 
