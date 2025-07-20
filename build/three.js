@@ -9174,6 +9174,8 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 			this.premultipliedAlpha = false;
 			this.forceSinglePass = false;
 
+			this.allowOverride = true;
+
 			this.visible = true;
 
 			this.toneMapped = true;
@@ -14886,7 +14888,8 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 							side: BackSide,
 							depthTest: false,
 							depthWrite: false,
-							fog: false
+							fog: false,
+							allowOverride: false
 						} )
 					);
 
@@ -14953,7 +14956,8 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 							side: FrontSide,
 							depthTest: false,
 							depthWrite: false,
-							fog: false
+							fog: false,
+							allowOverride: false
 						} )
 					);
 
@@ -15080,7 +15084,8 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 							side: BackSide,
 							depthTest: false,
 							depthWrite: false,
-							fog: false
+							fog: false,
+							allowOverride: false
 						} )
 					);
 
@@ -30044,8 +30049,14 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 					const object = renderItem.object;
 					const geometry = renderItem.geometry;
-					const material = overrideMaterial === null ? renderItem.material : overrideMaterial;
 					const group = renderItem.group;
+					let material = renderItem.material;
+
+					if ( material.allowOverride === true && overrideMaterial !== null ) {
+
+						material = overrideMaterial;
+
+					}
 
 					if ( object.layers.test( camera.layers ) ) {
 
