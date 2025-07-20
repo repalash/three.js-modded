@@ -70,6 +70,8 @@ class Material extends EventDispatcher {
 		this.premultipliedAlpha = false;
 		this.forceSinglePass = false;
 
+		this.allowOverride = true;
+
 		this.visible = true;
 
 		this.toneMapped = true;

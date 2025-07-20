@@ -80,7 +80,8 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 						side: BackSide,
 						depthTest: false,
 						depthWrite: false,
-						fog: false
+						fog: false,
+						allowOverride: false
 					} )
 				);
 
@@ -147,7 +148,8 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 						side: FrontSide,
 						depthTest: false,
 						depthWrite: false,
-						fog: false
+						fog: false,
+						allowOverride: false
 					} )
 				);
 
@@ -274,7 +276,8 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 						side: BackSide,
 						depthTest: false,
 						depthWrite: false,
-						fog: false
+						fog: false,
+						allowOverride: false
 					} )
 				);
 

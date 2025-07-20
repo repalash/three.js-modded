@@ -868,7 +868,7 @@ class Renderer {
 
 	_renderObject( object, scene, camera, geometry, material, group, lightsNode ) {
 
-		material = scene.overrideMaterial !== null ? scene.overrideMaterial : material;
+		material = material.allowOverride === true && scene.overrideMaterial !== null ? scene.overrideMaterial : material;
 
 		//
 

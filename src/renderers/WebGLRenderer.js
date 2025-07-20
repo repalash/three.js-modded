@@ -1654,8 +1654,14 @@ class WebGLRenderer {
 
 				const object = renderItem.object;
 				const geometry = renderItem.geometry;
-				const material = overrideMaterial === null ? renderItem.material : overrideMaterial;
 				const group = renderItem.group;
+				let material = renderItem.material;
+
+				if ( material.allowOverride === true && overrideMaterial !== null ) {
+
+					material = overrideMaterial;
+
+				}
 
 				if ( object.layers.test( camera.layers ) ) {
 
