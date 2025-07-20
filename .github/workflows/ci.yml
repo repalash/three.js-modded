@@ -24,7 +24,7 @@ jobs:
       - name: Git checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Install Node
-        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 18
           cache: 'npm'
@@ -41,7 +41,7 @@ jobs:
       - name: Git checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Install Node
-        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 18
           cache: 'npm'
@@ -56,9 +56,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Git checkout
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Install Node
-        uses: actions/setup-node@5e21ff4d9bc1a8cf6de233a3057d20ec6b3fb69d # v3
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 18
           cache: 'npm'
@@ -75,7 +75,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ windows-latest, ubuntu-latest, macos-latest ]
+        os: [ macos-latest ]
         CI: [ 0, 1, 2, 3 ]
     env:
       CI: ${{ matrix.CI }}
@@ -83,7 +83,7 @@ jobs:
       - name: Git checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Install Node
-        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 18
           cache: 'npm'
@@ -95,7 +95,7 @@ jobs:
       - name: === E2E testing ===
         run: npm run test-e2e
       - name: Upload output screenshots
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: Output screenshots-${{ matrix.os }}-${{ matrix.CI }}
@@ -109,7 +109,7 @@ jobs:
       - name: Git checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Install Node
-        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 18
           cache: 'npm'

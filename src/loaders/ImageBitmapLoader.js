@@ -43,66 +43,78 @@ class ImageBitmapLoader extends Loader {
 
 		const scope = this;
 
-		Cache.get( url, 'blob' ).then( ( cached ) => {
+		const cached = Cache.get( url );
 
-			if ( cached !== undefined ) {
+		if ( cached !== undefined ) {
 
-				scope.manager.itemStart( url );
+			scope.manager.itemStart( url );
 
-				createImageBitmap( cached, Object.assign( scope.options, { colorSpaceConversion: 'none' } ) )
-					.then( function ( imageBitmap ) {
+			// If cached is a promise, wait for it to resolve
+			if ( cached.then ) {
 
-						if ( onLoad ) onLoad( imageBitmap );
+				cached.then( imageBitmap => {
 
-						scope.manager.itemEnd( url );
+					if ( onLoad ) onLoad( imageBitmap );
 
-					} )
-					.catch( function ( e ) {
+					scope.manager.itemEnd( url );
 
-						if ( onError ) onError( e );
+				} ).catch( e => {
 
-						scope.manager.itemError( url );
-						scope.manager.itemEnd( url );
+					if ( onError ) onError( e );
 
-					} );
-
+				} );
 				return;
 
 			}
 
-			const fetchOptions = {};
-			fetchOptions.credentials = ( this.crossOrigin === 'anonymous' ) ? 'same-origin' : 'include';
-			fetchOptions.headers = this.requestHeader;
+			// If cached is not a promise (i.e., it's already an imageBitmap)
+			setTimeout( function () {
 
-			fetch( url, fetchOptions ).then( function ( res ) {
-
-				return res.blob();
-
-			} ).then( function ( blob ) {
-
-				Cache.add( url, blob, 'blob' );
-
-				return createImageBitmap( blob, Object.assign( scope.options, { colorSpaceConversion: 'none' } ) );
-
-			} ).then( function ( imageBitmap ) {
-
-				if ( onLoad ) onLoad( imageBitmap );
+				if ( onLoad ) onLoad( cached );
 
 				scope.manager.itemEnd( url );
 
-			} ).catch( function ( e ) {
+			}, 0 );
 
-				if ( onError ) onError( e );
+			return cached;
 
-				scope.manager.itemError( url );
-				scope.manager.itemEnd( url );
+		}
 
-			} );
+		const fetchOptions = {};
+		fetchOptions.credentials = ( this.crossOrigin === 'anonymous' ) ? 'same-origin' : 'include';
+		fetchOptions.headers = this.requestHeader;
 
-			scope.manager.itemStart( url );
+		const promise = fetch( url, fetchOptions ).then( function ( res ) {
+
+			return res.blob();
+
+		} ).then( function ( blob ) {
+
+			return createImageBitmap( blob, Object.assign( scope.options, { colorSpaceConversion: 'none' } ) );
+
+		} ).then( function ( imageBitmap ) {
+
+			Cache.add( url, imageBitmap );
+
+			if ( onLoad ) onLoad( imageBitmap );
+
+			scope.manager.itemEnd( url );
+
+			return imageBitmap;
+
+		} ).catch( function ( e ) {
+
+			if ( onError ) onError( e );
+
+			Cache.remove( url );
+
+			scope.manager.itemError( url );
+			scope.manager.itemEnd( url );
 
 		} );
 
+		Cache.add( url, promise );
+		scope.manager.itemStart( url );
 
 	}
 
