@@ -2102,7 +2102,7 @@ class Texture extends EventDispatcher {
 		this.unpackAlignment = source.unpackAlignment;
 		this.colorSpace = source.colorSpace;
 
-		this.userData = JSON.parse( JSON.stringify( source.userData ) );
+		this.userData = copyTextureUserData( this.userData, source.userData );
 
 		this.needsUpdate = true;
 
@@ -2161,7 +2161,7 @@ class Texture extends EventDispatcher {
 
 		};
 
-		if ( Object.keys( this.userData ).length > 0 ) output.userData = this.userData;
+		if ( Object.keys( this.userData ).length > 0 ) output.userData = copyTextureUserData( {}, this.userData );
 
 		if ( ! isRootObject && meta.textures ) {
 
@@ -2290,6 +2290,26 @@ class Texture extends EventDispatcher {
 Texture.DEFAULT_IMAGE = null;
 Texture.DEFAULT_MAPPING = UVMapping;
 Texture.DEFAULT_ANISOTROPY = 1;
+
+const iTextureIgnoredUserData = [ 'appliedMaterials', 'uuid' ]; // todo: these are not set by the material
+function copyTextureUserData( dest, source ) {
+
+	if ( source ) {
+
+		for ( const key of Object.keys( source ) ) {
+
+			if ( iTextureIgnoredUserData.includes( key ) ) continue;
+			if ( key.startsWith( '__' ) ) continue; // double underscore
+			if ( typeof dest[ key ] === 'function' || typeof source[ key ] === 'function' ) continue;
+			dest[ key ] = JSON.parse( JSON.stringify( source[ key ] ) );
+
+		}
+
+	}
+
+	return dest;
+
+}
 
 class Vector4 {
 
