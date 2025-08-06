@@ -242,7 +242,7 @@ class EventDispatcher {
 
 		}
 
-		if ( listeners[ type ].indexOf( listener ) === -1 ) {
+		if ( listeners[ type ].indexOf( listener ) === - 1 ) {
 
 			listeners[ type ].push( listener );
 
@@ -256,7 +256,7 @@ class EventDispatcher {
 
 		const listeners = this._listeners;
 
-		return listeners[ type ] !== undefined && listeners[ type ].indexOf( listener ) !== -1;
+		return listeners[ type ] !== undefined && listeners[ type ].indexOf( listener ) !== - 1;
 
 	}
 
@@ -271,7 +271,7 @@ class EventDispatcher {
 
 			const index = listenerArray.indexOf( listener );
 
-			if ( index !== -1 ) {
+			if ( index !== - 1 ) {
 
 				listenerArray.splice( index, 1 );
 
@@ -560,15 +560,15 @@ function denormalize( value, array ) {
 
 		case Int32Array:
 
-			return Math.max( value / 2147483647.0, -1 );
+			return Math.max( value / 2147483647.0, - 1.0 );
 
 		case Int16Array:
 
-			return Math.max( value / 32767.0, -1 );
+			return Math.max( value / 32767.0, - 1.0 );
 
 		case Int8Array:
 
-			return Math.max( value / 127.0, -1 );
+			return Math.max( value / 127.0, - 1.0 );
 
 		default:
 
@@ -1010,7 +1010,7 @@ class Vector2 {
 
 		// clamp, to handle numerical problems
 
-		return Math.acos( clamp( theta, -1, 1 ) );
+		return Math.acos( clamp( theta, - 1, 1 ) );
 
 	}
 
@@ -1586,9 +1586,9 @@ const LINEAR_SRGB_TO_LINEAR_DISPLAY_P3 = /*@__PURE__*/ new Matrix3().set(
 );
 
 const LINEAR_DISPLAY_P3_TO_LINEAR_SRGB = /*@__PURE__*/ new Matrix3().set(
-	1.2249401, -0.2249404, 0.0,
-	-0.0420569, 1.0420571, 0.0,
-	-0.0196376, -0.0786361, 1.0982735
+	1.2249401, - 0.2249404, 0.0,
+	- 0.0420569, 1.0420571, 0.0,
+	- 0.0196376, - 0.0786361, 1.0982735
 );
 
 /**
@@ -3310,7 +3310,7 @@ class Quaternion {
 
 			let s = 1 - t;
 			const cos = x0 * x1 + y0 * y1 + z0 * z1 + w0 * w1,
-				dir = ( cos >= 0 ? 1 : -1 ),
+				dir = ( cos >= 0 ? 1 : - 1 ),
 				sqrSin = 1 - cos * cos;
 
 			// Skip the Slerp for tiny steps to avoid numeric problems:
@@ -3653,7 +3653,7 @@ class Quaternion {
 
 	angleTo( q ) {
 
-		return 2 * Math.acos( Math.abs( clamp( this.dot( q ), -1, 1 ) ) );
+		return 2 * Math.acos( Math.abs( clamp( this.dot( q ), - 1, 1 ) ) );
 
 	}
 
@@ -3687,9 +3687,9 @@ class Quaternion {
 
 	conjugate() {
 
-		this._x *= -1;
-		this._y *= -1;
-		this._z *= -1;
+		this._x *= - 1;
+		this._y *= - 1;
+		this._z *= - 1;
 
 		this._onChangeCallback();
 
@@ -4470,7 +4470,7 @@ class Vector3 {
 
 		// clamp, to handle numerical problems
 
-		return Math.acos( clamp( theta, -1, 1 ) );
+		return Math.acos( clamp( theta, - 1, 1 ) );
 
 	}
 
@@ -5198,7 +5198,7 @@ const _v2$3 = /*@__PURE__*/ new Vector3();
 
 class Sphere {
 
-	constructor( center = new Vector3(), radius = -1 ) {
+	constructor( center = new Vector3(), radius = - 1 ) {
 
 		this.isSphere = true;
 
@@ -5262,7 +5262,7 @@ class Sphere {
 	makeEmpty() {
 
 		this.center.set( 0, 0, 0 );
-		this.radius = -1;
+		this.radius = - 1;
 
 		return this;
 
@@ -5444,7 +5444,7 @@ const _normal$1 = /*@__PURE__*/ new Vector3();
 
 class Ray {
 
-	constructor( origin = new Vector3(), direction = new Vector3( 0, 0, -1 ) ) {
+	constructor( origin = new Vector3(), direction = new Vector3( 0, 0, - 1 ) ) {
 
 		this.origin = origin;
 		this.direction = direction;
@@ -5850,7 +5850,7 @@ class Ray {
 
 		} else if ( DdN < 0 ) {
 
-			sign = -1;
+			sign = - 1;
 			DdN = - DdN;
 
 		} else {
@@ -6710,7 +6710,7 @@ class Matrix4 {
 		if ( coordinateSystem === WebGLCoordinateSystem ) {
 
 			c = - ( far + near ) / ( far - near );
-			d = ( -2 * far * near ) / ( far - near );
+			d = ( - 2 * far * near ) / ( far - near );
 
 		} else if ( coordinateSystem === WebGPUCoordinateSystem ) {
 
@@ -6726,7 +6726,7 @@ class Matrix4 {
 		te[ 0 ] = x;	te[ 4 ] = 0;	te[ 8 ] = a; 	te[ 12 ] = 0;
 		te[ 1 ] = 0;	te[ 5 ] = y;	te[ 9 ] = b; 	te[ 13 ] = 0;
 		te[ 2 ] = 0;	te[ 6 ] = 0;	te[ 10 ] = c; 	te[ 14 ] = d;
-		te[ 3 ] = 0;	te[ 7 ] = 0;	te[ 11 ] = -1;	te[ 15 ] = 0;
+		te[ 3 ] = 0;	te[ 7 ] = 0;	te[ 11 ] = - 1;	te[ 15 ] = 0;
 
 		return this;
 
@@ -6747,12 +6747,12 @@ class Matrix4 {
 		if ( coordinateSystem === WebGLCoordinateSystem ) {
 
 			z = ( far + near ) * p;
-			zInv = -2 * p;
+			zInv = - 2 * p;
 
 		} else if ( coordinateSystem === WebGPUCoordinateSystem ) {
 
 			z = near * p;
-			zInv = -1 * p;
+			zInv = - 1 * p;
 
 		} else {
 
@@ -6947,7 +6947,7 @@ class Euler {
 
 			case 'XYZ':
 
-				this._y = Math.asin( clamp( m13, -1, 1 ) );
+				this._y = Math.asin( clamp( m13, - 1, 1 ) );
 
 				if ( Math.abs( m13 ) < 0.9999999 ) {
 
@@ -6965,7 +6965,7 @@ class Euler {
 
 			case 'YXZ':
 
-				this._x = Math.asin( - clamp( m23, -1, 1 ) );
+				this._x = Math.asin( - clamp( m23, - 1, 1 ) );
 
 				if ( Math.abs( m23 ) < 0.9999999 ) {
 
@@ -6983,7 +6983,7 @@ class Euler {
 
 			case 'ZXY':
 
-				this._x = Math.asin( clamp( m32, -1, 1 ) );
+				this._x = Math.asin( clamp( m32, - 1, 1 ) );
 
 				if ( Math.abs( m32 ) < 0.9999999 ) {
 
@@ -7001,7 +7001,7 @@ class Euler {
 
 			case 'ZYX':
 
-				this._y = Math.asin( - clamp( m31, -1, 1 ) );
+				this._y = Math.asin( - clamp( m31, - 1, 1 ) );
 
 				if ( Math.abs( m31 ) < 0.9999999 ) {
 
@@ -7019,7 +7019,7 @@ class Euler {
 
 			case 'YZX':
 
-				this._z = Math.asin( clamp( m21, -1, 1 ) );
+				this._z = Math.asin( clamp( m21, - 1, 1 ) );
 
 				if ( Math.abs( m21 ) < 0.9999999 ) {
 
@@ -7037,7 +7037,7 @@ class Euler {
 
 			case 'XZY':
 
-				this._z = Math.asin( - clamp( m12, -1, 1 ) );
+				this._z = Math.asin( - clamp( m12, - 1, 1 ) );
 
 				if ( Math.abs( m12 ) < 0.9999999 ) {
 
@@ -7570,7 +7570,7 @@ class Object3D extends EventDispatcher {
 
 		const index = this.children.indexOf( object );
 
-		if ( index !== -1 ) {
+		if ( index !== - 1 ) {
 
 			object.parent = null;
 			this.children.splice( index, 1 );
@@ -8910,7 +8910,7 @@ class Color {
 
 	getHexString( colorSpace = SRGBColorSpace ) {
 
-		return ( '000000' + this.getHex( colorSpace ).toString( 16 ) ).slice( -6 );
+		return ( '000000' + this.getHex( colorSpace ).toString( 16 ) ).slice( - 6 );
 
 	}
 
@@ -9814,7 +9814,7 @@ function _generateTables() {
 
 		// very small number (0, -0)
 
-		if ( e < -27 ) {
+		if ( e < - 27 ) {
 
 			baseTable[ i ] = 0x0000;
 			baseTable[ i | 0x100 ] = 0x8000;
@@ -9823,7 +9823,7 @@ function _generateTables() {
 
 			// small number (denorm)
 
-		} else if ( e < -14 ) {
+		} else if ( e < - 14 ) {
 
 			baseTable[ i ] = 0x0400 >> ( - e - 14 );
 			baseTable[ i | 0x100 ] = ( 0x0400 >> ( - e - 14 ) ) | 0x8000;
@@ -9880,7 +9880,7 @@ function _generateTables() {
 
 		}
 
-		m &= -8388609; // clear leading 1 bit
+		m &= ~ 0x00800000; // clear leading 1 bit
 		e += 0x38800000; // adjust bias
 
 		mantissaTable[ i ] = m | e;
@@ -9938,7 +9938,7 @@ function toHalfFloat( val ) {
 
 	if ( Math.abs( val ) > 65504 ) console.warn( 'THREE.DataUtils.toHalfFloat(): Value out of range.' );
 
-	val = clamp( val, -65504, 65504 );
+	val = clamp( val, - 65504, 65504 );
 
 	_tables.floatView[ 0 ] = val;
 	const f = _tables.uint32View[ 0 ];
@@ -9985,7 +9985,7 @@ class BufferAttribute {
 		this.normalized = normalized;
 
 		this.usage = StaticDrawUsage;
-		this._updateRange = { offset: 0, count: -1 };
+		this._updateRange = { offset: 0, count: - 1 };
 		this.updateRanges = [];
 		this.gpuType = FloatType;
 
@@ -11193,7 +11193,7 @@ class BufferGeometry extends EventDispatcher {
 
 			tmp2.crossVectors( n2, t );
 			const test = tmp2.dot( tan2[ v ] );
-			const w = ( test < 0.0 ) ? -1 : 1.0;
+			const w = ( test < 0.0 ) ? - 1.0 : 1.0;
 
 			tangents[ v * 4 ] = tmp.x;
 			tangents[ v * 4 + 1 ] = tmp.y;
@@ -12058,7 +12058,7 @@ function checkGeometryIntersection( object, material, raycaster, ray, uv, uv1, n
 
 			if ( intersection.normal.dot( ray.direction ) > 0 ) {
 
-				intersection.normal.multiplyScalar( -1 );
+				intersection.normal.multiplyScalar( - 1 );
 
 			}
 
@@ -12121,12 +12121,12 @@ class BoxGeometry extends BufferGeometry {
 
 		// build each side of the box geometry
 
-		buildPlane( 'z', 'y', 'x', -1, -1, depth, height, width, depthSegments, heightSegments, 0 ); // px
-		buildPlane( 'z', 'y', 'x', 1, -1, depth, height, - width, depthSegments, heightSegments, 1 ); // nx
+		buildPlane( 'z', 'y', 'x', - 1, - 1, depth, height, width, depthSegments, heightSegments, 0 ); // px
+		buildPlane( 'z', 'y', 'x', 1, - 1, depth, height, - width, depthSegments, heightSegments, 1 ); // nx
 		buildPlane( 'x', 'z', 'y', 1, 1, width, depth, height, widthSegments, depthSegments, 2 ); // py
-		buildPlane( 'x', 'z', 'y', 1, -1, width, depth, - height, widthSegments, depthSegments, 3 ); // ny
-		buildPlane( 'x', 'y', 'z', 1, -1, width, height, depth, widthSegments, heightSegments, 4 ); // pz
-		buildPlane( 'x', 'y', 'z', -1, -1, width, height, - depth, widthSegments, heightSegments, 5 ); // nz
+		buildPlane( 'x', 'z', 'y', 1, - 1, width, depth, - height, widthSegments, depthSegments, 3 ); // ny
+		buildPlane( 'x', 'y', 'z', 1, - 1, width, height, depth, widthSegments, heightSegments, 4 ); // pz
+		buildPlane( 'x', 'y', 'z', - 1, - 1, width, height, - depth, widthSegments, heightSegments, 5 ); // nz
 
 		// build geometry
 
@@ -12176,7 +12176,7 @@ class BoxGeometry extends BufferGeometry {
 
 					vector[ u ] = 0;
 					vector[ v ] = 0;
-					vector[ w ] = depth > 0 ? 1 : -1;
+					vector[ w ] = depth > 0 ? 1 : - 1;
 
 					// now apply vector to normal buffer
 
@@ -12788,7 +12788,7 @@ class PerspectiveCamera extends Camera {
 		let top = near * Math.tan( DEG2RAD * 0.5 * this.fov ) / this.zoom;
 		let height = 2 * top;
 		let width = this.aspect * height;
-		let left = -0.5 * width;
+		let left = - 0.5 * width;
 		const view = this.view;
 
 		if ( this.view !== null && this.view.enabled ) {
@@ -12836,7 +12836,7 @@ class PerspectiveCamera extends Camera {
 
 }
 
-const fov = -90; // negative fov is not an error
+const fov = - 90; // negative fov is not an error
 const aspect = 1;
 
 class CubeCamera extends Object3D {
@@ -12893,39 +12893,39 @@ class CubeCamera extends Object3D {
 			cameraPX.lookAt( 1, 0, 0 );
 
 			cameraNX.up.set( 0, 1, 0 );
-			cameraNX.lookAt( -1, 0, 0 );
+			cameraNX.lookAt( - 1, 0, 0 );
 
-			cameraPY.up.set( 0, 0, -1 );
+			cameraPY.up.set( 0, 0, - 1 );
 			cameraPY.lookAt( 0, 1, 0 );
 
 			cameraNY.up.set( 0, 0, 1 );
-			cameraNY.lookAt( 0, -1, 0 );
+			cameraNY.lookAt( 0, - 1, 0 );
 
 			cameraPZ.up.set( 0, 1, 0 );
 			cameraPZ.lookAt( 0, 0, 1 );
 
 			cameraNZ.up.set( 0, 1, 0 );
-			cameraNZ.lookAt( 0, 0, -1 );
+			cameraNZ.lookAt( 0, 0, - 1 );
 
 		} else if ( coordinateSystem === WebGPUCoordinateSystem ) {
 
-			cameraPX.up.set( 0, -1, 0 );
-			cameraPX.lookAt( -1, 0, 0 );
+			cameraPX.up.set( 0, - 1, 0 );
+			cameraPX.lookAt( - 1, 0, 0 );
 
-			cameraNX.up.set( 0, -1, 0 );
+			cameraNX.up.set( 0, - 1, 0 );
 			cameraNX.lookAt( 1, 0, 0 );
 
 			cameraPY.up.set( 0, 0, 1 );
 			cameraPY.lookAt( 0, 1, 0 );
 
-			cameraNY.up.set( 0, 0, -1 );
-			cameraNY.lookAt( 0, -1, 0 );
+			cameraNY.up.set( 0, 0, - 1 );
+			cameraNY.lookAt( 0, - 1, 0 );
 
-			cameraPZ.up.set( 0, -1, 0 );
+			cameraPZ.up.set( 0, - 1, 0 );
 			cameraPZ.lookAt( 0, 0, 1 );
 
-			cameraNZ.up.set( 0, -1, 0 );
-			cameraNZ.lookAt( 0, 0, -1 );
+			cameraNZ.up.set( 0, - 1, 0 );
+			cameraNZ.lookAt( 0, 0, - 1 );
 
 		} else {
 
@@ -13256,7 +13256,7 @@ class Plane {
 
 	negate() {
 
-		this.constant *= -1;
+		this.constant *= - 1;
 		this.normal.negate();
 
 		return this;
@@ -13702,7 +13702,7 @@ function WebGLAttributes( gl, capabilities ) {
 
 		gl.bindBuffer( bufferType, buffer );
 
-		if ( updateRange.count === -1 && updateRanges.length === 0 ) {
+		if ( updateRange.count === - 1 && updateRanges.length === 0 ) {
 
 			// Not using update ranges
 			gl.bufferSubData( bufferType, 0, array );
@@ -13733,7 +13733,7 @@ function WebGLAttributes( gl, capabilities ) {
 		}
 
 		// deprecated
-		if ( updateRange.count !== -1 ) {
+		if ( updateRange.count !== - 1 ) {
 
 			if ( isWebGL2 ) {
 
@@ -13747,7 +13747,7 @@ function WebGLAttributes( gl, capabilities ) {
 
 			}
 
-			updateRange.count = -1; // reset range
+			updateRange.count = - 1; // reset range
 
 		}
 
@@ -14389,7 +14389,7 @@ const UniformsLib = {
 
 		envMap: { value: null },
 		envMapRotation: { value: 0 },
-		flipEnvMap: { value: -1 },
+		flipEnvMap: { value: - 1 },
 		reflectivity: { value: 1.0 }, // basic, lambert, phong
 		ior: { value: 1.5 }, // physical
 		refractionRatio: { value: 0.98 }, // basic, lambert, phong
@@ -14814,7 +14814,7 @@ const ShaderLib = {
 			envMap: { value: null },
 			envMapRotation: { value: 0 },
 			envMapIntensity: { value: 1 },
-			flipEnvMap: { value: -1 },
+			flipEnvMap: { value: - 1 },
 			backgroundBlurriness: { value: 0 },
 			backgroundIntensity: { value: 1 }
 		},
@@ -14828,7 +14828,7 @@ const ShaderLib = {
 
 		uniforms: {
 			tCube: { value: null },
-			tFlip: { value: -1 },
+			tFlip: { value: - 1 },
 			opacity: { value: 1.0 }
 		},
 
@@ -15043,7 +15043,7 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 			boxMesh.material.uniforms.envMap.value = background;
 			boxMesh.material.uniforms.envMapRotation.value = background ? background.rotation || 0 : 0;
 			boxMesh.material.uniforms.envMapIntensity.value = background === scene.environment ? ( scene.envMapIntensity || 1 ) : 1; // special for Scene in webgi
-			boxMesh.material.uniforms.flipEnvMap.value = ( background.isCubeTexture && background.isRenderTargetTexture === false ) ? -1 : 1;
+			boxMesh.material.uniforms.flipEnvMap.value = ( background.isCubeTexture && background.isRenderTargetTexture === false ) ? - 1 : 1;
 			boxMesh.material.uniforms.backgroundBlurriness.value = scene.backgroundBlurriness;
 			boxMesh.material.uniforms.backgroundIntensity.value = scene.backgroundIntensity;
 			boxMesh.material.toneMapped = ColorManagement.getTransfer( background.colorSpace ) !== SRGBTransfer;
@@ -15128,7 +15128,7 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 
 			}
 
-			const backgroundVersion = ( background ? background.version : -1 );
+			const backgroundVersion = ( background ? background.version : - 1 );
 			if ( currentBackground !== background ||
 				currentBackgroundVersion !== backgroundVersion ||
 				currentTonemapping !== renderer.toneMapping ) {
@@ -16344,7 +16344,7 @@ function WebGLCubeMaps( renderer ) {
 
 class OrthographicCamera extends Camera {
 
-	constructor( left = -1, right = 1, top = 1, bottom = -1, near = 0.1, far = 2000 ) {
+	constructor( left = - 1, right = 1, top = 1, bottom = - 1, near = 0.1, far = 2000 ) {
 
 		super();
 
@@ -16501,9 +16501,9 @@ const INV_PHI = 1 / PHI;
 // same axis), used as axis directions evenly spread on a sphere.
 const _axisDirections = [
 	/*@__PURE__*/ new Vector3( 1, 1, 1 ),
-	/*@__PURE__*/ new Vector3( -1, 1, 1 ),
-	/*@__PURE__*/ new Vector3( 1, 1, -1 ),
-	/*@__PURE__*/ new Vector3( -1, 1, -1 ),
+	/*@__PURE__*/ new Vector3( - 1, 1, 1 ),
+	/*@__PURE__*/ new Vector3( 1, 1, - 1 ),
+	/*@__PURE__*/ new Vector3( - 1, 1, - 1 ),
 	/*@__PURE__*/ new Vector3( 0, PHI, INV_PHI ),
 	/*@__PURE__*/ new Vector3( 0, PHI, - INV_PHI ),
 	/*@__PURE__*/ new Vector3( INV_PHI, 0, PHI ),
@@ -16752,8 +16752,8 @@ class PMREMGenerator {
 		const fov = 90;
 		const aspect = 1;
 		const cubeCamera = new PerspectiveCamera( fov, aspect, near, far );
-		const upSign = [ 1, -1, 1, 1, 1, 1 ];
-		const forwardSign = [ 1, 1, 1, -1, -1, -1 ];
+		const upSign = [ 1, - 1, 1, 1, 1, 1 ];
+		const forwardSign = [ 1, 1, 1, - 1, - 1, - 1 ];
 		const renderer = this._renderer;
 
 		const originalAutoClear = renderer.autoClear;
@@ -16852,7 +16852,7 @@ class PMREMGenerator {
 
 			}
 
-			this._cubemapMaterial.uniforms.flipEnvMap.value = ( texture.isRenderTargetTexture === false ) ? -1 : 1;
+			this._cubemapMaterial.uniforms.flipEnvMap.value = ( texture.isRenderTargetTexture === false ) ? - 1 : 1;
 
 		} else {
 
@@ -17064,7 +17064,7 @@ function _createPlanes( lodMax ) {
 		for ( let face = 0; face < cubeFaces; face ++ ) {
 
 			const x = ( face % 3 ) * 2 / 3 - 1;
-			const y = face > 2 ? 0 : -1;
+			const y = face > 2 ? 0 : - 1;
 			const coordinates = [
 				x, y, 0,
 				x + 2 / 3, y, 0,
@@ -17263,7 +17263,7 @@ function _getCubemapMaterial() {
 
 		uniforms: {
 			'envMap': { value: null },
-			'flipEnvMap': { value: -1 }
+			'flipEnvMap': { value: - 1 }
 		},
 
 		vertexShader: _getCommonVertexShader(),
@@ -21870,18 +21870,18 @@ function WebGLLights( extensions, capabilities ) {
 		version: 0,
 
 		hash: {
-			directionalLength: -1,
-			pointLength: -1,
-			spotLength: -1,
-			rectAreaLength: -1,
-			hemiLength: -1,
+			directionalLength: - 1,
+			pointLength: - 1,
+			spotLength: - 1,
+			rectAreaLength: - 1,
+			hemiLength: - 1,
 
-			numDirectionalShadows: -1,
-			numPointShadows: -1,
-			numSpotShadows: -1,
-			numSpotMaps: -1,
+			numDirectionalShadows: - 1,
+			numPointShadows: - 1,
+			numSpotShadows: - 1,
+			numSpotMaps: - 1,
 
-			numLightProbes: -1
+			numLightProbes: - 1
 		},
 
 		ambient: [ 0, 0, 0 ],
@@ -22532,7 +22532,7 @@ function WebGLShadowMap( _renderer, _objects, _capabilities ) {
 	fullScreenTri.setAttribute(
 		'position',
 		new BufferAttribute(
-			new Float32Array( [ -1, -1, 0.5, 3, -1, 0.5, -1, 3, 0.5 ] ),
+			new Float32Array( [ - 1, - 1, 0.5, 3, - 1, 0.5, - 1, 3, 0.5 ] ),
 			3
 		)
 	);
@@ -22955,7 +22955,7 @@ function WebGLState( gl, extensions, capabilities ) {
 				locked = false;
 
 				currentColorMask = null;
-				currentColorClear.set( -1, 0, 0, 0 ); // set to invalid state
+				currentColorClear.set( - 1, 0, 0, 0 ); // set to invalid state
 
 			}
 
@@ -23242,12 +23242,12 @@ function WebGLState( gl, extensions, capabilities ) {
 	let version = 0;
 	const glVersion = gl.getParameter( gl.VERSION );
 
-	if ( glVersion.indexOf( 'WebGL' ) !== -1 ) {
+	if ( glVersion.indexOf( 'WebGL' ) !== - 1 ) {
 
 		version = parseFloat( /^WebGL (\d)/.exec( glVersion )[ 1 ] );
 		lineWidthAvailable = ( version >= 1.0 );
 
-	} else if ( glVersion.indexOf( 'OpenGL ES' ) !== -1 ) {
+	} else if ( glVersion.indexOf( 'OpenGL ES' ) !== - 1 ) {
 
 		version = parseFloat( /^OpenGL ES (\d)/.exec( glVersion )[ 1 ] );
 		lineWidthAvailable = ( version >= 2.0 );
@@ -27089,7 +27089,7 @@ class WebXRManager extends EventDispatcher {
 
 			const controllerIndex = controllerInputSources.indexOf( event.inputSource );
 
-			if ( controllerIndex === -1 ) {
+			if ( controllerIndex === - 1 ) {
 
 				return;
 
@@ -27369,7 +27369,7 @@ class WebXRManager extends EventDispatcher {
 
 				let controllerIndex = controllerInputSources.indexOf( inputSource );
 
-				if ( controllerIndex === -1 ) {
+				if ( controllerIndex === - 1 ) {
 
 					// Assign input source a controller that currently has no input source
 
@@ -27393,7 +27393,7 @@ class WebXRManager extends EventDispatcher {
 
 					// If all controllers do currently receive input we ignore new ones
 
-					if ( controllerIndex === -1 ) break;
+					if ( controllerIndex === - 1 ) break;
 
 				}
 
@@ -27907,7 +27907,7 @@ function WebGLMaterials( renderer, properties ) {
 
 			if ( material.side === BackSide ) {
 
-				uniforms.bumpScale.value *= -1;
+				uniforms.bumpScale.value *= - 1;
 
 			}
 
@@ -27970,7 +27970,7 @@ function WebGLMaterials( renderer, properties ) {
 			const envMapOrig = material.envMap || properties.get( material ).environment || envMap;
 			uniforms.envMapRotation.value = envMapOrig ? envMapOrig.rotation : 0;
 
-			uniforms.flipEnvMap.value = ( envMap.isCubeTexture && envMap.isRenderTargetTexture === false ) ? -1 : 1;
+			uniforms.flipEnvMap.value = ( envMap.isCubeTexture && envMap.isRenderTargetTexture === false ) ? - 1 : 1;
 
 			uniforms.reflectivity.value = material.reflectivity;
 			uniforms.ior.value = material.ior;
@@ -28393,7 +28393,7 @@ function WebGLUniformsGroups( gl, info, capabilities, state ) {
 
 		for ( let i = 0; i < maxBindingPoints; i ++ ) {
 
-			if ( allocatedBindingPoints.indexOf( i ) === -1 ) {
+			if ( allocatedBindingPoints.indexOf( i ) === - 1 ) {
 
 				allocatedBindingPoints.push( i );
 				return i;
@@ -28824,7 +28824,7 @@ class WebGLRenderer {
 		let _currentActiveCubeFace = 0;
 		let _currentActiveMipmapLevel = 0;
 		let _currentRenderTarget = null;
-		let _currentMaterialId = -1;
+		let _currentMaterialId = - 1;
 
 		let _currentCamera = null;
 
@@ -29950,7 +29950,7 @@ class WebGLRenderer {
 			// _gl.finish();
 
 			bindingStates.resetDefaultState();
-			_currentMaterialId = -1;
+			_currentMaterialId = - 1;
 			_currentCamera = null;
 
 			renderStateStack.pop();
@@ -30792,7 +30792,7 @@ class WebGLRenderer {
 
 				m_uniforms.envMap.value = envMap;
 
-				m_uniforms.flipEnvMap.value = ( envMap.isCubeTexture && envMap.isRenderTargetTexture === false ) ? -1 : 1;
+				m_uniforms.flipEnvMap.value = ( envMap.isCubeTexture && envMap.isRenderTargetTexture === false ) ? - 1 : 1;
 
 			}
 
@@ -31073,7 +31073,7 @@ class WebGLRenderer {
 
 			}
 
-			_currentMaterialId = -1; // reset current material to ensure correct uniform bindings
+			_currentMaterialId = - 1; // reset current material to ensure correct uniform bindings
 
 		};
 
@@ -31526,7 +31526,7 @@ class InterleavedBuffer {
 		this.count = array !== undefined ? array.length / stride : 0;
 
 		this.usage = StaticDrawUsage;
-		this._updateRange = { offset: 0, count: -1 };
+		this._updateRange = { offset: 0, count: - 1 };
 		this.updateRanges = [];
 
 		this.version = 0;
@@ -32084,10 +32084,10 @@ class Sprite extends Object3D {
 			_geometry = new BufferGeometry();
 
 			const float32Array = new Float32Array( [
-				-0.5, -0.5, 0, 0, 0,
-				0.5, -0.5, 0, 1, 0,
+				- 0.5, - 0.5, 0, 0, 0,
+				0.5, - 0.5, 0, 1, 0,
 				0.5, 0.5, 0, 1, 1,
-				-0.5, 0.5, 0, 0, 1
+				- 0.5, 0.5, 0, 0, 1
 			] );
 
 			const interleavedBuffer = new InterleavedBuffer( float32Array, 5 );
@@ -32138,8 +32138,8 @@ class Sprite extends Object3D {
 
 		const center = this.center;
 
-		transformVertex( _vA.set( -0.5, -0.5, 0 ), _mvPosition, center, _worldScale, sin, cos );
-		transformVertex( _vB.set( 0.5, -0.5, 0 ), _mvPosition, center, _worldScale, sin, cos );
+		transformVertex( _vA.set( - 0.5, - 0.5, 0 ), _mvPosition, center, _worldScale, sin, cos );
+		transformVertex( _vB.set( 0.5, - 0.5, 0 ), _mvPosition, center, _worldScale, sin, cos );
 		transformVertex( _vC.set( 0.5, 0.5, 0 ), _mvPosition, center, _worldScale, sin, cos );
 
 		_uvA.set( 0, 0 );
@@ -32152,7 +32152,7 @@ class Sprite extends Object3D {
 		if ( intersect === null ) {
 
 			// check second triangle
-			transformVertex( _vB.set( -0.5, 0.5, 0 ), _mvPosition, center, _worldScale, sin, cos );
+			transformVertex( _vB.set( - 0.5, 0.5, 0 ), _mvPosition, center, _worldScale, sin, cos );
 			_uvB.set( 0, 1 );
 
 			intersect = raycaster.ray.intersectTriangle( _vA, _vC, _vB, false, _intersectPoint );
@@ -33261,9 +33261,9 @@ class MultiDrawRenderList {
 
 			pool.push( {
 
-				start: -1,
-				count: -1,
-				z: -1,
+				start: - 1,
+				count: - 1,
+				z: - 1,
 
 			} );
 
@@ -33545,7 +33545,7 @@ class BatchedMesh extends Mesh {
 
 	}
 
-	addGeometry( geometry, vertexCount = -1, indexCount = -1 ) {
+	addGeometry( geometry, vertexCount = - 1, indexCount = - 1 ) {
 
 		this._initializeGeometry( geometry );
 
@@ -33560,10 +33560,10 @@ class BatchedMesh extends Mesh {
 
 		// get the necessary range fo the geometry
 		const reservedRange = {
-			vertexStart: -1,
-			vertexCount: -1,
-			indexStart: -1,
-			indexCount: -1,
+			vertexStart: - 1,
+			vertexCount: - 1,
+			indexStart: - 1,
+			indexCount: - 1,
 		};
 
 		let lastRange = null;
@@ -33576,7 +33576,7 @@ class BatchedMesh extends Mesh {
 
 		}
 
-		if ( vertexCount === -1 ) {
+		if ( vertexCount === - 1 ) {
 
 			reservedRange.vertexCount = geometry.getAttribute( 'position' ).count;
 
@@ -33600,7 +33600,7 @@ class BatchedMesh extends Mesh {
 		const hasIndex = index !== null;
 		if ( hasIndex ) {
 
-			if ( indexCount	=== -1 ) {
+			if ( indexCount	=== - 1 ) {
 
 				reservedRange.indexCount = index.count;
 
@@ -33623,7 +33623,7 @@ class BatchedMesh extends Mesh {
 		}
 
 		if (
-			reservedRange.indexStart !== -1 &&
+			reservedRange.indexStart !== - 1 &&
 			reservedRange.indexStart + reservedRange.indexCount > this._maxIndexCount ||
 			reservedRange.vertexStart + reservedRange.vertexCount > this._maxVertexCount
 		) {
@@ -33653,7 +33653,7 @@ class BatchedMesh extends Mesh {
 		reservedRanges.push( reservedRange );
 		drawRanges.push( {
 			start: hasIndex ? reservedRange.indexStart : reservedRange.vertexStart,
-			count: -1
+			count: - 1
 		} );
 		bounds.push( {
 			boxInitialized: false,
@@ -35225,7 +35225,7 @@ class Curve {
 
 				vec.normalize();
 
-				const theta = Math.acos( clamp( tangents[ i - 1 ].dot( tangents[ i ] ), -1, 1 ) ); // clamp for floating pt errors
+				const theta = Math.acos( clamp( tangents[ i - 1 ].dot( tangents[ i ] ), - 1, 1 ) ); // clamp for floating pt errors
 
 				normals[ i ].applyMatrix4( mat.makeRotationAxis( vec, theta ) );
 
@@ -35239,7 +35239,7 @@ class Curve {
 
 		if ( closed === true ) {
 
-			let theta = Math.acos( clamp( normals[ 0 ].dot( normals[ segments ] ), -1, 1 ) );
+			let theta = Math.acos( clamp( normals[ 0 ].dot( normals[ segments ] ), - 1, 1 ) );
 			theta /= segments;
 
 			if ( tangents[ 0 ].dot( vec.crossVectors( normals[ 0 ], normals[ segments ] ) ) > 0 ) {
@@ -35509,7 +35509,7 @@ function CubicPoly() {
 
 		c0 = x0;
 		c1 = t0;
-		c2 = -3 * x0 + 3 * x1 - 2 * t0 - t1;
+		c2 = - 3 * x0 + 3 * x1 - 2 * t0 - t1;
 		c3 = 2 * x0 - 2 * x1 + t0 + t1;
 
 	}
@@ -35735,7 +35735,7 @@ function CatmullRom( t, p0, p1, p2, p3 ) {
 	const v1 = ( p3 - p1 ) * 0.5;
 	const t2 = t * t;
 	const t3 = t * t2;
-	return ( 2 * p1 - 2 * p2 + v0 + v1 ) * t3 + ( -3 * p1 + 3 * p2 - 2 * v0 - v1 ) * t2 + v0 * t + p1;
+	return ( 2 * p1 - 2 * p2 + v0 + v1 ) * t3 + ( - 3 * p1 + 3 * p2 - 2 * v0 - v1 ) * t2 + v0 * t + p1;
 
 }
 
@@ -36808,7 +36808,7 @@ class Path extends CurvePath {
 
 class LatheGeometry extends BufferGeometry {
 
-	constructor( points = [ new Vector2( 0, -0.5 ), new Vector2( 0.5, 0 ), new Vector2( 0, 0.5 ) ], segments = 12, phiStart = 0, phiLength = Math.PI * 2 ) {
+	constructor( points = [ new Vector2( 0, - 0.5 ), new Vector2( 0.5, 0 ), new Vector2( 0, 0.5 ) ], segments = 12, phiStart = 0, phiLength = Math.PI * 2 ) {
 
 		super();
 
@@ -37272,7 +37272,7 @@ class CylinderGeometry extends BufferGeometry {
 			let groupCount = 0;
 
 			const radius = ( top === true ) ? radiusTop : radiusBottom;
-			const sign = ( top === true ) ? 1 : -1;
+			const sign = ( top === true ) ? 1 : - 1;
 
 			// first we generate the center vertex data of the cap.
 			// because the geometry needs one set of uvs per face,
@@ -37740,10 +37740,10 @@ class DodecahedronGeometry extends PolyhedronGeometry {
 		const vertices = [
 
 			// (±1, ±1, ±1)
-			-1, -1, -1,	-1, -1, 1,
-			-1, 1, -1, -1, 1, 1,
-			1, -1, -1, 1, -1, 1,
-			1, 1, -1, 1, 1, 1,
+			- 1, - 1, - 1,	- 1, - 1, 1,
+			- 1, 1, - 1, - 1, 1, 1,
+			1, - 1, - 1, 1, - 1, 1,
+			1, 1, - 1, 1, 1, 1,
 
 			// (0, ±1/φ, ±φ)
 			0, - r, - t, 0, - r, t,
@@ -38676,7 +38676,7 @@ function onSegment( p, q, r ) {
 
 function sign( num ) {
 
-	return num > 0 ? 1 : num < 0 ? -1 : 0;
+	return num > 0 ? 1 : num < 0 ? - 1 : 0;
 
 }
 
@@ -38936,7 +38936,7 @@ function addContour( vertices, contour ) {
 
 class ExtrudeGeometry extends BufferGeometry {
 
-	constructor( shapes = new Shape( [ new Vector2( 0.5, 0.5 ), new Vector2( -0.5, 0.5 ), new Vector2( -0.5, -0.5 ), new Vector2( 0.5, -0.5 ) ] ), options = {} ) {
+	constructor( shapes = new Shape( [ new Vector2( 0.5, 0.5 ), new Vector2( - 0.5, 0.5 ), new Vector2( - 0.5, - 0.5 ), new Vector2( 0.5, - 0.5 ) ] ), options = {} ) {
 
 		super();
 
@@ -39723,9 +39723,9 @@ class IcosahedronGeometry extends PolyhedronGeometry {
 		const t = ( 1 + Math.sqrt( 5 ) ) / 2;
 
 		const vertices = [
-			-1, t, 0, 	1, t, 0, 	-1, - t, 0, 	1, - t, 0,
-			0, -1, t, 	0, 1, t,	0, -1, - t, 	0, 1, - t,
-			t, 0, -1, 	t, 0, 1, 	- t, 0, -1, 	- t, 0, 1
+			- 1, t, 0, 	1, t, 0, 	- 1, - t, 0, 	1, - t, 0,
+			0, - 1, t, 	0, 1, t,	0, - 1, - t, 	0, 1, - t,
+			t, 0, - 1, 	t, 0, 1, 	- t, 0, - 1, 	- t, 0, 1
 		];
 
 		const indices = [
@@ -39759,8 +39759,8 @@ class OctahedronGeometry extends PolyhedronGeometry {
 	constructor( radius = 1, detail = 0 ) {
 
 		const vertices = [
-			1, 0, 0, 	-1, 0, 0,	0, 1, 0,
-			0, -1, 0, 	0, 0, 1,	0, 0, -1
+			1, 0, 0, 	- 1, 0, 0,	0, 1, 0,
+			0, - 1, 0, 	0, 0, 1,	0, 0, - 1
 		];
 
 		const indices = [
@@ -39911,7 +39911,7 @@ class RingGeometry extends BufferGeometry {
 
 class ShapeGeometry extends BufferGeometry {
 
-	constructor( shapes = new Shape( [ new Vector2( 0, 0.5 ), new Vector2( -0.5, -0.5 ), new Vector2( 0.5, -0.5 ) ] ), curveSegments = 12 ) {
+	constructor( shapes = new Shape( [ new Vector2( 0, 0.5 ), new Vector2( - 0.5, - 0.5 ), new Vector2( 0.5, - 0.5 ) ] ), curveSegments = 12 ) {
 
 		super();
 
@@ -40151,7 +40151,7 @@ class SphereGeometry extends BufferGeometry {
 
 			} else if ( iy === heightSegments && thetaEnd === Math.PI ) {
 
-				uOffset = -0.5 / widthSegments;
+				uOffset = - 0.5 / widthSegments;
 
 			}
 
@@ -40234,7 +40234,7 @@ class TetrahedronGeometry extends PolyhedronGeometry {
 	constructor( radius = 1, detail = 0 ) {
 
 		const vertices = [
-			1, 1, 1, 	-1, -1, 1, 	-1, 1, -1, 	1, -1, -1
+			1, 1, 1, 	- 1, - 1, 1, 	- 1, 1, - 1, 	1, - 1, - 1
 		];
 
 		const indices = [
@@ -40539,7 +40539,7 @@ class TorusKnotGeometry extends BufferGeometry {
 
 class TubeGeometry extends BufferGeometry {
 
-	constructor( path = new QuadraticBezierCurve3( new Vector3( -1, -1, 0 ), new Vector3( -1, 1, 0 ), new Vector3( 1, 1, 0 ) ), tubularSegments = 64, radius = 1, radialSegments = 8, closed = false ) {
+	constructor( path = new QuadraticBezierCurve3( new Vector3( - 1, - 1, 0 ), new Vector3( - 1, 1, 0 ), new Vector3( 1, 1, 0 ) ), tubularSegments = 64, radius = 1, radialSegments = 8, closed = false ) {
 
 		super();
 
@@ -41964,7 +41964,7 @@ function subclip( sourceClip, name, startFrame, endFrame, fps = 30 ) {
 
 	for ( let i = 0; i < clip.tracks.length; ++ i ) {
 
-		clip.tracks[ i ].shift( -1 * minStartTime );
+		clip.tracks[ i ].shift( - 1 * minStartTime );
 
 	}
 
@@ -42361,10 +42361,10 @@ class CubicInterpolant extends Interpolant {
 
 		super( parameterPositions, sampleValues, sampleSize, resultBuffer );
 
-		this._weightPrev = -0;
-		this._offsetPrev = -0;
-		this._weightNext = -0;
-		this._offsetNext = -0;
+		this._weightPrev = - 0;
+		this._offsetPrev = - 0;
+		this._weightNext = - 0;
+		this._offsetNext = - 0;
 
 		this.DefaultSettings_ = {
 
@@ -42471,8 +42471,8 @@ class CubicInterpolant extends Interpolant {
 		// evaluate polynomials
 
 		const sP = - wP * ppp + 2 * wP * pp - wP * p;
-		const s0 = ( 1 + wP ) * ppp + ( -1.5 - 2 * wP ) * pp + ( -0.5 + wP ) * p + 1;
-		const s1 = ( -1 - wN ) * ppp + ( 1.5 + wN ) * pp + 0.5 * p;
+		const s0 = ( 1 + wP ) * ppp + ( - 1.5 - 2 * wP ) * pp + ( - 0.5 + wP ) * p + 1;
+		const s1 = ( - 1 - wN ) * ppp + ( 1.5 + wN ) * pp + 0.5 * p;
 		const sN = wN * ppp - wN * pp;
 
 		// combine data linearly
@@ -42761,7 +42761,7 @@ class KeyframeTrack {
 
 		}
 
-		while ( to !== -1 && times[ to ] > endTime ) {
+		while ( to !== - 1 && times[ to ] > endTime ) {
 
 			-- to;
 
@@ -43097,7 +43097,7 @@ VectorKeyframeTrack.prototype.ValueTypeName = 'vector';
 
 class AnimationClip {
 
-	constructor( name, duration = -1, tracks, blendMode = NormalAnimationBlendMode ) {
+	constructor( name, duration = - 1, tracks, blendMode = NormalAnimationBlendMode ) {
 
 		this.name = name;
 		this.tracks = tracks;
@@ -43105,6 +43105,8 @@ class AnimationClip {
 		this.blendMode = blendMode;
 
 		this.uuid = generateUUID();
+
+		this.userData = {};
 
 		// this means it should figure out its duration by scanning the tracks
 		if ( this.duration < 0 ) {
@@ -43131,6 +43133,8 @@ class AnimationClip {
 		const clip = new this( json.name, json.duration, tracks, json.blendMode );
 		clip.uuid = json.uuid;
 
+		clip.userData = JSON.parse( json.userData || '{}' );
+
 		return clip;
 
 	}
@@ -43146,7 +43150,8 @@ class AnimationClip {
 			'duration': clip.duration,
 			'tracks': tracks,
 			'uuid': clip.uuid,
-			'blendMode': clip.blendMode
+			'blendMode': clip.blendMode,
+			'userData': JSON.stringify( clip.userData ),
 
 		};
 
@@ -43198,7 +43203,7 @@ class AnimationClip {
 
 		}
 
-		return new this( name, -1, tracks );
+		return new this( name, - 1, tracks );
 
 	}
 
@@ -43310,7 +43315,7 @@ class AnimationClip {
 		const blendMode = animation.blendMode;
 
 		// automatic length determination in AnimationClip.
-		let duration = animation.length || -1;
+		let duration = animation.length || - 1;
 
 		const hierarchyTracks = animation.hierarchy || [];
 
@@ -43335,7 +43340,7 @@ class AnimationClip {
 
 						for ( let m = 0; m < animationKeys[ k ].morphTargets.length; m ++ ) {
 
-							morphTargetNames[ animationKeys[ k ].morphTargets[ m ] ] = -1;
+							morphTargetNames[ animationKeys[ k ].morphTargets[ m ] ] = - 1;
 
 						}
 
@@ -43467,7 +43472,11 @@ class AnimationClip {
 
 		}
 
-		return new this.constructor( this.name, this.duration, tracks, this.blendMode );
+		const clip = new this.constructor( this.name, this.duration, tracks, this.blendMode );
+
+		clip.userData = JSON.parse( JSON.stringify( this.userData ) );
+
+		return clip;
 
 	}
 
@@ -43700,7 +43709,7 @@ class LoadingManager {
 
 			const index = handlers.indexOf( regex );
 
-			if ( index !== -1 ) {
+			if ( index !== - 1 ) {
 
 				handlers.splice( index, 2 );
 
@@ -45015,13 +45024,13 @@ class PointLightShadow extends LightShadow {
 		];
 
 		this._cubeDirections = [
-			new Vector3( 1, 0, 0 ), new Vector3( -1, 0, 0 ), new Vector3( 0, 0, 1 ),
-			new Vector3( 0, 0, -1 ), new Vector3( 0, 1, 0 ), new Vector3( 0, -1, 0 )
+			new Vector3( 1, 0, 0 ), new Vector3( - 1, 0, 0 ), new Vector3( 0, 0, 1 ),
+			new Vector3( 0, 0, - 1 ), new Vector3( 0, 1, 0 ), new Vector3( 0, - 1, 0 )
 		];
 
 		this._cubeUps = [
 			new Vector3( 0, 1, 0 ), new Vector3( 0, 1, 0 ), new Vector3( 0, 1, 0 ),
-			new Vector3( 0, 1, 0 ), new Vector3( 0, 0, 1 ),	new Vector3( 0, 0, -1 )
+			new Vector3( 0, 1, 0 ), new Vector3( 0, 0, 1 ),	new Vector3( 0, 0, - 1 )
 		];
 
 	}
@@ -45115,7 +45124,7 @@ class DirectionalLightShadow extends LightShadow {
 
 	constructor() {
 
-		super( new OrthographicCamera( -5, 5, 5, -5, 0.5, 500 ) );
+		super( new OrthographicCamera( - 5, 5, 5, - 5, 0.5, 500 ) );
 
 		this.isDirectionalLightShadow = true;
 
@@ -45896,7 +45905,7 @@ class LoaderUtils {
 
 		const index = url.lastIndexOf( '/' );
 
-		if ( index === -1 ) return './';
+		if ( index === - 1 ) return './';
 
 		return url.slice( 0, index + 1 );
 
@@ -47732,7 +47741,7 @@ class AudioListener extends Object3D {
 
 		this.matrixWorld.decompose( _position$1, _quaternion$1, _scale$1 );
 
-		_orientation$1.set( 0, 0, -1 ).applyQuaternion( _quaternion$1 );
+		_orientation$1.set( 0, 0, - 1 ).applyQuaternion( _quaternion$1 );
 
 		if ( listener.positionX ) {
 
@@ -48822,7 +48831,7 @@ class PropertyBinding {
 
 		const lastDot = results.nodeName && results.nodeName.lastIndexOf( '.' );
 
-		if ( lastDot !== undefined && lastDot !== -1 ) {
+		if ( lastDot !== undefined && lastDot !== - 1 ) {
 
 			const objectName = results.nodeName.substring( lastDot + 1 );
 
@@ -48830,7 +48839,7 @@ class PropertyBinding {
 			// is no way to parse 'foo.bar.baz': 'baz' must be a property, but
 			// 'bar' could be the objectName, or part of a nodeName (which can
 			// include '.' characters).
-			if ( _supportedObjectNames.indexOf( objectName ) !== -1 ) {
+			if ( _supportedObjectNames.indexOf( objectName ) !== - 1 ) {
 
 				results.nodeName = results.nodeName.substring( 0, lastDot );
 				results.objectName = objectName;
@@ -48851,7 +48860,7 @@ class PropertyBinding {
 
 	static findNode( root, nodeName ) {
 
-		if ( nodeName === undefined || nodeName === '' || nodeName === '.' || nodeName === -1 || nodeName === root.name || nodeName === root.uuid ) {
+		if ( nodeName === undefined || nodeName === '' || nodeName === '.' || nodeName === - 1 || nodeName === root.name || nodeName === root.uuid ) {
 
 			return root;
 
@@ -49794,7 +49803,7 @@ class AnimationAction {
 		this._weightInterpolant = null;
 
 		this.loop = LoopRepeat;
-		this._loopCount = -1;
+		this._loopCount = - 1;
 
 		// global mixer time when the action is to be started
 		// it's set back to 'null' upon start of the action
@@ -49846,7 +49855,7 @@ class AnimationAction {
 		this.enabled = true;
 
 		this.time = 0; // restart clip
-		this._loopCount = -1;// forget previous loops
+		this._loopCount = - 1;// forget previous loops
 		this._startTime = null;// forget scheduling
 
 		return this.stopFading().stopWarping();
@@ -50241,7 +50250,7 @@ class AnimationAction {
 
 		if ( deltaTime === 0 ) {
 
-			if ( loopCount === -1 ) return time;
+			if ( loopCount === - 1 ) return time;
 
 			return ( pingPong && ( loopCount & 1 ) === 1 ) ? duration - time : time;
 
@@ -50249,7 +50258,7 @@ class AnimationAction {
 
 		if ( loop === LoopOnce ) {
 
-			if ( loopCount === -1 ) {
+			if ( loopCount === - 1 ) {
 
 				// just started
 
@@ -50283,14 +50292,14 @@ class AnimationAction {
 
 				this._mixer.dispatchEvent( {
 					type: 'finished', action: this,
-					direction: deltaTime < 0 ? -1 : 1
+					direction: deltaTime < 0 ? - 1 : 1
 				} );
 
 			}
 
 		} else { // repetitive Repeat or PingPong
 
-			if ( loopCount === -1 ) {
+			if ( loopCount === - 1 ) {
 
 				// just started
 
@@ -50336,7 +50345,7 @@ class AnimationAction {
 
 					this._mixer.dispatchEvent( {
 						type: 'finished', action: this,
-						direction: deltaTime > 0 ? 1 : -1
+						direction: deltaTime > 0 ? 1 : - 1
 					} );
 
 				} else {
@@ -51256,7 +51265,7 @@ class UniformsGroup extends EventDispatcher {
 
 		const index = this.uniforms.indexOf( uniform );
 
-		if ( index !== -1 ) this.uniforms.splice( index, 1 );
+		if ( index !== - 1 ) this.uniforms.splice( index, 1 );
 
 		return this;
 
@@ -51464,7 +51473,7 @@ class Raycaster {
 		} else if ( camera.isOrthographicCamera ) {
 
 			this.ray.origin.set( coords.x, coords.y, ( camera.near + camera.far ) / ( camera.near - camera.far ) ).unproject( camera ); // set origin in plane of camera
-			this.ray.direction.set( 0, 0, -1 ).transformDirection( camera.matrixWorld );
+			this.ray.direction.set( 0, 0, - 1 ).transformDirection( camera.matrixWorld );
 			this.camera = camera;
 
 		} else {
@@ -51597,7 +51606,7 @@ class Spherical {
 		} else {
 
 			this.theta = Math.atan2( x, z );
-			this.phi = Math.acos( clamp( y / this.radius, -1, 1 ) );
+			this.phi = Math.acos( clamp( y / this.radius, - 1, 1 ) );
 
 		}
 
@@ -52062,9 +52071,9 @@ class SpotLightHelper extends Object3D {
 		const positions = [
 			0, 0, 0, 	0, 0, 1,
 			0, 0, 0, 	1, 0, 1,
-			0, 0, 0,	-1, 0, 1,
+			0, 0, 0,	- 1, 0, 1,
 			0, 0, 0, 	0, 1, 1,
-			0, 0, 0, 	0, -1, 1
+			0, 0, 0, 	0, - 1, 1
 		];
 
 		for ( let i = 0, j = 1, l = 32; i < l; i ++, j ++ ) {
@@ -52818,15 +52827,15 @@ class CameraHelper extends LineSegments {
 
 		// center / target
 
-		setPoint( 'c', pointMap, geometry, _camera, 0, 0, -1 );
+		setPoint( 'c', pointMap, geometry, _camera, 0, 0, - 1 );
 		setPoint( 't', pointMap, geometry, _camera, 0, 0, 1 );
 
 		// near
 
-		setPoint( 'n1', pointMap, geometry, _camera, - w, - h, -1 );
-		setPoint( 'n2', pointMap, geometry, _camera, w, - h, -1 );
-		setPoint( 'n3', pointMap, geometry, _camera, - w, h, -1 );
-		setPoint( 'n4', pointMap, geometry, _camera, w, h, -1 );
+		setPoint( 'n1', pointMap, geometry, _camera, - w, - h, - 1 );
+		setPoint( 'n2', pointMap, geometry, _camera, w, - h, - 1 );
+		setPoint( 'n3', pointMap, geometry, _camera, - w, h, - 1 );
+		setPoint( 'n4', pointMap, geometry, _camera, w, h, - 1 );
 
 		// far
 
@@ -52837,9 +52846,9 @@ class CameraHelper extends LineSegments {
 
 		// up
 
-		setPoint( 'u1', pointMap, geometry, _camera, w * 0.7, h * 1.1, -1 );
-		setPoint( 'u2', pointMap, geometry, _camera, - w * 0.7, h * 1.1, -1 );
-		setPoint( 'u3', pointMap, geometry, _camera, 0, h * 2, -1 );
+		setPoint( 'u1', pointMap, geometry, _camera, w * 0.7, h * 1.1, - 1 );
+		setPoint( 'u2', pointMap, geometry, _camera, - w * 0.7, h * 1.1, - 1 );
+		setPoint( 'u3', pointMap, geometry, _camera, 0, h * 2, - 1 );
 
 		// cross
 
@@ -52848,10 +52857,10 @@ class CameraHelper extends LineSegments {
 		setPoint( 'cf3', pointMap, geometry, _camera, 0, - h, 1 );
 		setPoint( 'cf4', pointMap, geometry, _camera, 0, h, 1 );
 
-		setPoint( 'cn1', pointMap, geometry, _camera, - w, 0, -1 );
-		setPoint( 'cn2', pointMap, geometry, _camera, w, 0, -1 );
-		setPoint( 'cn3', pointMap, geometry, _camera, 0, - h, -1 );
-		setPoint( 'cn4', pointMap, geometry, _camera, 0, h, -1 );
+		setPoint( 'cn1', pointMap, geometry, _camera, - w, 0, - 1 );
+		setPoint( 'cn2', pointMap, geometry, _camera, w, 0, - 1 );
+		setPoint( 'cn3', pointMap, geometry, _camera, 0, - h, - 1 );
+		setPoint( 'cn4', pointMap, geometry, _camera, 0, h, - 1 );
 
 		geometry.getAttribute( 'position' ).needsUpdate = true;
 
@@ -52998,7 +53007,7 @@ class Box3Helper extends LineSegments {
 
 		const indices = new Uint16Array( [ 0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7 ] );
 
-		const positions = [ 1, 1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1, 1, 1, -1, -1, 1, -1, -1, -1, -1, 1, -1, -1 ];
+		const positions = [ 1, 1, 1, - 1, 1, 1, - 1, - 1, 1, 1, - 1, 1, 1, 1, - 1, - 1, 1, - 1, - 1, - 1, - 1, 1, - 1, - 1 ];
 
 		const geometry = new BufferGeometry();
 
@@ -53047,7 +53056,7 @@ class PlaneHelper extends Line {
 
 		const color = hex;
 
-		const positions = [ 1, -1, 0, -1, 1, 0, -1, -1, 0, 1, 1, 0, -1, 1, 0, -1, -1, 0, 1, -1, 0, 1, 1, 0 ];
+		const positions = [ 1, - 1, 0, - 1, 1, 0, - 1, - 1, 0, 1, 1, 0, - 1, 1, 0, - 1, - 1, 0, 1, - 1, 0, 1, 1, 0 ];
 
 		const geometry = new BufferGeometry();
 		geometry.setAttribute( 'position', new Float32BufferAttribute( positions, 3 ) );
@@ -53061,7 +53070,7 @@ class PlaneHelper extends Line {
 
 		this.size = size;
 
-		const positions2 = [ 1, 1, 0, -1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0 ];
+		const positions2 = [ 1, 1, 0, - 1, 1, 0, - 1, - 1, 0, 1, 1, 0, - 1, - 1, 0, 1, - 1, 0 ];
 
 		const geometry2 = new BufferGeometry();
 		geometry2.setAttribute( 'position', new Float32BufferAttribute( positions2, 3 ) );
@@ -53115,7 +53124,7 @@ class ArrowHelper extends Object3D {
 			_lineGeometry.setAttribute( 'position', new Float32BufferAttribute( [ 0, 0, 0, 0, 1, 0 ], 3 ) );
 
 			_coneGeometry = new CylinderGeometry( 0, 0.5, 1, 5, 1 );
-			_coneGeometry.translate( 0, -0.5, 0 );
+			_coneGeometry.translate( 0, - 0.5, 0 );
 
 		}
 
@@ -53142,7 +53151,7 @@ class ArrowHelper extends Object3D {
 
 			this.quaternion.set( 0, 0, 0, 1 );
 
-		} else if ( dir.y < -0.99999 ) {
+		} else if ( dir.y < - 0.99999 ) {
 
 			this.quaternion.set( 1, 0, 0, 0 );
 
