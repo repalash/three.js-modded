@@ -2301,7 +2301,7 @@ function copyTextureUserData( dest, source ) {
 			if ( iTextureIgnoredUserData.includes( key ) ) continue;
 			if ( key.startsWith( '__' ) ) continue; // double underscore
 			if ( typeof dest[ key ] === 'function' || typeof source[ key ] === 'function' ) continue;
-			dest[ key ] = JSON.parse( JSON.stringify( source[ key ] ) );
+			dest[ key ] = typeof source[ key ] === 'object' ? JSON.parse( JSON.stringify( source[ key ] ) ) : source[ key ];
 
 		}
 
