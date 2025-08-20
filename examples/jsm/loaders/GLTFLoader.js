@@ -1256,7 +1256,7 @@ class GLTFMaterialsBumpExtension {
 
 		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
 
-		return MeshPhysicalMaterial;
+		return GLTFLoader.ObjectConstructors.MeshPhysicalMaterial;
 
 	}
 
@@ -1310,7 +1310,7 @@ class GLTFMaterialsAnisotropyExtension {
 
 		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
 
-		return MeshPhysicalMaterial;
+		return GLTFLoader.ObjectConstructors.MeshPhysicalMaterial;
 
 	}
 
