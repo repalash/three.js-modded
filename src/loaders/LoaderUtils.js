@@ -56,6 +56,9 @@ class LoaderUtils {
 
 		}
 
+		// Absolute path
+		if ( url[ 0 ] === '/' ) return url;
+
 		// Absolute URL http://,https://,//
 		if ( /^(https?:)?\/\//i.test( url ) ) return url;
 
