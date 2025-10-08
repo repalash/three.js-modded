@@ -2201,9 +2201,18 @@ class WebGLRenderer {
 			p_uniforms.setValue( _gl, 'normalMatrix', object.normalMatrix );
 			p_uniforms.setValue( _gl, 'modelMatrix', object.matrixWorld );
 
-			// Update this in Material.onBeforeRender. This is set for each object each frame, useful for stuff like inverseModelMatrix, uvTransform, geometry offsets etc.
+			// Update this in Material.onBeforeRender(which has access to object). This is set for each object each frame, useful for things like inverseModelMatrix, uvTransform, geometry offsets etc.
 			const extraUniformsToUpload = material.extraUniformsToUpload;
-			extraUniformsToUpload && Object.entries( extraUniformsToUpload ).forEach( ( [ k, v ] )=> p_uniforms.setValue( _gl, k, v.value, textures ) );
+			extraUniformsToUpload && Object.entries( extraUniformsToUpload ).forEach( ( [ k, v ] )=> {
+
+				if ( v.needsUpdate !== false ) {
+
+					// note: always updating when .needsUpdate is undefined
+					p_uniforms.setValue( _gl, k, v.value, textures );
+
+				}
+
+			} );
 
 			// UBOs
 
