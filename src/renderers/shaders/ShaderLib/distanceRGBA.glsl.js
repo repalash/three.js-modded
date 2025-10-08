@@ -18,6 +18,8 @@ void main() {
 	#include <batching_vertex>
 	#include <skinbase_vertex>
 
+	#include <morphinstance_vertex>
+
 	#ifdef USE_DISPLACEMENTMAP
 
 		#include <beginnormal_vertex>
@@ -58,9 +60,8 @@ varying vec3 vWorldPosition;
 
 void main () {
 
-	#include <clipping_planes_fragment>
-
 	vec4 diffuseColor = vec4( 1.0 );
+	#include <clipping_planes_fragment>
 
 	#include <map_fragment>
 	#include <alphamap_fragment>

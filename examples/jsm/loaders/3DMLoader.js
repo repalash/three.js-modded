@@ -1,29 +1,29 @@
 import {
 	BufferGeometryLoader,
-	FileLoader,
-	Loader,
-	Object3D,
-	MeshStandardMaterial,
-	MeshPhysicalMaterial,
-	Mesh,
+	CanvasTexture,
+	ClampToEdgeWrapping,
 	Color,
-	Points,
-	PointsMaterial,
+	DirectionalLight,
+	DoubleSide,
+	FileLoader,
+	LinearFilter,
 	Line,
 	LineBasicMaterial,
+	Loader,
 	Matrix4,
-	DirectionalLight,
+	Mesh,
+	MeshPhysicalMaterial,
+	MeshStandardMaterial,
+	Object3D,
 	PointLight,
-	SpotLight,
+	Points,
+	PointsMaterial,
 	RectAreaLight,
+	RepeatWrapping,
+	SpotLight,
 	Sprite,
 	SpriteMaterial,
-	CanvasTexture,
-	LinearFilter,
-	ClampToEdgeWrapping,
-	RepeatWrapping,
-	TextureLoader,
-	DoubleSide
+	TextureLoader
 } from 'three';
 
 import { EXRLoader } from '../loaders/EXRLoader.js';
@@ -529,13 +529,8 @@ class Rhino3dmLoader extends Loader {
 						material = this._createMaterial( rMaterial, data.renderEnvironment );
 
 
-					} else {
-
-						material = this._createMaterial();
-
 					}
 
-					material = this._compareMaterials( material );
 					const _object = this._createObject( obj, material );
 
 					if ( _object === undefined ) {
@@ -710,18 +705,21 @@ class Rhino3dmLoader extends Loader {
 
 				geometry = loader.parse( obj.geometry );
 
+
 				if ( mat === null ) {
 
 					mat = this._createMaterial();
-					mat = this._compareMaterials( mat );
 
 				}
+
 
 				if ( geometry.attributes.hasOwnProperty( 'color' ) ) {
 
 					mat.vertexColors = true;
 
 				}
+
+				mat = this._compareMaterials( mat );
 
 				const mesh = new Mesh( geometry, mat );
 				mesh.castShadow = attributes.castsShadows;
@@ -1168,7 +1166,7 @@ function Rhino3dmWorker() {
 
 			const _material = doc.materials().get( i );
 
-			let material = extractProperties( _material );
+			const material = extractProperties( _material );
 
 			const textures = [];
 
@@ -1277,11 +1275,11 @@ function Rhino3dmWorker() {
 
 		let renderEnvironment = null;
 
-		for( let i = 0; i < rc.count; i++ ) {
+		for ( let i = 0; i < rc.count; i ++ ) {
 
 			const content = rc.get(i);
 
-			switch( content.kind ) {
+			switch ( content.kind ) {
 
 				case 'environment':
 

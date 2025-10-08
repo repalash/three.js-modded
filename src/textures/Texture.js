@@ -1,17 +1,17 @@
 import { EventDispatcher } from '../core/EventDispatcher.js';
 import {
-	ClampToEdgeWrapping,
-	LinearEncoding,
-	LinearFilter,
-	LinearMipmapLinearFilter,
 	MirroredRepeatWrapping,
-	NoColorSpace,
+	ClampToEdgeWrapping,
 	RepeatWrapping,
+	UnsignedByteType,
 	RGBAFormat,
+	LinearMipmapLinearFilter,
+	LinearFilter,
+	UVMapping,
+	NoColorSpace,
+	LinearEncoding,
 	SRGBColorSpace,
 	sRGBEncoding,
-	UnsignedByteType,
-	UVMapping,
 } from '../constants.js';
 import * as MathUtils from '../math/MathUtils.js';
 import { Vector2 } from '../math/Vector2.js';
@@ -66,6 +66,7 @@ class Texture extends EventDispatcher {
 		this.flipY = true;
 		this.unpackAlignment = 4;	// valid values: 1, 2, 4, 8 (see http://www.khronos.org/opengles/sdk/docs/man/xhtml/glPixelStorei.xml)
 
+		// todo repalash remove later
 		if ( typeof colorSpace === 'string' ) {
 
 			this.colorSpace = colorSpace;
@@ -321,6 +322,7 @@ class Texture extends EventDispatcher {
 
 	}
 
+	// todo repalash remove later
 	get encoding() { // @deprecated, r152
 
 		warnOnce( 'THREE.Texture: Property .encoding has been replaced by .colorSpace.' );

@@ -26,6 +26,8 @@ const assets = [
 
 	'../examples/jsm/libs/meshopt_decoder.module.js',
 
+	'../examples/jsm/libs/mikktspace.module.js',
+
 	'../examples/jsm/libs/motion-controllers.module.js',
 
 	'../examples/jsm/libs/rhino3dm/rhino3dm.wasm',
@@ -73,7 +75,8 @@ const assets = [
 
 	'../examples/jsm/helpers/VertexNormalsHelper.js',
 
-	'../examples/jsm/webxr/VRButton.js',
+	'../examples/jsm/utils/BufferGeometryUtils.js',
+
 	'../examples/jsm/webxr/XRControllerModelFactory.js',
 
 	'./images/rotate.svg',
@@ -134,23 +137,26 @@ const assets = [
 	'./js/Menubar.File.js',
 	'./js/Menubar.Edit.js',
 	'./js/Menubar.Add.js',
-	'./js/Menubar.Play.js',
 	'./js/Menubar.Examples.js',
 	'./js/Menubar.Help.js',
 	'./js/Menubar.View.js',
 	'./js/Menubar.Status.js',
 	'./js/Resizer.js',
+	'./js/Selector.js',
 	'./js/Sidebar.js',
 	'./js/Sidebar.Scene.js',
 	'./js/Sidebar.Project.js',
-	'./js/Sidebar.Project.Materials.js',
 	'./js/Sidebar.Project.Renderer.js',
+	'./js/Sidebar.Project.Materials.js',
+	'./js/Sidebar.Project.App.js',
+	'./js/Sidebar.Project.Image.js',
 	'./js/Sidebar.Project.Video.js',
 	'./js/Sidebar.Settings.js',
 	'./js/Sidebar.Settings.History.js',
 	'./js/Sidebar.Settings.Shortcuts.js',
 	'./js/Sidebar.Properties.js',
 	'./js/Sidebar.Object.js',
+	'./js/Sidebar.Object.Animation.js',
 	'./js/Sidebar.Geometry.js',
 	'./js/Sidebar.Geometry.BufferGeometry.js',
 	'./js/Sidebar.Geometry.Modifiers.js',
@@ -178,16 +184,14 @@ const assets = [
 	'./js/Sidebar.Material.MapProperty.js',
 	'./js/Sidebar.Material.NumberProperty.js',
 	'./js/Sidebar.Material.Program.js',
-	'./js/Sidebar.Animation.js',
 	'./js/Sidebar.Script.js',
 	'./js/Strings.js',
 	'./js/Toolbar.js',
 	'./js/Viewport.js',
 	'./js/Viewport.Controls.js',
 	'./js/Viewport.Info.js',
-	'./js/Viewport.Selector.js',
 	'./js/Viewport.ViewHelper.js',
-	'./js/Viewport.VR.js',
+	'./js/Viewport.XR.js',
 
 	'./js/Command.js',
 	'./js/commands/AddObjectCommand.js',
@@ -269,8 +273,13 @@ async function networkFirst( request ) {
 
 		}
 
-		const cache = await caches.open( cacheName );
-		cache.put( request, response.clone() );
+		if ( request.method === 'GET' ) {
+
+			const cache = await caches.open( cacheName );
+			cache.put( request, response.clone() );
+
+		}
+
 		return response;
 
 	} catch {

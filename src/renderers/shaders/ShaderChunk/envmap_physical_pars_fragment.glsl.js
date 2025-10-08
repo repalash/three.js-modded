@@ -13,7 +13,7 @@ export default /* glsl */`
 
 			worldNormal = transformDirection(worldNormal, rotationMatrix(vec3(0,1,0), envMapRotation));
 
-			vec4 envMapColor = textureCubeUV( envMap, worldNormal, 1.0 );
+			vec4 envMapColor = textureCubeUV( envMap, envMapRotation * worldNormal, 1.0 );
 
 			return PI * envMapColor.rgb * envMapIntensity;
 
@@ -40,9 +40,7 @@ export default /* glsl */`
 
 			#endif
 
-			reflectVec = transformDirection(reflectVec, rotationMatrix(vec3(0,1,0), envMapRotation));
-
-			vec4 envMapColor = textureCubeUV( envMap, reflectVec, roughness );
+			vec4 envMapColor = textureCubeUV( envMap, envMapRotation * reflectVec, roughness );
 
 			return envMapColor.rgb * envMapIntensity;
 

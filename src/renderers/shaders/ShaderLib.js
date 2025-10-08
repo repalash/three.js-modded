@@ -239,7 +239,8 @@ const ShaderLib = {
 			envMapIntensity: { value: 1 },
 			flipEnvMap: { value: - 1 },
 			backgroundBlurriness: { value: 0 },
-			backgroundIntensity: { value: 1 }
+			backgroundIntensity: { value: 1 },
+			backgroundRotation: { value: /*@__PURE__*/ new Matrix3() }
 		},
 
 		vertexShader: ShaderChunk.backgroundCube_vert,

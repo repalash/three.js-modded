@@ -35,6 +35,7 @@ class WebGLUtils {
 		}
 
 		if ( p === AlphaFormat ) return gl.ALPHA;
+		if ( p === gl.RGB ) return gl.RGB; // patch since legacy doesn't use RGBFormat for rendering but here it's needed for packing optimization
 		if ( p === RGBAFormat ) return gl.RGBA;
 		if ( p === LuminanceFormat ) return gl.LUMINANCE;
 		if ( p === LuminanceAlphaFormat ) return gl.LUMINANCE_ALPHA;
@@ -251,7 +252,7 @@ class WebGLUtils {
 
 				const res = gl.clientWaitSync( sync, gl.SYNC_FLUSH_COMMANDS_BIT, 0 );
 
-				if ( res === gl.WAIT_FAILED) {
+				if ( res === gl.WAIT_FAILED ) {
 
 					gl.deleteSync( sync );
 
@@ -260,7 +261,7 @@ class WebGLUtils {
 
 				}
 
-				if ( res === gl.TIMEOUT_EXPIRED) {
+				if ( res === gl.TIMEOUT_EXPIRED ) {
 
 					requestAnimationFrame( test );
 					return;

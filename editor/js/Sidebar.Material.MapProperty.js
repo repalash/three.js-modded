@@ -12,7 +12,7 @@ function SidebarMaterialMapProperty( editor, property, name ) {
 	const signals = editor.signals;
 
 	const container = new UIRow();
-	container.add( new UIText( name ).setWidth( '90px' ) );
+	container.add( new UIText( name ).setClass( 'Label' ) );
 
 	const enabled = new UICheckbox( false ).setMarginRight( '8px' ).onChange( onChange );
 	container.add( enabled );
@@ -114,7 +114,7 @@ function SidebarMaterialMapProperty( editor, property, name ) {
 
 		if ( texture !== null ) {
 
-			if ( colorMaps[ property ] !== undefined && texture.isDataTexture !== true && texture.colorSpace !== THREE.SRGBColorSpace ) {
+			if ( colorMaps.includes( property ) && texture.isDataTexture !== true && texture.colorSpace !== THREE.SRGBColorSpace ) {
 
 				texture.colorSpace = THREE.SRGBColorSpace;
 				material.needsUpdate = true;
