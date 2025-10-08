@@ -534,9 +534,8 @@ function copyMaterialUserData( dest, source ) {
 
 		if ( key.startsWith( '__' ) ) continue; // double underscore
 		if ( typeof dest[ key ] === 'function' || typeof source[ key ] === 'function' ) continue;
-		// todo only clone vectors, colors etc
 		const src = source[ key ];
-		const skipClone = ( ! src ) || src.isTexture || src.isObject3D || src.isMaterial;
+		const skipClone = ( ! src ) || src.isTexture || src.isObject3D || src.isMaterial || src.isBufferGeometry || src.userDataSkipClone;
 		if ( ! skipClone && typeof source[ key ].clone === 'function' )
 			dest[ key ] = source[ key ].clone();
 		else if ( ! skipClone && ( typeof source[ key ] === 'object' || Array.isArray( source[ key ] ) ) )
