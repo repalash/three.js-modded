@@ -1252,9 +1252,11 @@ class WebGLRenderer {
 			//
 			if ( _this.userData.backgroundRender !== false ) {
 
-			if ( xr.enabled === false || xr.isPresenting === false || xr.hasDepthSensing() === false ) {
+				if ( xr.enabled === false || xr.isPresenting === false || xr.hasDepthSensing() === false ) {
 
-				background.render( currentRenderList, scene );
+					background.render( currentRenderList, scene );
+
+				}
 
 			}
 
@@ -2468,8 +2470,7 @@ class WebGLRenderer {
 
 				try {
 
-					// todo change when WebGLMultipleRenderTargets are merged into base in three.js
-					const texture = Array.isArray( renderTarget.texture ) ? renderTarget.texture[ textureIndex || 0 ] : renderTarget.texture;
+					const texture = Array.isArray( renderTarget.textures ) ? renderTarget.textures[ textureIndex || 0 ] : renderTarget.texture;
 					const textureFormat = texture.format;
 					const textureType = texture.type;
 
@@ -2496,7 +2497,7 @@ class WebGLRenderer {
 					if ( ( x >= 0 && x <= ( renderTarget.width - width ) ) && ( y >= 0 && y <= ( renderTarget.height - height ) ) ) {
 
 						// https://stackoverflow.com/a/62485031/2229899
-						if ( renderTarget.isWebGLMultipleRenderTargets ) {
+						if ( renderTarget.isWebGLMultipleRenderTargets || renderTarget.textures.length > 1 ) {
 
 							// _gl.framebufferTexture2D( _gl.FRAMEBUFFER, _gl.COLOR_ATTACHMENT0 + textureIndex, _gl.TEXTURE_2D, properties.get( texture ).__webglTexture, 0 );
 							_gl.readBuffer( _gl.COLOR_ATTACHMENT0 + ( textureIndex || 0 ) );

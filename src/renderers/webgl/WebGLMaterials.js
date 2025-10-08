@@ -230,8 +230,8 @@ function WebGLMaterials( renderer, properties ) {
 		if ( envMap ) {
 
 			uniforms.envMap.value = envMap;
-			const envMapOrig = material.envMap || properties.get( material ).environment || envMap;
-			uniforms.envMapRotation.value = envMapOrig ? envMapOrig.rotation : 0;
+			// const envMapOrig = material.envMap || properties.get( material ).environment || envMap;
+			// uniforms.envMapRotation.value = envMapOrig ? envMapOrig.rotation : 0;
 
 			_e1.copy( envMapRotation );
 

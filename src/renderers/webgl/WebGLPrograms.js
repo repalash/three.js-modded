@@ -121,7 +121,6 @@ function WebGLPrograms( renderer, cubemaps, cubeuvmaps, extensions, capabilities
 
 		const currentRenderTarget = renderer.getRenderTarget();
 		const transmissionRenderTarget = renderer.userData && renderer.userData.transmissionRenderTarget;
-		const currentRTTexture = ! currentRenderTarget ? null : ( Array.isArray( currentRenderTarget.texture ) ? currentRenderTarget.texture[ 0 ] : currentRenderTarget.texture );
 
 		const IS_INSTANCEDMESH = object.isInstancedMesh === true;
 		const IS_BATCHEDMESH = object.isBatchedMesh === true;

@@ -114,6 +114,7 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 			}
 
 			_e1.copy( scene.backgroundRotation );
+			// todo repalash if background === environment then sync or multiply rotation
 
 			// accommodate left-handed frame
 			_e1.x *= - 1; _e1.y *= - 1; _e1.z *= - 1;
@@ -127,7 +128,7 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 			}
 
 			boxMesh.material.uniforms.envMap.value = background;
-			boxMesh.material.uniforms.envMapRotation.value = background ? background.rotation || 0 : 0;
+			// boxMesh.material.uniforms.envMapRotation.value = background ? background.rotation || 0 : 0;
 			boxMesh.material.uniforms.envMapIntensity.value = background === scene.environment ? ( scene.envMapIntensity || 1 ) : 1; // special for Scene in webgi
 			boxMesh.material.uniforms.flipEnvMap.value = ( background.isCubeTexture && background.isRenderTargetTexture === false ) ? - 1 : 1;
 			boxMesh.material.uniforms.backgroundBlurriness.value = scene.backgroundBlurriness;

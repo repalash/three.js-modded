@@ -11,8 +11,6 @@ export default /* glsl */`
 			vec3 worldNormal = inverseTransformDirection( normal, viewMatrix );
 		#endif
 
-			worldNormal = transformDirection(worldNormal, rotationMatrix(vec3(0,1,0), envMapRotation));
-
 			vec4 envMapColor = textureCubeUV( envMap, envMapRotation * worldNormal, 1.0 );
 
 			return PI * envMapColor.rgb * envMapIntensity;
