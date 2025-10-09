@@ -37,6 +37,10 @@ class TextureLoader extends Loader {
 
 			}
 
+			// todo repalash do the same in other texture/embedded asset loaders that are using in loaders like GLTF, FBXLoader etc
+			if ( ! url.startsWith( 'blob:' ) )
+				texture.userData.rootPath = this.path + url;
+
 			if ( onError !== undefined ) {
 
 				onError( event );
