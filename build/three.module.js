@@ -44985,6 +44985,10 @@ class TextureLoader extends Loader {
 
 			}
 
+			// todo repalash do the same in other texture/embedded asset loaders that are using in loaders like GLTF, FBXLoader etc
+			if ( ! url.startsWith( 'blob:' ) )
+				texture.userData.rootPath = this.path + url;
+
 			if ( onError !== undefined ) {
 
 				onError( event );
@@ -46272,15 +46276,21 @@ class LoaderUtils {
 		// Invalid URL
 		if ( typeof url !== 'string' || url === '' ) return '';
 
-		// Host Relative URL
-		if ( /^https?:\/\//i.test( path ) && /^\//.test( url ) ) {
+		if ( url[ 0 ] === '/' ) {
 
-			path = path.replace( /(^https?:\/\/[^\/]+).*/i, '$1' );
+			// Host Relative URL
+			if ( /^https?:\/\//i.test( path ) ) {
+
+				path = path.replace( /(^https?:\/\/[^\/]+).*/i, '$1' );
+
+			} else {
+
+				// Current Host
+				return url;
+
+			}
 
 		}
-
-		// Absolute path
-		if ( url[ 0 ] === '/' ) return url;
 
 		// Absolute URL http://,https://,//
 		if ( /^(https?:)?\/\//i.test( url ) ) return url;
