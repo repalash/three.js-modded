@@ -34,6 +34,8 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 
 		if ( background === 'environment' ) background = scene.environment;
 
+		const isEnvironment = background && background === scene.environment;
+
 		if ( background && background.isTexture ) {
 
 			const usePMREM = scene.backgroundBlurriness > 0; // use PMREM if the user wants to blur the background
@@ -114,7 +116,6 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 			}
 
 			_e1.copy( scene.backgroundRotation );
-			// todo repalash if background === environment then sync or multiply rotation
 
 			// accommodate left-handed frame
 			_e1.x *= - 1; _e1.y *= - 1; _e1.z *= - 1;
@@ -128,13 +129,31 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 			}
 
 			boxMesh.material.uniforms.envMap.value = background;
-			// boxMesh.material.uniforms.envMapRotation.value = background ? background.rotation || 0 : 0;
-			boxMesh.material.uniforms.envMapIntensity.value = background === scene.environment ? ( scene.envMapIntensity || 1 ) : 1; // special for Scene in webgi
 			boxMesh.material.uniforms.flipEnvMap.value = ( background.isCubeTexture && background.isRenderTargetTexture === false ) ? - 1 : 1;
 			boxMesh.material.uniforms.backgroundBlurriness.value = scene.backgroundBlurriness;
 			boxMesh.material.uniforms.backgroundIntensity.value = scene.backgroundIntensity;
 			boxMesh.material.uniforms.backgroundRotation.value.setFromMatrix4( _m1.makeRotationFromEuler( _e1 ) );
 			boxMesh.material.toneMapped = ColorManagement.getTransfer( background.colorSpace ) !== SRGBTransfer;
+
+			if ( isEnvironment ) {
+
+				boxMesh.material.uniforms.backgroundIntensity.value *= scene.envMapIntensity; // special for Scene in webgi
+
+				_e1.copy( scene.environmentRotation );
+
+				// accommodate left-handed frame
+				_e1.x *= - 1; _e1.y *= - 1; _e1.z *= - 1;
+				if ( background.isCubeTexture && background.isRenderTargetTexture === false ) {
+
+					// environment maps which are not cube render targets or PMREMs follow a different convention
+					_e1.y *= - 1;
+					_e1.z *= - 1;
+
+				}
+
+				boxMesh.material.uniforms.backgroundRotation.value.multiply( _m1.makeRotationFromEuler( _e1 ) );
+
+			}
 
 			if ( currentBackground !== background ||
 				currentBackgroundVersion !== background.version ||
