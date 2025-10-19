@@ -23,6 +23,11 @@ class TextureLoader extends Loader {
 			texture.image = image;
 			texture.needsUpdate = true;
 
+			// todo repalash do the same in other texture/embedded asset loaders that are using in loaders like GLTF, FBXLoader etc
+			if ( ! url.startsWith( 'blob:' ) )
+				texture.userData.rootPath = loader.path + url;
+
+
 			if ( onLoad !== undefined ) {
 
 				onLoad( texture );
@@ -36,10 +41,6 @@ class TextureLoader extends Loader {
 				texture.needsUpdate = true;
 
 			}
-
-			// todo repalash do the same in other texture/embedded asset loaders that are using in loaders like GLTF, FBXLoader etc
-			if ( ! url.startsWith( 'blob:' ) )
-				texture.userData.rootPath = this.path + url;
 
 			if ( onError !== undefined ) {
 
