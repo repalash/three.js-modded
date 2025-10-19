@@ -9,10 +9,12 @@ import { Matrix4 } from '../../math/Matrix4.js';
 import { Mesh } from '../../objects/Mesh.js';
 import { ShaderLib } from '../shaders/ShaderLib.js';
 import { cloneUniforms, getUnlitUniformColorSpace } from '../shaders/UniformsUtils.js';
+import { Matrix3 } from '../../math/Matrix3.js';
 
 const _rgb = { r: 0, b: 0, g: 0 };
 const _e1 = /*@__PURE__*/ new Euler();
 const _m1 = /*@__PURE__*/ new Matrix4();
+const _m2 = /*@__PURE__*/ new Matrix3();
 
 function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha, premultipliedAlpha ) {
 
@@ -151,7 +153,7 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 
 				}
 
-				boxMesh.material.uniforms.backgroundRotation.value.multiply( _m1.makeRotationFromEuler( _e1 ) );
+				boxMesh.material.uniforms.backgroundRotation.value.premultiply( _m2.setFromMatrix4( _m1.makeRotationFromEuler( _e1 ) ) );
 
 			}
 
