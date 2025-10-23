@@ -85,7 +85,7 @@ class Texture extends EventDispatcher {
 		this.onUpdate = null;
 
 		this.isRenderTargetTexture = false; // indicates whether a texture belongs to a render target or not
-		this.needsPMREMUpdate = false; // indicates whether this texture should be processed by PMREMGenerator or not (only relevant for render target textures)
+		this.pmremVersion = 0; // indicates whether this texture should be processed by PMREMGenerator or not (only relevant for render target textures)
 
 		// this is required otherwise the data is not uploaded
 		if ( image instanceof ImageData && image !== Texture.DEFAULT_IMAGE )
@@ -334,6 +334,16 @@ class Texture extends EventDispatcher {
 
 		warnOnce( 'THREE.Texture: Property .encoding has been replaced by .colorSpace.' );
 		this.colorSpace = encoding === sRGBEncoding ? SRGBColorSpace : NoColorSpace;
+
+	}
+
+	set needsPMREMUpdate( value ) {
+
+		if ( value === true ) {
+
+			this.pmremVersion ++;
+
+		}
 
 	}
 
