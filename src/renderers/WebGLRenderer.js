@@ -2112,10 +2112,17 @@ class WebGLRenderer {
 
 			}
 
-			// todo repalash - use separate env map intensity from userdata
 			if ( material.isMeshStandardMaterial && material.envMap === null && scene.environment !== null ) {
 
-				m_uniforms.envMapIntensity.value = scene.environmentIntensity;
+				if ( ! ( material.userData && material.userData.separateEnvMapIntensity ) ) {
+
+					m_uniforms.envMapIntensity.value = scene.environmentIntensity;
+
+				} else {
+
+					m_uniforms.envMapIntensity.value = material.envMapIntensity;
+
+				}
 
 			}
 

@@ -1812,7 +1812,7 @@ function WebGLTextures( _gl, extensions, state, properties, capabilities, utils,
 	function updateRenderTargetMipmap( renderTarget ) {
 
 		// todo repalash remove later
-		const textures = renderTarget.isWebGLMultipleRenderTargets === true && Array.isArray(renderTarget.texture) ? renderTarget.texture : renderTarget.textures || [ renderTarget.texture ];
+		const textures = renderTarget.isWebGLMultipleRenderTargets === true && Array.isArray( renderTarget.texture ) ? renderTarget.texture : renderTarget.textures || [ renderTarget.texture ];
 		const target = renderTarget.isWebGLCubeRenderTarget ? _gl.TEXTURE_CUBE_MAP : _gl.TEXTURE_2D;
 
 		for ( let i = 0, il = textures.length; i < il; i ++ ) {
@@ -1824,7 +1824,7 @@ function WebGLTextures( _gl, extensions, state, properties, capabilities, utils,
 			if ( textureProperties.__version !== texture.version ) { // needsUpdate called after generateMipmaps change,
 
 				state.bindTexture( target, webglTexture );
-				setTextureParameters( target, texture, supportsMips );
+				setTextureParameters( target, texture );
 				state.unbindTexture();
 				textureProperties.__version = texture.version;
 
