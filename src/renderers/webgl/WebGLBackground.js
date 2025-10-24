@@ -139,7 +139,7 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 
 			if ( isEnvironment ) {
 
-				boxMesh.material.uniforms.backgroundIntensity.value *= scene.envMapIntensity; // special for Scene in webgi
+				boxMesh.material.uniforms.backgroundIntensity.value *= scene.environmentIntensity;
 
 				_e1.copy( scene.environmentRotation );
 
