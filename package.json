@@ -1,6 +1,6 @@
 {
   "name": "three",
-  "version": "0.163.10001",
+  "version": "0.163.10002",
   "description": "JavaScript 3D library",
   "type": "module",
   "main": "./build/three.cjs",
