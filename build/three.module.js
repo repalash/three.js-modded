@@ -29831,9 +29831,9 @@ class WebGLRenderer {
 				// Custom version of renderTransmissionPass.
 				if ( transmissiveObjects.length > 0 ) {
 
-					if ( ! _transmissionRenderTarget ) _transmissionRenderTarget = new WebGLRenderTarget( 1, 1 );
+					if ( ! currentRenderState.state.transmissionRenderTarget ) currentRenderState.state.transmissionRenderTarget = new WebGLRenderTarget( 1, 1 );
 
-					const texture = ( _this.userData.transmissionRenderTarget || _transmissionRenderTarget ).texture;
+					const texture = ( _this.userData.transmissionRenderTarget || currentRenderState.state.transmissionRenderTarget ).texture;
 					const isWebGL2 = capabilities.isWebGL2;
 
 					const generateMipmaps = texture.generateMipmaps;
@@ -29911,7 +29911,7 @@ class WebGLRenderer {
 
 				/*
 				const geometry = new PlaneGeometry();
-				const material = new MeshBasicMaterial( { map: _transmissionRenderTarget.texture } );
+				const material = new MeshBasicMaterial( { map: currentRenderState.state.transmissionRenderTarget.texture } );
 
 				const mesh = new Mesh( geometry, material );
 				scene.add( mesh );
