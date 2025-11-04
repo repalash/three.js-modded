@@ -75,7 +75,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ macos-latest ]
+        os: [ windows-latest ]
         CI: [ 0, 1, 2, 3 ]
     env:
       CI: ${{ matrix.CI }}

@@ -25,6 +25,8 @@ class Node extends EventDispatcher {
 		this._cacheKey = null;
 		this._cacheKeyVersion = 0;
 
+		this.global = false;
+
 		this.isNode = true;
 
 		Object.defineProperty( this, 'id', { value: _nodeId ++ } );
@@ -74,6 +76,14 @@ class Node extends EventDispatcher {
 
 	}
 
+	onReference( callback ) {
+
+		this.updateReference = callback.bind( this.getSelf() );
+
+		return this;
+
+	}
+
 	getSelf() {
 
 		// Returns non-node object.
@@ -90,7 +100,7 @@ class Node extends EventDispatcher {
 
 	isGlobal( /*builder*/ ) {
 
-		return false;
+		return this.global;
 
 	}
 
@@ -155,6 +165,15 @@ class Node extends EventDispatcher {
 
 	}
 
+	getElementType( builder ) {
+
+		const type = this.getNodeType( builder );
+		const elementType = builder.getElementType( type );
+
+		return elementType;
+
+	}
+
 	getNodeType( builder ) {
 
 		const nodeProperties = builder.getNodeProperties( this );
@@ -182,9 +201,11 @@ class Node extends EventDispatcher {
 
 		const nodeProperties = builder.getNodeProperties( this );
 
+		let index = 0;
+
 		for ( const childNode of this.getChildren() ) {
 
-			nodeProperties[ '_node' + childNode.id ] = childNode;
+			nodeProperties[ 'node' + index ++ ] = childNode;
 
 		}
 

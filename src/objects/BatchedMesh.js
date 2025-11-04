@@ -5,10 +5,12 @@ import { FloatType } from '../constants.js';
 import { Matrix4 } from '../math/Matrix4.js';
 import { Mesh } from './Mesh.js';
 import { RGBAFormat } from '../constants.js';
+import { ColorManagement } from '../math/ColorManagement.js';
 import { Box3 } from '../math/Box3.js';
 import { Sphere } from '../math/Sphere.js';
 import { Frustum } from '../math/Frustum.js';
 import { Vector3 } from '../math/Vector3.js';
+import { Color } from '../math/Color.js';
 
 function sortOpaque( a, b ) {
 
@@ -71,11 +73,14 @@ const ID_ATTR_NAME = 'batchId';
 const _matrix = /*@__PURE__*/ new Matrix4();
 const _invMatrixWorld = /*@__PURE__*/ new Matrix4();
 const _identityMatrix = /*@__PURE__*/ new Matrix4();
+const _whiteColor = /*@__PURE__*/ new Color( 1, 1, 1 );
 const _projScreenMatrix = /*@__PURE__*/ new Matrix4();
 const _frustum = /*@__PURE__*/ new Frustum();
 const _box = /*@__PURE__*/ new Box3();
 const _sphere = /*@__PURE__*/ new Sphere();
 const _vector = /*@__PURE__*/ new Vector3();
+const _forward = /*@__PURE__*/ new Vector3();
+const _temp = /*@__PURE__*/ new Vector3();
 const _renderList = /*@__PURE__*/ new MultiDrawRenderList();
 const _mesh = /*@__PURE__*/ new Mesh();
 const _batchIntersects = [];
@@ -152,12 +157,16 @@ class BatchedMesh extends Mesh {
 		this._multiDrawCounts = new Int32Array( maxGeometryCount );
 		this._multiDrawStarts = new Int32Array( maxGeometryCount );
 		this._multiDrawCount = 0;
+		this._multiDrawInstances = null;
 		this._visibilityChanged = true;
 
 		// Local matrix per geometry by using data texture
 		this._matricesTexture = null;
 
 		this._initMatricesTexture();
+
+		// Local color per geometry by using data texture
+		this._colorsTexture = null;
 
 	}
 
@@ -178,6 +187,20 @@ class BatchedMesh extends Mesh {
 		const matricesTexture = new DataTexture( matricesArray, size, size, RGBAFormat, FloatType );
 
 		this._matricesTexture = matricesTexture;
+
+	}
+
+	_initColorsTexture() {
+
+		let size = Math.sqrt( this._maxGeometryCount );
+		size = Math.ceil( size );
+
+		// 4 floats per RGBA pixel initialized to white
+		const colorsArray = new Float32Array( size * size * 4 ).fill( 1 );
+		const colorsTexture = new DataTexture( colorsArray, size, size, RGBAFormat, FloatType );
+		colorsTexture.colorSpace = ColorManagement.workingColorSpace;
+
+		this._colorsTexture = colorsTexture;
 
 	}
 
@@ -414,6 +437,7 @@ class BatchedMesh extends Mesh {
 		const active = this._active;
 		const matricesTexture = this._matricesTexture;
 		const matricesArray = this._matricesTexture.image.data;
+		const colorsTexture = this._colorsTexture;
 
 		// push new visibility states
 		visibility.push( true );
@@ -426,6 +450,14 @@ class BatchedMesh extends Mesh {
 		// initialize matrix information
 		_identityMatrix.toArray( matricesArray, geometryId * 16 );
 		matricesTexture.needsUpdate = true;
+
+		// initialize the color to white
+		if ( colorsTexture !== null ) {
+
+			_whiteColor.toArray( colorsTexture.image.data, geometryId * 4 );
+			colorsTexture.needsUpdate = true;
+
+		}
 
 		// add the reserved range and draw range objects
 		reservedRanges.push( reservedRange );
@@ -593,6 +625,28 @@ class BatchedMesh extends Mesh {
 
 	}
 
+	getInstanceCountAt( id ) {
+
+		if ( this._multiDrawInstances === null ) return null;
+
+		return this._multiDrawInstances[ id ];
+
+	}
+
+	setInstanceCountAt( id, instanceCount ) {
+
+		if ( this._multiDrawInstances === null ) {
+
+			this._multiDrawInstances = new Int32Array( this._maxGeometryCount ).fill( 1 );
+
+		}
+
+		this._multiDrawInstances[ id ] = instanceCount;
+
+		return id;
+
+	}
+
 	// get bounding box and compute it if it doesn't exist
 	getBoundingBoxAt( id, target ) {
 
@@ -720,6 +774,49 @@ class BatchedMesh extends Mesh {
 		}
 
 		return matrix.fromArray( matricesArray, geometryId * 16 );
+
+	}
+
+	setColorAt( geometryId, color ) {
+
+		if ( this._colorsTexture === null ) {
+
+			this._initColorsTexture();
+
+		}
+
+		// @TODO: Map geometryId to index of the arrays because
+		//        optimize() can make geometryId mismatch the index
+
+		const active = this._active;
+		const colorsTexture = this._colorsTexture;
+		const colorsArray = this._colorsTexture.image.data;
+		const geometryCount = this._geometryCount;
+		if ( geometryId >= geometryCount || active[ geometryId ] === false ) {
+
+			return this;
+
+		}
+
+		color.toArray( colorsArray, geometryId * 4 );
+		colorsTexture.needsUpdate = true;
+
+		return this;
+
+	}
+
+	getColorAt( geometryId, color ) {
+
+		const active = this._active;
+		const colorsArray = this._colorsTexture.image.data;
+		const geometryCount = this._geometryCount;
+		if ( geometryId >= geometryCount || active[ geometryId ] === false ) {
+
+			return null;
+
+		}
+
+		return color.fromArray( colorsArray, geometryId * 4 );
 
 	}
 
@@ -863,6 +960,13 @@ class BatchedMesh extends Mesh {
 		this._matricesTexture = source._matricesTexture.clone();
 		this._matricesTexture.image.data = this._matricesTexture.image.slice();
 
+		if ( this._colorsTexture !== null ) {
+
+			this._colorsTexture = source._colorsTexture.clone();
+			this._colorsTexture.image.data = this._colorsTexture.image.slice();
+
+		}
+
 		return this;
 
 	}
@@ -874,6 +978,14 @@ class BatchedMesh extends Mesh {
 
 		this._matricesTexture.dispose();
 		this._matricesTexture = null;
+
+		if ( this._colorsTexture !== null ) {
+
+			this._colorsTexture.dispose();
+			this._colorsTexture = null;
+
+		}
+
 		return this;
 
 	}
@@ -919,6 +1031,7 @@ class BatchedMesh extends Mesh {
 			// get the camera position in the local frame
 			_invMatrixWorld.copy( this.matrixWorld ).invert();
 			_vector.setFromMatrixPosition( camera.matrixWorld ).applyMatrix4( _invMatrixWorld );
+			_forward.set( 0, 0, - 1 ).transformDirection( camera.matrixWorld ).transformDirection( _invMatrixWorld );
 
 			for ( let i = 0, l = visibility.length; i < l; i ++ ) {
 
@@ -939,7 +1052,7 @@ class BatchedMesh extends Mesh {
 					if ( ! culled ) {
 
 						// get the distance from camera used for sorting
-						const z = _vector.distanceTo( _sphere.center );
+						const z = _temp.subVectors( _sphere.center, _vector ).dot( _forward );
 						_renderList.push( drawRanges[ i ], z );
 
 					}

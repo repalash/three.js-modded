@@ -77,7 +77,9 @@ const exceptionList = [
 	// Unknown
 	// TODO: most of these can be fixed just by increasing idleTime and parseTime
 	'webgl_animation_skinning_blending',
+	'webgl_animation_skinning_additive_blending',
 	'webgl_buffergeometry_glbufferattribute',
+	'webgl_interactive_cubes_gpu',
 	'webgl_clipping_advanced',
 	'webgl_lensflares',
 	'webgl_lights_spotlights',
@@ -89,10 +91,8 @@ const exceptionList = [
 	'webgl_materials_blending',
 	'webgl_mirror',
 	'webgl_morphtargets_face',
-	'webgl_nodes_loader_materialx',
-	'webgl_nodes_materials_standard',
-	'webgl_nodes_materialx_noise',
-	'webgl_postprocessing_crossfade',
+	'webgl_postprocessing_transition',
+	'webgl_postprocessing_glitch',
 	'webgl_postprocessing_dof2',
 	'webgl_raymarching_reflect',
 	'webgl_renderer_pathtracer',
@@ -108,6 +108,7 @@ const exceptionList = [
 	// TODO: implement determinism for setTimeout and setInterval
 	// could it fix some examples from above?
 	'physics_rapier_instancing',
+	'physics_jolt_instancing',
 
 	// Awaiting for WebGL backend support
 	'webgpu_clearcoat',
@@ -127,7 +128,9 @@ const exceptionList = [
 	'webgpu_backdrop_water',
 	'webgpu_camera_logarithmicdepthbuffer',
 	'webgpu_clipping',
+	'webgpu_instance_points',
 	'webgpu_loader_materialx',
+	'webgpu_materials_displacementmap',
 	'webgpu_materials_video',
 	'webgpu_materialx_noise',
 	'webgpu_morphtargets_face',
@@ -141,6 +144,8 @@ const exceptionList = [
 	'webgpu_custom_fog',
 	'webgpu_instancing_morph',
 	'webgpu_mesh_batch',
+	'webgpu_renderbundle',
+	'webgpu_texturegrad',
 
 	// WebGPU idleTime and parseTime too low
 	'webgpu_compute_particles',

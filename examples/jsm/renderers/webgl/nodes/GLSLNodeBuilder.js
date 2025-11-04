@@ -3,7 +3,7 @@ import { MathNode, GLSLNodeParser, NodeBuilder, UniformNode, vectorComponents } 
 import NodeUniformBuffer from '../../common/nodes/NodeUniformBuffer.js';
 import NodeUniformsGroup from '../../common/nodes/NodeUniformsGroup.js';
 
-import { NodeSampledTexture, NodeSampledCubeTexture } from '../../common/nodes/NodeSampledTexture.js';
+import { NodeSampledTexture, NodeSampledCubeTexture, NodeSampledTexture3D } from '../../common/nodes/NodeSampledTexture.js';
 
 import { RedFormat, RGFormat, IntType, DataTexture, RGBFormat, RGBAFormat, FloatType } from 'three';
 
@@ -27,6 +27,7 @@ const supports = {
 const defaultPrecisions = `
 precision highp float;
 precision highp int;
+precision highp sampler3D;
 precision mediump sampler2DArray;
 precision lowp sampler2DShadow;
 `;
@@ -50,9 +51,13 @@ class GLSLNodeBuilder extends NodeBuilder {
 
 	getPropertyName( node, shaderStage ) {
 
-		if ( node.isOutputStructVar ) return '';
-
 		return super.getPropertyName( node, shaderStage );
+
+	}
+
+	getOutputStructName() {
+
+		return '';
 
 	}
 
@@ -246,6 +251,12 @@ ${ flowData.code }
 
 	}
 
+	generateTextureGrad( texture, textureProperty, uvSnippet, gradSnippet ) {
+
+		return `textureGrad( ${ textureProperty }, ${ uvSnippet }, ${ gradSnippet[ 0 ] }, ${ gradSnippet[ 1 ] } )`;
+
+	}
+
 	generateTextureCompare( texture, textureProperty, uvSnippet, compareSnippet, depthSnippet, shaderStage = this.shaderStage ) {
 
 		if ( shaderStage === 'fragment' ) {
@@ -269,8 +280,6 @@ ${ flowData.code }
 		if ( vars !== undefined ) {
 
 			for ( const variable of vars ) {
-
-				if ( variable.isOutputStructVar ) continue;
 
 				snippets.push( `${ this.getVar( variable.type, variable.name ) };` );
 
@@ -315,6 +324,10 @@ ${ flowData.code }
 			} else if ( uniform.type === 'cubeTexture' ) {
 
 				snippet = `samplerCube ${ uniform.name };`;
+
+			} else if ( uniform.type === 'texture3D' ) {
+
+				snippet = `sampler3D ${ uniform.name };`;
 
 			} else if ( uniform.type === 'buffer' ) {
 
@@ -751,6 +764,11 @@ void main() {
 
 				uniformGPU = new NodeSampledCubeTexture( uniformNode.name, uniformNode.node );
 
+				this.bindings[ shaderStage ].push( uniformGPU );
+
+			} else if ( type === 'texture3D' ) {
+
+				uniformGPU = new NodeSampledTexture3D( uniformNode.name, uniformNode.node );
 				this.bindings[ shaderStage ].push( uniformGPU );
 
 			} else if ( type === 'buffer' ) {

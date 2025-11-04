@@ -12,13 +12,20 @@ import { decompress } from './../utils/TextureUtils.js';
 
 class USDZExporter {
 
-	async parse( scene, options = {} ) {
+	parse( scene, onDone, onError, options ) {
+
+		this.parseAsync( scene, options ).then( onDone ).catch( onError );
+
+	}
+
+	async parseAsync( scene, options = {} ) {
 
 		options = Object.assign( {
 			ar: {
 				anchoring: { type: 'plane' },
 				planeAnchoring: { alignment: 'horizontal' }
 			},
+			includeAnchoringProperties: true,
 			quickLookCompatible: false,
 			maxTextureSize: 1024,
 		}, options );
@@ -192,6 +199,10 @@ function buildHeader() {
 
 function buildSceneStart( options ) {
 
+	const alignment = options.includeAnchoringProperties === true ? `
+		token preliminary:anchoring:type = "${options.ar.anchoring.type}"
+		token preliminary:planeAnchoring:alignment = "${options.ar.planeAnchoring.alignment}"
+	` : '';
 	return `def Xform "Root"
 {
 	def Scope "Scenes" (
@@ -205,10 +216,7 @@ function buildSceneStart( options ) {
 			}
 			sceneName = "Scene"
 		)
-		{
-		token preliminary:anchoring:type = "${options.ar.anchoring.type}"
-		token preliminary:planeAnchoring:alignment = "${options.ar.planeAnchoring.alignment}"
-
+		{${alignment}
 `;
 
 }
