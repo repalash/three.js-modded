@@ -31,11 +31,8 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 	function getBackground( scene ) {
 
 		let background = scene.isScene === true ? scene.background : null;
-		const backgroundColor = scene.isScene && scene.backgroundColor !== undefined ? scene.backgroundColor : null;
 
 		if ( background === 'environment' ) background = scene.environment;
-
-		const isEnvironment = background && background === scene.environment;
 
 		if ( background && background.isTexture ) {
 
@@ -93,6 +90,9 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 	function addToRenderList( renderList, scene ) {
 
 		const background = getBackground( scene );
+
+		const isEnvironment = background && background === scene.environment;
+		const backgroundColor = scene.isScene && scene.backgroundColor !== undefined ? scene.backgroundColor : null;
 
 		if ( background && ( background.isCubeTexture || background.mapping === CubeUVReflectionMapping ) ) {
 

@@ -1234,28 +1234,28 @@ class WebGLRenderer {
 			// render scene
 			if ( _this.userData.sceneRender !== false ) {
 
-			const opaqueObjects = currentRenderList.opaque;
-			const transmissiveObjects = currentRenderList.transmissive;
+				const opaqueObjects = currentRenderList.opaque;
+				const transmissiveObjects = currentRenderList.transmissive;
 
-			currentRenderState.setupLights();
+				currentRenderState.setupLights();
 
 				if ( camera.isArrayCamera ) {
 
 					const cameras = camera.cameras;
 
-				if ( transmissiveObjects.length > 0 ) {
+					if ( transmissiveObjects.length > 0 ) {
 
-					for ( let i = 0, l = cameras.length; i < l; i ++ ) {
+						for ( let i = 0, l = cameras.length; i < l; i ++ ) {
 
-						const camera2 = cameras[ i ];
+							const camera2 = cameras[ i ];
 
-						renderTransmissionPass( opaqueObjects, transmissiveObjects, scene, camera2 );
+							renderTransmissionPass( opaqueObjects, transmissiveObjects, scene, camera2 );
+
+						}
 
 					}
 
-				}
-
-				if ( _renderBackground ) background.render( scene );
+					if ( _renderBackground ) background.render( scene );
 
 					for ( let i = 0, l = cameras.length; i < l; i ++ ) {
 
@@ -1275,9 +1275,9 @@ class WebGLRenderer {
 
 					if ( _renderBackground ) background.render( scene );
 
-						renderScene( currentRenderList, scene, camera );
+					renderScene( currentRenderList, scene, camera );
 
-					}
+				}
 
 			}
 			//
@@ -1472,43 +1472,52 @@ class WebGLRenderer {
 
 			if ( _this.userData.transmissionRender !== false ) {
 
-				// Custom version of renderTransmissionPass.
-				if ( transmissiveObjects.length > 0 ) {
+				if ( _this.userData.transmissionRender === undefined && _this.userData.renderTransmissionPass !== false ) {
 
-					if ( ! currentRenderState.state.transmissionRenderTarget ) currentRenderState.state.transmissionRenderTarget = new WebGLRenderTarget( 1, 1 );
+					if ( transmissiveObjects.length > 0 ) renderObjects( transmissiveObjects, scene, camera );
 
-					const texture = ( _this.userData.transmissionRenderTarget || currentRenderState.state.transmissionRenderTarget ).texture;
-					const isWebGL2 = capabilities.isWebGL2;
+				} else {
 
-					const generateMipmaps = texture.generateMipmaps;
-					const minFilter = texture.minFilter;
-					// const magFilter = texture.magFilter;
+					// Custom version of renderTransmissionPass.
+					if ( transmissiveObjects.length > 0 ) {
 
-					if ( isWebGL2 && _this.userData.blurTransmissionTarget && _this.userData.transmissionRenderTarget ) {
+						if ( ! currentRenderState.state.transmissionRenderTarget ) currentRenderState.state.transmissionRenderTarget = {};
+						if ( ! currentRenderState.state.transmissionRenderTarget[ camera.id ] ) currentRenderState.state.transmissionRenderTarget[ camera.id ] = new WebGLRenderTarget( 1, 1 );
 
-						texture.generateMipmaps = true;
-						texture.minFilter = LinearMipmapLinearFilter;
-						// texture.magFilter = LinearMipmapLinearFilter;
-						texture.needsUpdate = true;
+						const texture = ( _this.userData.transmissionRenderTarget || currentRenderState.state.transmissionRenderTarget[ camera.id ] ).texture;
+						const isWebGL2 = capabilities.isWebGL2;
 
-						textures.updateMultisampleRenderTarget( _this.userData.transmissionRenderTarget ); // todo?
-						textures.updateRenderTargetMipmap( _this.userData.transmissionRenderTarget );
+						const generateMipmaps = texture.generateMipmaps;
+						const minFilter = texture.minFilter;
+						// const magFilter = texture.magFilter;
 
-					}
+						if ( isWebGL2 && _this.userData.blurTransmissionTarget && _this.userData.transmissionRenderTarget ) {
 
-					// todo; do we need to set backside when double-side like below in renderTransmissionPass.
+							texture.generateMipmaps = true;
+							texture.minFilter = LinearMipmapLinearFilter;
+							// texture.magFilter = LinearMipmapLinearFilter;
+							texture.needsUpdate = true;
 
-					renderObjects( transmissiveObjects, scene, camera );
+							textures.updateMultisampleRenderTarget( _this.userData.transmissionRenderTarget ); // todo?
+							textures.updateRenderTargetMipmap( _this.userData.transmissionRenderTarget );
 
-					if ( isWebGL2 && _this.userData.blurTransmissionTarget && _this.userData.transmissionRenderTarget ) {
+						}
 
-						texture.generateMipmaps = generateMipmaps;
-						texture.minFilter = minFilter;
-						// texture.magFilter = magFilter;
-						texture.needsUpdate = true;
+						// todo; do we need to set backside when double-side like below in renderTransmissionPass.
 
-						textures.updateMultisampleRenderTarget( _this.userData.transmissionRenderTarget ); // todo?
-						textures.updateRenderTargetMipmap( _this.userData.transmissionRenderTarget );
+						renderObjects( transmissiveObjects, scene, camera );
+
+						if ( isWebGL2 && _this.userData.blurTransmissionTarget && _this.userData.transmissionRenderTarget ) {
+
+							texture.generateMipmaps = generateMipmaps;
+							texture.minFilter = minFilter;
+							// texture.magFilter = magFilter;
+							texture.needsUpdate = true;
+
+							textures.updateMultisampleRenderTarget( _this.userData.transmissionRenderTarget ); // todo?
+							textures.updateRenderTargetMipmap( _this.userData.transmissionRenderTarget );
+
+						}
 
 					}
 
@@ -1527,8 +1536,6 @@ class WebGLRenderer {
 		}
 
 		function renderTransmissionPass( opaqueObjects, transmissiveObjects, scene, camera ) {
-
-			console.warn( 'three.js internal render transmission pass should not be called' );
 
 			const overrideMaterial = scene.isScene === true ? scene.overrideMaterial : null;
 
