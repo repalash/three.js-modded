@@ -190,6 +190,8 @@ class OrbitControls extends Controls {
 		this._interceptControlDown = interceptControlDown.bind( this );
 		this._interceptControlUp = interceptControlUp.bind( this );
 
+		this._lastUpdateTime = 0;
+
 		//
 
 		if ( this.domElement !== null ) {
@@ -239,6 +241,8 @@ class OrbitControls extends Controls {
 	dispose() {
 
 		this.disconnect();
+
+		//this.dispatchEvent( { type: 'dispose' } ); // should this be added here?
 
 	}
 
@@ -301,15 +305,14 @@ class OrbitControls extends Controls {
 
 	}
 
-	lastUpdateTime = 0;
-
 	update( deltaTime = null ) {
 
 		if ( this.throttleUpdate && this.throttleUpdate >= 1 ) {
 
 			const now = Date.now();
-			const dt = now - this.lastUpdateTime;
+			const dt = now - this._lastUpdateTime;
 			if ( dt < 1000 / this.throttleUpdate ) return;
+			this._lastUpdateTime = now;
 
 		}
 
@@ -402,20 +405,20 @@ class OrbitControls extends Controls {
 
 			const prevRadius = this._spherical.radius;
 
-			if ( Math.abs( sphericalDelta.radius ) > 0 ) {
+			if ( Math.abs( this._sphericalDelta.radius ) > 0 ) {
 
 				if ( this.dollyZoom ) {
 
-					this.object.zoom = Math.max( Math.max( this.minZoom, 0.1 ), Math.min( Math.min( this.maxZoom, 20 ), this.object.zoom * ( 1 + sphericalDelta.radius * ( this.enableDamping ? this.dampingFactor : 1 ) ) ) );
+					this.object.zoom = Math.max( Math.max( this.minZoom, 0.1 ), Math.min( Math.min( this.maxZoom, 20 ), this.object.zoom * ( 1 + this._sphericalDelta.radius * ( this.enableDamping ? this.dampingFactor : 1 ) ) ) );
 					this.object.updateProjectionMatrix();
 
 					if ( this.object.zoom >= Math.min( this.maxZoom, 20 ) || this.object.zoom <= Math.max( this.minZoom, 0.1 ) )
-						sphericalDelta.radius = 0;
+						this._sphericalDelta.radius = 0;
 
 				}
 
-				// this._spherical.radius += this._spherical.radius * sphericalDelta.radius * this.dampingFactor;
-				this._spherical.radius *= 1 + sphericalDelta.radius * ( this.enableDamping ? this.dampingFactor : 1 );
+				// this._spherical.radius += this._spherical.radius * this._sphericalDelta.radius * this.dampingFactor;
+				this._spherical.radius *= 1 + this._sphericalDelta.radius * ( this.enableDamping ? this.dampingFactor : 0 );
 
 			}
 
@@ -423,7 +426,7 @@ class OrbitControls extends Controls {
 
 				if ( this.dollyZoom ) {
 
-					this.object.zoom = Math.max( Math.max( scope.minZoom, 0.1 ), Math.min( Math.min( scope.maxZoom, 20 ), scope.object.zoom * scale ) );
+					this.object.zoom = Math.max( Math.max( this.minZoom, 0.1 ), Math.min( Math.min( this.maxZoom, 20 ), this.object.zoom * this._scale ) );
 					this.object.updateProjectionMatrix();
 
 					if ( this.object.zoom >= Math.min( this.maxZoom, 20 ) || this.object.zoom <= Math.max( this.minZoom, 0.1 ) )
@@ -440,7 +443,7 @@ class OrbitControls extends Controls {
 				pushDelta = this.minDistance - this._spherical.radius;
 			// pull target
 			if ( this.autoPullTarget && this._spherical.radius > this.maxDistance )
-				pushDelta = scope.maxDistance - this._spherical.radius;
+				pushDelta = this.maxDistance - this._spherical.radius;
 
 			// this._spherical.radius = this._clampDistance( this._spherical.radius * this._scale );
 			this._spherical.radius = this._clampDistance( this._spherical.radius );
@@ -457,7 +460,7 @@ class OrbitControls extends Controls {
 
 		position.copy( this.target ).add( _v );
 
-		this.target.add( offset.normalize().multiplyScalar( - pushDelta ) );
+		this.target.add( _v.normalize().multiplyScalar( - pushDelta ) );
 
 		// restrict position and target in clamp bounds
 		position.clamp( this.clampMin, this.clampMax );
@@ -471,7 +474,7 @@ class OrbitControls extends Controls {
 			Math.abs( this._sphericalDelta.theta ) +
 			Math.abs( this._sphericalDelta.phi ) +
 			Math.abs( this._sphericalDelta.radius ) +
-			panOffset.length()
+			this._panOffset.length()
 		) > 0.001 ) {
 
 			this._sphericalDelta.theta *= ( 1 - this.dampingFactor );
@@ -480,7 +483,7 @@ class OrbitControls extends Controls {
 
 			this._panOffset.multiplyScalar( 1 - this.dampingFactor );
 
-					isDamping = true;
+			isDamping = true;
 
 		} else {
 
@@ -490,7 +493,7 @@ class OrbitControls extends Controls {
 
 		}
 
-			// todo this should be moved above previous `if`
+		// todo this should be moved above previous `if`
 		// adjust camera position
 		if ( this.zoomToCursor && this._performCursorZoom ) {
 
@@ -499,10 +502,10 @@ class OrbitControls extends Controls {
 
 				// move the camera down the pointer ray
 				// this method avoids floating point error
-						const prevRadius = this._spherical.radius;
-						newRadius = this._spherical.radius * this._scale;
-						// newRadius = this._spherical.radius * ( 1 + sphericalDelta.radius * ( scope.enableDamping ? scope.dampingFactor : 1 ) );
-						newRadius = this._clampDistance( newRadius );
+				const prevRadius = this._spherical.radius;
+				newRadius = this._spherical.radius * this._scale;
+				// newRadius = this._spherical.radius * ( 1 + this._sphericalDelta.radius * ( this.enableDamping ? this.dampingFactor : 0 ) );
+				newRadius = this._clampDistance( newRadius );
 
 				const radiusDelta = prevRadius - newRadius;
 				this.object.position.addScaledVector( this._dollyDirection, radiusDelta );
@@ -618,33 +621,7 @@ class OrbitControls extends Controls {
 
 		this._panOffset.set( 0, 0, 0 );
 
-	};
-
-	dispose() {
-
-		scope.domElement.removeEventListener( 'contextmenu', onContextMenu );
-
-		scope.domElement.removeEventListener( 'pointerdown', onPointerDown );
-		scope.domElement.removeEventListener( 'pointercancel', onPointerUp );
-		scope.domElement.removeEventListener( 'wheel', onMouseWheel );
-
-		scope.domElement.removeEventListener( 'pointermove', onPointerMove );
-		scope.domElement.removeEventListener( 'pointerup', onPointerUp );
-
-		const document = scope.domElement.getRootNode(); // offscreen canvas compatibility
-
-		document.removeEventListener( 'keydown', interceptControlDown, { capture: true } );
-
-		if ( scope._domElementKeyEvents !== null ) {
-
-			scope._domElementKeyEvents.removeEventListener( 'keydown', onKeyDown );
-			scope._domElementKeyEvents = null;
-
-		}
-
-		//scope.dispatchEvent( { type: 'dispose' } ); // should this be added here?
-
-	};
+	}
 
 	_getAutoRotationAngle( deltaTime ) {
 
@@ -680,8 +657,6 @@ class OrbitControls extends Controls {
 		this._sphericalDelta.phi -= angle;
 
 	}
-	rotateUp = _rotateUp;
-	rotateLeft = _rotateLeft;
 
 	_panLeft( distance, objectMatrix ) {
 
@@ -746,7 +721,7 @@ class OrbitControls extends Controls {
 
 	}
 
-	_dollyOut( dollyScale, delta = 0  ) {
+	_dollyOut( dollyScale, delta = 0 ) {
 
 		if ( this.object.isPerspectiveCamera || this.object.isOrthographicCamera ) {
 
@@ -762,7 +737,7 @@ class OrbitControls extends Controls {
 
 	}
 
-	_dollyIn( dollyScale, delta = 0  ) {
+	_dollyIn( dollyScale, delta = 0 ) {
 
 		if ( this.object.isPerspectiveCamera || this.object.isOrthographicCamera ) {
 
@@ -832,7 +807,7 @@ class OrbitControls extends Controls {
 
 	_handleMouseDownDolly( event ) {
 
-		this._updateZoomParameters( event.clientX, event.clientX );
+		this._updateZoomParameters( event.clientX, event.clientY );
 		this._dollyStart.set( event.clientX, event.clientY );
 
 	}
@@ -1280,6 +1255,18 @@ class OrbitControls extends Controls {
 
 	}
 
+	rotateUp( angle ) {
+
+		this._rotateUp( angle );
+
+	}
+	rotateLeft( angle ) {
+
+		this._rotateLeft( angle );
+
+	}
+
+
 }
 
 function onPointerDown( event ) {
@@ -1325,8 +1312,8 @@ function onPointerMove( event ) {
 
 	} else {
 
-			if ( ! event.buttons ) this._onPointerUp( event );
-			else this._onMouseMove( event );
+		if ( ! event.buttons ) this._onPointerUp( event );
+		else this._onMouseMove( event );
 
 	}
 
