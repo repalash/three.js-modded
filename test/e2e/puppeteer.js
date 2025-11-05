@@ -55,6 +55,7 @@ const exceptionList = [
 	'webxr_vr_sandbox',
 	'webxr_vr_video',
 	'webxr_xr_ballshooter',
+	'webxr_xr_dragging_custom_depth',
 
 	'webgl_worker_offscreencanvas', // in a worker, not robust
 
@@ -100,8 +101,6 @@ const exceptionList = [
 	'webgl_shadowmap_progressive',
 	'webgl_test_memory2',
 	'webgl_tiled_forward',
-	'webgl2_volume_instancing',
-	'webgl2_multisampled_renderbuffers',
 	'webgl_points_dynamic',
 	'webgpu_multisampled_renderbuffers',
 
@@ -140,12 +139,15 @@ const exceptionList = [
 	'webgpu_shadowmap',
 	'webgpu_tsl_editor',
 	'webgpu_tsl_transpiler',
+	'webgpu_tsl_interoperability',
 	'webgpu_portal',
 	'webgpu_custom_fog',
 	'webgpu_instancing_morph',
 	'webgpu_mesh_batch',
-	'webgpu_renderbundle',
 	'webgpu_texturegrad',
+	'webgpu_performance_renderbundle',
+	'webgpu_lights_rectarealight',
+	'webgpu_postprocessing',
 
 	// WebGPU idleTime and parseTime too low
 	'webgpu_compute_particles',
