@@ -102,6 +102,8 @@ class Material extends EventDispatcher {
 
 	}
 
+	// onBeforeRender and onBeforeCompile only supported in WebGLRenderer
+
 	onBeforeRender( /* renderer, scene, camera, geometry, object, group */ ) {}
 
 	onAfterRender( /* renderer, scene, camera, geometry, object, group */ ) {}
@@ -557,4 +559,3 @@ function copyMaterialUserData( dest, source ) {
 }
 
 export { Material };
-
