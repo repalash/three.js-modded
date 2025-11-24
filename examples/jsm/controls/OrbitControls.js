@@ -312,7 +312,8 @@ class OrbitControls extends Controls {
 			const now = Date.now();
 			const dt = now - this._lastUpdateTime;
 			if ( dt < 1000 / this.throttleUpdate ) return;
-			this._lastUpdateTime = now;
+			// todo this breaks target(lookat) update etc
+			// this._lastUpdateTime = now;
 
 		}
 
