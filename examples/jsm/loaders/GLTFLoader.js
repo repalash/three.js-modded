@@ -3451,7 +3451,7 @@ class GLTFParser {
 			}
 
 			if ( sourceDef.uri && typeof sourceDef.uri === 'string' && isObjectURL === false )
-				texture.userData.rootPath = LoaderUtils.resolveURL( sourceDef.uri, options.path );
+				texture.userData.rootPath = options.path && options.path.startsWith( '/' ) ? sourceDef.uri : LoaderUtils.resolveURL( sourceDef.uri, options.path );
 
 			if ( sourceBlob ) texture.userData.__sourceBlob = sourceBlob;
 
