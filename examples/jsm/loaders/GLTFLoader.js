@@ -3277,13 +3277,21 @@ class GLTFParser {
 			texture.wrapS = WEBGL_WRAPPINGS[ sampler.wrapS ] || RepeatWrapping;
 			texture.wrapT = WEBGL_WRAPPINGS[ sampler.wrapT ] || RepeatWrapping;
 
-			if ( sampler.extras ) {
+			if ( sampler.extras ) { // this won't be available for now, see GLTFWriter2.processSampler
 
 				if ( sampler.extras.uuid !== undefined ) {
 
 					texture.uuid = sampler.extras.uuid;
 					texture.__hasGLTFUuid = true; // this is read in GLTFTextureTransformExtension.extendTexture
 					// delete sampler.extras.uuid; // do not delete this. It can be read for finding texture references by uuid in after parse. Also sampler extras is not copied to user data so no problem.
+
+				}
+
+				if ( sampler.extras.colorSpace !== undefined ) {
+
+					texture.colorSpace = sampler.extras.colorSpace;
+					texture.userData._forcedColorSpace = true;
+					delete sampler.extras.colorSpace;
 
 				}
 
@@ -3448,6 +3456,14 @@ class GLTFParser {
 
 				}
 
+				if ( sourceDef.extras.t_colorSpace !== undefined ) {
+
+					texture.colorSpace = sourceDef.extras.t_colorSpace;
+					texture.userData._forcedColorSpace = true;
+					delete sourceDef.extras.t_colorSpace;
+
+				}
+
 			}
 
 			if ( sourceDef.uri && typeof sourceDef.uri === 'string' && isObjectURL === false )
@@ -3470,6 +3486,7 @@ class GLTFParser {
 					texture.uuid = texture2.uuid;
 					if ( texture2.__hasGLTFUuid ) texture.__hasGLTFUuid = true;
 					texture.flipY = texture2.flipY;
+					texture.colorSpace = texture2.colorSpace;
 					texture.userData = texture2.userData;
 					texture.setDirty && texture.setDirty();
 					texture2._newTex = texture;
@@ -3528,7 +3545,7 @@ class GLTFParser {
 
 			}
 
-			if ( colorSpace !== undefined ) {
+			if ( colorSpace !== undefined && ! texture.userData._forcedColorSpace ) {
 
 				texture.colorSpace = colorSpace;
 
