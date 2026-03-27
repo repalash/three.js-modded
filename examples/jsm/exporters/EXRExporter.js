@@ -129,10 +129,15 @@ function buildInfoRTT( renderTarget, options = {} ) {
 		3: 16
 	};
 
+	const textureIndex = options.textureIndex || 0;
+	const texture = Array.isArray( renderTarget.textures )
+		? renderTarget.textures[ textureIndex ]
+		: renderTarget.texture;
+
 	const WIDTH = renderTarget.width,
 		HEIGHT = renderTarget.height,
-		TYPE = renderTarget.texture.type,
-		FORMAT = renderTarget.texture.format,
+		TYPE = texture.type,
+		FORMAT = texture.format,
 		COLOR_SPACE = texture.colorSpace,
 		COMPRESSION = ( options.compression !== undefined ) ? options.compression : ZIP_COMPRESSION,
 		EXPORTER_TYPE = ( options.type !== undefined ) ? options.type : HalfFloatType,
@@ -145,6 +150,7 @@ function buildInfoRTT( renderTarget, options = {} ) {
 		height: HEIGHT,
 		type: TYPE,
 		format: FORMAT,
+		colorSpace: COLOR_SPACE,
 		compression: COMPRESSION,
 		blockLines: COMPRESSION_SIZE,
 		dataType: OUT_TYPE,
@@ -152,6 +158,7 @@ function buildInfoRTT( renderTarget, options = {} ) {
 		numBlocks: Math.ceil( HEIGHT / COMPRESSION_SIZE ),
 		numInputChannels: 4,
 		numOutputChannels: NUM_CHANNELS,
+		flipY: false,
 		textureIndex: options.textureIndex || 0
 	};
 
