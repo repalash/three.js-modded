@@ -1,6 +1,6 @@
 {
-  "name": "three",
-  "version": "0.168.10004",
+  "name": "three-modded",
+  "version": "0.168.10005",
   "description": "JavaScript 3D library",
   "type": "module",
   "main": "./build/three.cjs",
@@ -20,7 +20,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mrdoob/three.js"
+    "url": "https://github.com/repalash/three.js-modded"
   },
   "sideEffects": [ "./src/nodes/**/*" ],
   "files": [
@@ -43,6 +43,7 @@
   "scripts": {
     "start": "npm run dev",
     "test": "npm run lint && npm run test-unit && npm run test-unit-addons",
+    "release": "git diff --exit-code && git tag publish@$npm_package_version && git push origin publish@$npm_package_version",
     "build": "rollup -c utils/build/rollup.config.js",
     "build-module": "rollup -c utils/build/rollup.config.js --configOnlyModule",
     "dev": "concurrently --names \"ROLLUP,HTTP\" -c \"bgBlue.bold,bgGreen.bold\" \"rollup -c utils/build/rollup.config.js -w -m inline\" \"servez -p 8080\"",
