@@ -1,6 +1,6 @@
 {
   "name": "three-modded",
-  "version": "0.168.10005",
+  "version": "0.168.10006",
   "description": "JavaScript 3D library",
   "type": "module",
   "main": "./build/three.cjs",
