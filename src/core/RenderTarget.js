@@ -452,7 +452,8 @@ class RenderTarget extends EventDispatcher {
 		this.storeMultisampledDepthBuffer = source.storeMultisampledDepthBuffer;
 		this.storeMultisampledStencilBuffer = source.storeMultisampledStencilBuffer;
 
-		if ( source.depthTexture !== null ) {
+		// it can be set to undefined by mistake (not just null)
+		if ( source.depthTexture ) {
 
 			if ( source.depthTexture.renderTarget === source ) {
 
