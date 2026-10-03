@@ -1,3 +1,17 @@
+# three-modded
+
+[![npm version](https://img.shields.io/npm/v/three-modded)](https://www.npmjs.com/package/three-modded)
+
+A modified fork of [three.js](https://github.com/mrdoob/three.js) with patches and extensions used by [threepipe](https://github.com/repalash/threepipe) and [webgi](https://webgi.dev). Install as a drop-in replacement for `three`:
+
+```bash
+npm install three@npm:three-modded
+```
+
+Types package: [`three-types-modded`](https://www.npmjs.com/package/three-types-modded) ([GitHub](https://github.com/repalash/three-ts-types))
+
+---
+
 # three.js
 
 [![NPM Package][npm]][npm-url]
