@@ -173,6 +173,7 @@ class Rhino3dmLoader extends Loader {
 				.then( result => {
 
 					result.userData.warnings = this.warnings;
+					this.warnings = [];
 					onLoad( result );
 
 				 } )
@@ -287,6 +288,8 @@ class Rhino3dmLoader extends Loader {
 
 	_compareMaterials( material ) {
 
+		if ( this.materials.includes( material ) ) return material;
+
 		const mat = {};
 		mat.name = material.name;
 		mat.color = {};
@@ -347,7 +350,7 @@ class Rhino3dmLoader extends Loader {
 			name: material.name,
 			reflectivity: material.reflectivity,
 			opacity: 1.0 - material.transparency,
-			side: DoubleSide,
+			side: DoubleSide, // todo should we change?
 			specularColor: new Color( material.specularColor.r / 255.0, material.specularColor.g / 255.0, material.specularColor.b / 255.0 ),
 			transparent: material.transparency > 0 ? true : false
 
@@ -535,6 +538,7 @@ class Rhino3dmLoader extends Loader {
 
 		}
 
+		// todo repalash - do it through AssetImporter/LoadingManager
 		if ( renderEnvironment ) {
 
 			new EXRLoader().setPriority( this.priority ).setCache( this.cache ).load( renderEnvironment.image, function ( texture ) {
@@ -638,7 +642,7 @@ class Rhino3dmLoader extends Loader {
 
 					const layer = data.layers[ attributes.layerIndex ];
 
-					_object.visible = layer ? data.layers[ attributes.layerIndex ].visible : true;
+					_object.visible = layer ? layer.visible : true;
 
 					if ( attributes.isInstanceDefinitionObject ) {
 
@@ -688,21 +692,56 @@ class Rhino3dmLoader extends Loader {
 
 				if ( iRef.geometry.parentIdefId === iDef.attributes.id ) {
 
-					const iRefObject = new Object3D();
 					const xf = iRef.geometry.xform.array;
 
 					const matrix = new Matrix4();
 					matrix.set( ...xf );
 
-					iRefObject.applyMatrix4( matrix );
+					if ( objects.length === 1 ) {
 
-					for ( let p = 0; p < objects.length; p ++ ) {
+						const clone = objects[ 0 ].clone( true );
 
-						iRefObject.add( objects[ p ].clone( true ) );
+						clone.name = iRef.attributes.name || clone.name;
+						clone.applyMatrix4( matrix );
+
+						if ( iRef.attributes.materialIndex >= 0 && iRef.attributes.materialIndex !== objects[ 0 ].userData.attributes.materialIndex ) {
+
+							const rMaterial = materials[ iRef.attributes.materialIndex ];
+							const material = this._createMaterial( rMaterial, data.renderEnvironment );
+							clone.material = this._compareMaterials( material );
+
+						}
+
+						clone.userData[ 'defAttributes' ] = clone.userData.attributes;
+						clone.userData[ 'defObjectType' ] = clone.userData.objectType;
+						clone.userData[ 'attributes' ] = { ...clone.userData.attributes, ...iRef.attributes };
+						clone.userData[ 'objectType' ] = iRef.objectType;
+						if ( iRef.attributes.layerIndex !== undefined ) {
+
+							const layer = data.layers[ iRef.attributes.layerIndex ];
+							clone.visible = layer ? layer.visible : clone.visible;
+
+						}
+
+						object.add( clone );
+
+					} else {
+
+						console.warn( 'THREE.Rhino3dmLoader: InstanceReference with multiple/no objects, not all properties will be copied.' );
+
+						const iRefObject = new Object3D();
+
+						iRefObject.applyMatrix4( matrix );
+
+						for ( let p = 0; p < objects.length; p ++ ) {
+
+							iRefObject.add( objects[ p ].clone( true ) );
+
+						}
+
+						object.add( iRefObject );
 
 					}
-
-					object.add( iRefObject );
 
 				}
 
@@ -710,6 +749,7 @@ class Rhino3dmLoader extends Loader {
 
 		}
 
+		// todo removing name?
 		object.name = '';
 		return object;
 
@@ -814,6 +854,7 @@ class Rhino3dmLoader extends Loader {
 				if ( attributes.name ) {
 
 					mesh.name = attributes.name;
+					geometry.name = attributes.name;
 
 				}
 
@@ -999,7 +1040,7 @@ class Rhino3dmLoader extends Loader {
 					//this.libraryBinary = binaryContent;
 					this.libraryConfig.wasmBinary = binaryContent;
 
-					const fn = Rhino3dmWorker.toString();
+					const fn = Rhino3DMWorkerStr;
 
 					const body = [
 						'/* rhino3dm.js */',
@@ -1111,6 +1152,7 @@ class Rhino3dmLoader extends Loader {
 
 /* WEB WORKER */
 
+const Rhino3DMWorkerStr = `
 function Rhino3dmWorker() {
 
 	let libraryPending;
@@ -1175,7 +1217,7 @@ function Rhino3dmWorker() {
 
 	// Converts a rhino3dm mesh or point cloud to a Three.js payload. When the wasm build
 	// supports toThreejsBuffers (rhino3dm >= 8.32.1 for point clouds, >= 8.32 for meshes),
-	// returns transferable typed arrays tagged `format: 'buffers'`; otherwise falls back to
+	// returns transferable typed arrays tagged \`format: 'buffers'\`; otherwise falls back to
 	// the element-by-element BufferGeometry JSON.
 	function meshToThreejs( geom ) {
 
@@ -1534,7 +1576,7 @@ function Rhino3dmWorker() {
 		} else {
 
 			self.postMessage( { type: 'warning', id: taskID, data: {
-				message: `THREE.3DMLoader: Image for ${tType} texture not embedded in file.`,
+				message: \`THREE.3DMLoader: Image for \${tType} texture not embedded in file.\`,
 				type: 'missing resource'
 			}
 
@@ -1681,7 +1723,7 @@ function Rhino3dmWorker() {
 				if ( geometry.lightStyle.name === 'LightStyle_WorldLinear' ) {
 
 					self.postMessage( { type: 'warning', id: taskID, data: {
-						message: `THREE.3DMLoader: No conversion exists for ${objectType.constructor.name} ${geometry.lightStyle.name}`,
+						message: \`THREE.3DMLoader: No conversion exists for \${objectType.constructor.name} \${geometry.lightStyle.name}\`,
 						type: 'no conversion',
 						guid: _attributes.id
 					}
@@ -1723,7 +1765,7 @@ function Rhino3dmWorker() {
 			default:
 
 				self.postMessage( { type: 'warning', id: taskID, data: {
-					message: `THREE.3DMLoader: Conversion not implemented for ${objectType.constructor.name}`,
+					message: \`THREE.3DMLoader: Conversion not implemented for \${objectType.constructor.name}\`,
 					type: 'not implemented',
 					guid: _attributes.id
 				}
@@ -1779,7 +1821,7 @@ function Rhino3dmWorker() {
 		} else {
 
 			self.postMessage( { type: 'warning', id: taskID, data: {
-				message: `THREE.3DMLoader: ${objectType.constructor.name} has no associated mesh geometry.`,
+				message: \`THREE.3DMLoader: \${objectType.constructor.name} has no associated mesh geometry.\`,
 				type: 'missing mesh',
 				guid: _attributes.id
 			}
@@ -1942,5 +1984,6 @@ function Rhino3dmWorker() {
 	}
 
 }
+`;
 
 export { Rhino3dmLoader };

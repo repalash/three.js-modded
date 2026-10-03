@@ -186,7 +186,13 @@ class FBXLoader extends Loader {
 		textureLoader.setPriority( this.priority );
 		textureLoader.setCache( this.cache );
 
-		return new FBXTreeParser( textureLoader, this.manager, this.trimAnimationClips ).parse( fbxTree );
+		const result = new FBXTreeParser( textureLoader, this.manager, this.trimAnimationClips ).parse( fbxTree );
+
+		fbxTree = null;
+		connections = null;
+		sceneGraph = null;
+
+		return result;
 
 	}
 
