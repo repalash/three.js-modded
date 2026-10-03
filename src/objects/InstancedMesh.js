@@ -76,6 +76,8 @@ class InstancedMesh extends Mesh {
 		 */
 		this.morphTexture = null;
 
+		this.sourceTrs = null;
+
 		/**
 		 * The number of instances.
 		 *
@@ -182,6 +184,8 @@ class InstancedMesh extends Mesh {
 	copy( source, recursive ) {
 
 		super.copy( source, recursive );
+
+		if ( ! source.isInstancedMesh ) return this;
 
 		this.instanceMatrix.copy( source.instanceMatrix );
 

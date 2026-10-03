@@ -393,25 +393,33 @@ class Object3D extends EventDispatcher {
 	 * A callback that is executed immediately before a 3D object is rendered.
 	 *
 	 * @param {Renderer|WebGLRenderer} renderer - The renderer.
-	 * @param {Object3D} object - The 3D object.
+	 * @param {Scene} scene - The scene.
 	 * @param {Camera} camera - The camera that is used to render the scene.
 	 * @param {BufferGeometry} geometry - The 3D object's geometry.
 	 * @param {Material} material - The 3D object's material.
 	 * @param {Object} group - The geometry group data.
 	 */
-	onBeforeRender( /* renderer, scene, camera, geometry, material, group */ ) {}
+	onBeforeRender( renderer, scene, camera, geometry, material, group ) {
+
+		this.dispatchEvent( { type: 'beforeRender', renderer, scene, camera, geometry, material, group } );
+
+	}
 
 	/**
 	 * A callback that is executed immediately after a 3D object is rendered.
 	 *
 	 * @param {Renderer|WebGLRenderer} renderer - The renderer.
-	 * @param {Object3D} object - The 3D object.
+	 * @param {Scene} scene - The scene.
 	 * @param {Camera} camera - The camera that is used to render the scene.
 	 * @param {BufferGeometry} geometry - The 3D object's geometry.
 	 * @param {Material} material - The 3D object's material.
 	 * @param {Object} group - The geometry group data.
 	 */
-	onAfterRender( /* renderer, scene, camera, geometry, material, group */ ) {}
+	onAfterRender( renderer, scene, camera, geometry, material, group ) {
+
+		this.dispatchEvent( { type: 'afterRender', renderer, scene, camera, geometry, material, group } );
+
+	}
 
 	/**
 	 * Applies the given transformation matrix to the object and updates the object's position,
@@ -1242,7 +1250,8 @@ class Object3D extends EventDispatcher {
 				shapes: {},
 				skeletons: {},
 				animations: {},
-				nodes: {}
+				nodes: {},
+				extras: {},
 			};
 
 			output.metadata = {
@@ -1566,7 +1575,12 @@ class Object3D extends EventDispatcher {
 
 		this.animations = source.animations.slice();
 
-		this.userData = JSON.parse( JSON.stringify( source.userData ) );
+		this.userData = {};
+		for ( const [ key, value ] of Object.entries( source.userData ) ) {
+
+			this.userData[ key ] = ! value || ( value && ( value.isTexture || value.isObject3D ) ) ? value : JSON.parse( JSON.stringify( value ) );
+
+		}
 
 		if ( recursive === true ) {
 
