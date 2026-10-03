@@ -46,15 +46,16 @@ const Cache = {
 	 *
 	 * @static
 	 * @param {string} key - The key to reference the cached file.
-	 * @return {Object|undefined} The cached file. If the key does not exist `undefined` is returned.
+	 * @param {string} [type] - The expected response type. When given, a Promise resolving to the cached file is returned.
+	 * @return {Object|undefined|Promise<Object|undefined>} The cached file. If the key does not exist `undefined` is returned.
 	 */
-	get: function ( key ) {
+	get: function ( key, type ) {
 
-		if ( this.enabled === false ) return;
+		if ( this.enabled === false ) return type ? Promise.resolve() : undefined;
 
 		// console.log( 'THREE.Cache', 'Checking key:', key );
 
-		return this.files[ key ];
+		return type ? Promise.resolve( this.files[ key ] ) : this.files[ key ];
 
 	},
 
