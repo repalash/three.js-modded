@@ -18,3 +18,5 @@ test/e2e/chromium
 test/e2e/output-screenshots
 
 **/node_modules
+# built outputs are not tracked in the fork: create-release.yml builds before publishing
+build/
