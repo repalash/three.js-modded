@@ -1,4 +1,4 @@
-import { BackSide, DoubleSide, ObjectSpaceNormalMap, TangentSpaceNormalMap, NoToneMapping, NormalBlending, SRGBTransfer, RGFormat, RG11_EAC_Format, RED_GREEN_RGTC2_Format } from '../../constants.js';
+import { BackSide, DoubleSide, ObjectSpaceNormalMap, TangentSpaceNormalMap, NoToneMapping, NormalBlending, SRGBTransfer, RGFormat, RG11_EAC_Format, RED_GREEN_RGTC2_Format, LinearSRGBColorSpace, SRGBColorSpace } from '../../constants.js';
 import { Layers } from '../../core/Layers.js';
 import { WebGLProgram } from './WebGLProgram.js';
 import { WebGLShaderCache } from './WebGLShaderCache.js';
@@ -119,6 +119,7 @@ function WebGLPrograms( renderer, environments, extensions, capabilities, bindin
 
 		const currentRenderTarget = renderer.getRenderTarget();
 		const reversedDepthBuffer = renderer.state.buffers.depth.getReversed();
+		const transmissionRenderTarget = renderer.userData && renderer.userData.transmissionRenderTarget;
 
 		const IS_INSTANCEDMESH = object.isInstancedMesh === true;
 		const IS_BATCHEDMESH = object.isBatchedMesh === true;
@@ -214,7 +215,9 @@ function WebGLPrograms( renderer, environments, extensions, capabilities, bindin
 			instancingColor: IS_INSTANCEDMESH && object.instanceColor !== null,
 			instancingMorph: IS_INSTANCEDMESH && object.morphTexture !== null,
 
-			outputColorSpace: ( currentRenderTarget === null ) ? renderer.outputColorSpace : ( currentRenderTarget.isXRRenderTarget === true ? currentRenderTarget.texture.colorSpace : ColorManagement.workingColorSpace ),
+			// todo repalash?
+			// outputColorSpace: ( currentRenderTarget === null ) ? renderer.outputColorSpace : ( currentRenderTarget.isXRRenderTarget === true ? currentRenderTarget.texture.colorSpace : ColorManagement.workingColorSpace ),
+			outputColorSpace: ( currentRenderTarget === null ) ? renderer.outputColorSpace : ( ( currentRenderTarget.isXRRenderTarget === true || currentRenderTarget.texture.colorSpace && currentRenderTarget.texture.colorSpace !== SRGBColorSpace ) ? currentRenderTarget.texture.colorSpace : ColorManagement.workingColorSpace ),
 			alphaToCoverage: !! material.alphaToCoverage,
 
 			map: HAS_MAP,
@@ -267,9 +270,11 @@ function WebGLPrograms( renderer, environments, extensions, capabilities, bindin
 			transmissionMap: HAS_TRANSMISSIONMAP,
 			thicknessMap: HAS_THICKNESSMAP,
 
+			transmissionSamplerMapEncoding: transmissionRenderTarget ? transmissionRenderTarget.texture.colorSpace || LinearSRGBColorSpace : LinearSRGBColorSpace,
+
 			gradientMap: HAS_GRADIENTMAP,
 
-			opaque: material.transparent === false && material.blending === NormalBlending && material.alphaToCoverage === false,
+			opaque: material.transparent === false && material.blending === NormalBlending && material.alphaToCoverage === false && ! ( material.transmission > 0 ),
 
 			alphaMap: HAS_ALPHAMAP,
 			alphaTest: HAS_ALPHATEST,
@@ -314,7 +319,7 @@ function WebGLPrograms( renderer, environments, extensions, capabilities, bindin
 
 			//
 
-			vertexTangents: !! geometry.attributes.tangent && ( HAS_NORMALMAP || HAS_ANISOTROPY ),
+			vertexTangents: !! geometry.attributes.tangent && ( HAS_NORMALMAP || HAS_ANISOTROPY || geometry.userData.__forceUseTangent ),
 			vertexNormals: !! geometry.attributes.normal,
 			vertexColors: material.vertexColors,
 			vertexAlphas: material.vertexColors === true && !! geometry.attributes.color && geometry.attributes.color.itemSize === 4,
