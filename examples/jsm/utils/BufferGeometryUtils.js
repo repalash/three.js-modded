@@ -596,6 +596,7 @@ function estimateBytesUsed( geometry ) {
  */
 function mergeVertices( geometry, tolerance = 1e-4 ) {
 
+	const doHash = tolerance > 0; // disable merging if tolerance is 0 or negative
 	tolerance = Math.max( tolerance, Number.EPSILON );
 
 	// Generate an index buffer if the geometry doesn't have one, or optimize it
@@ -655,7 +656,7 @@ function mergeVertices( geometry, tolerance = 1e-4 ) {
 
 		// Generate a hash for the vertex attributes at the current index 'i'
 		let hash = '';
-		for ( let j = 0, l = attributeNames.length; j < l; j ++ ) {
+		for ( let j = 0, l = attributeNames.length; j < l && doHash; j ++ ) {
 
 			const name = attributeNames[ j ];
 			const attribute = geometry.getAttribute( name );
@@ -672,7 +673,7 @@ function mergeVertices( geometry, tolerance = 1e-4 ) {
 
 		// Add another reference to the vertex if it's already
 		// used by another index
-		if ( hash in hashToIndex ) {
+		if ( doHash && hash in hashToIndex ) {
 
 			newIndices.push( hashToIndex[ hash ] );
 
@@ -708,7 +709,8 @@ function mergeVertices( geometry, tolerance = 1e-4 ) {
 
 			}
 
-			hashToIndex[ hash ] = nextIndex;
+			if ( doHash )
+				hashToIndex[ hash ] = nextIndex;
 			newIndices.push( nextIndex );
 			nextIndex ++;
 
@@ -1359,6 +1361,21 @@ function toCreasedNormals( geometry, creaseAngle = Math.PI / 3 /* 60 degrees */ 
 
 }
 
+
+function mergeBufferGeometries( geometries, useGroups = false ) {
+
+	console.warn( 'THREE.BufferGeometryUtils: mergeBufferGeometries() has been renamed to mergeGeometries().' ); // @deprecated, r151
+	return mergeGeometries( geometries, useGroups );
+
+}
+
+function mergeBufferAttributes( attributes ) {
+
+	console.warn( 'THREE.BufferGeometryUtils: mergeBufferAttributes() has been renamed to mergeAttributes().' ); // @deprecated, r151
+	return mergeAttributes( attributes );
+
+}
+
 export {
 	computeMikkTSpaceTangents,
 	mergeGeometries,
@@ -1369,5 +1386,7 @@ export {
 	toTrianglesDrawMode,
 	computeMorphedAttributes,
 	mergeGroups,
-	toCreasedNormals
+	toCreasedNormals,
+	mergeBufferGeometries,
+	mergeBufferAttributes,
 };

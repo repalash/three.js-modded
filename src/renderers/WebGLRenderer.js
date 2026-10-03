@@ -2641,7 +2641,7 @@ class WebGLRenderer {
 
 		};
 
-		this.readRenderTargetPixelsAsync = async function ( renderTarget, x, y, width, height, buffer, activeCubeFaceIndex ) {
+		this.readRenderTargetPixelsAsync = async function ( renderTarget, x, y, width, height, buffer, activeCubeFaceIndex, textureIndex = 0 ) {
 
 			if ( ! ( renderTarget && renderTarget.isWebGLRenderTarget ) ) {
 
@@ -2658,7 +2658,8 @@ class WebGLRenderer {
 
 			if ( framebuffer ) {
 
-				const texture = renderTarget.texture;
+				// three-modded: MRT read-back (upstream has this since r177)
+				const texture = Array.isArray( renderTarget.textures ) ? renderTarget.textures[ textureIndex || 0 ] : renderTarget.texture;
 				const textureFormat = texture.format;
 				const textureType = texture.type;
 
@@ -2683,6 +2684,7 @@ class WebGLRenderer {
 					const glBuffer = _gl.createBuffer();
 					_gl.bindBuffer( _gl.PIXEL_PACK_BUFFER, glBuffer );
 					_gl.bufferData( _gl.PIXEL_PACK_BUFFER, buffer.byteLength, _gl.STREAM_READ );
+					if ( renderTarget.textures.length > 1 ) _gl.readBuffer( _gl.COLOR_ATTACHMENT0 + ( textureIndex || 0 ) );
 					_gl.readPixels( x, y, width, height, utils.convert( textureFormat ), utils.convert( textureType ), 0 );
 
 					// reset the frame buffer to the currently set buffer before waiting
