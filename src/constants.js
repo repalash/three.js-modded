@@ -1295,6 +1295,7 @@ export const SRGBColorSpace = 'srgb';
  * @constant
  */
 export const LinearSRGBColorSpace = 'srgb-linear';
+export const RGBM16ColorSpace = 'rgbm-16';
 
 /**
  * Linear transfer function.
@@ -1642,6 +1643,11 @@ export const WebGLCoordinateSystem = 2000;
  * @constant
  */
 export const WebGPUCoordinateSystem = 2001;
+
+/** @deprecated Use LinearSRGBColorSpace or NoColorSpace in three.js r152+. */
+export const LinearEncoding = 3000;
+/** @deprecated Use SRGBColorSpace in three.js r152+. */
+export const sRGBEncoding = 3001;
 
 /**
  * Represents the different timestamp query types.
