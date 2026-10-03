@@ -6,6 +6,7 @@ import { Vector3 } from '../math/Vector3.js';
 import { Vector4 } from '../math/Vector4.js';
 import { Matrix3 } from '../math/Matrix3.js';
 import { Matrix4 } from '../math/Matrix4.js';
+import { LinearSRGBColorSpace } from '../constants.js';
 
 import default_vertex from '../renderers/shaders/ShaderChunk/default_vertex.glsl.js';
 import default_fragment from '../renderers/shaders/ShaderChunk/default_fragment.glsl.js';
@@ -414,6 +415,9 @@ class ShaderMaterial extends Material {
 
 		super.fromJSON( json, textures );
 
+		// only for legacy files.
+		const hexColorSpace = ( json.metadata && json.metadata.version <= 4.5 ) ? LinearSRGBColorSpace : undefined;
+
 		if ( json.uniforms !== undefined ) {
 
 			for ( const name in json.uniforms ) {
@@ -429,7 +433,7 @@ class ShaderMaterial extends Material {
 						break;
 
 					case 'c':
-						this.uniforms[ name ].value = new Color().setHex( uniform.value );
+						this.uniforms[ name ].value = new Color().setHex( uniform.value, hexColorSpace );
 						break;
 
 					case 'v2':

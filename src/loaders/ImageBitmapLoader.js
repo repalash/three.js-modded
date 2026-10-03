@@ -178,6 +178,8 @@ class ImageBitmapLoader extends Loader {
 
 		} ).then( function ( blob ) {
 
+			Cache.add( url, blob, 'blob' );
+
 			return createImageBitmap( blob, Object.assign( {}, scope.options, { colorSpaceConversion: 'none' } ) );
 
 		} ).then( function ( imageBitmap ) {

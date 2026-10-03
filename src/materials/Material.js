@@ -1,6 +1,6 @@
 import { Color } from '../math/Color.js';
 import { EventDispatcher } from '../core/EventDispatcher.js';
-import { FrontSide, NormalBlending, LessEqualDepth, AddEquation, OneMinusSrcAlphaFactor, SrcAlphaFactor, AlwaysStencilFunc, KeepStencilOp } from '../constants.js';
+import { FrontSide, NormalBlending, LessEqualDepth, AddEquation, OneMinusSrcAlphaFactor, SrcAlphaFactor, AlwaysStencilFunc, KeepStencilOp, LinearSRGBColorSpace } from '../constants.js';
 import { generateUUID } from '../math/MathUtils.js';
 import { warn } from '../utils.js';
 import { Vector2 } from '../math/Vector2.js';
@@ -925,18 +925,21 @@ class Material extends EventDispatcher {
 	 */
 	fromJSON( json, textures ) {
 
+		// only for legacy files.
+		const hexColorSpace = ( json.metadata && json.metadata.version <= 4.5 ) ? LinearSRGBColorSpace : undefined;
+
 		if ( json.uuid !== undefined ) this.uuid = json.uuid;
 		if ( json.name !== undefined ) this.name = json.name;
-		if ( json.color !== undefined && this.color !== undefined ) this.color.setHex( json.color );
+		if ( json.color !== undefined && this.color !== undefined ) this.color.setHex( json.color, hexColorSpace );
 		if ( json.roughness !== undefined ) this.roughness = json.roughness;
 		if ( json.metalness !== undefined ) this.metalness = json.metalness;
 		if ( json.sheen !== undefined ) this.sheen = json.sheen;
-		if ( json.sheenColor !== undefined ) this.sheenColor = new Color().setHex( json.sheenColor );
+		if ( json.sheenColor !== undefined ) this.sheenColor = new Color().setHex( json.sheenColor, hexColorSpace );
 		if ( json.sheenRoughness !== undefined ) this.sheenRoughness = json.sheenRoughness;
-		if ( json.emissive !== undefined && this.emissive !== undefined ) this.emissive.setHex( json.emissive );
-		if ( json.specular !== undefined && this.specular !== undefined ) this.specular.setHex( json.specular );
+		if ( json.emissive !== undefined && this.emissive !== undefined ) this.emissive.setHex( json.emissive, hexColorSpace );
+		if ( json.specular !== undefined && this.specular !== undefined ) this.specular.setHex( json.specular, hexColorSpace );
 		if ( json.specularIntensity !== undefined ) this.specularIntensity = json.specularIntensity;
-		if ( json.specularColor !== undefined && this.specularColor !== undefined ) this.specularColor.setHex( json.specularColor );
+		if ( json.specularColor !== undefined && this.specularColor !== undefined ) this.specularColor.setHex( json.specularColor, hexColorSpace );
 		if ( json.shininess !== undefined ) this.shininess = json.shininess;
 		if ( json.clearcoat !== undefined ) this.clearcoat = json.clearcoat;
 		if ( json.clearcoatRoughness !== undefined ) this.clearcoatRoughness = json.clearcoatRoughness;
@@ -958,7 +961,7 @@ class Material extends EventDispatcher {
 		if ( json.transmission !== undefined ) this.transmission = json.transmission;
 		if ( json.thickness !== undefined ) this.thickness = json.thickness;
 		if ( json.attenuationDistance !== undefined ) this.attenuationDistance = json.attenuationDistance;
-		if ( json.attenuationColor !== undefined && this.attenuationColor !== undefined ) this.attenuationColor.setHex( json.attenuationColor );
+		if ( json.attenuationColor !== undefined && this.attenuationColor !== undefined ) this.attenuationColor.setHex( json.attenuationColor, hexColorSpace );
 		if ( json.anisotropy !== undefined ) this.anisotropy = json.anisotropy;
 		if ( json.anisotropyRotation !== undefined ) this.anisotropyRotation = json.anisotropyRotation;
 		if ( json.fog !== undefined ) this.fog = json.fog;

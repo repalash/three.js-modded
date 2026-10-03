@@ -1,3 +1,4 @@
+/* eslint-disable indent */
 import { Cache } from './Cache.js';
 import { Loader } from './Loader.js';
 import { warn } from '../utils.js';
@@ -52,10 +53,12 @@ class FileLoader extends Loader {
 		/**
 		 * The expected response type.
 		 *
-		 * @type {('arraybuffer'|'blob'|'document'|'json'|'')}
-		 * @default ''
+		 * @type {('arraybuffer'|'blob'|'document'|'json'|'text'|'')}
+		 * @default 'text'
 		 */
-		this.responseType = '';
+		this.responseType = 'text';
+
+		this.useCache = true;
 
 		/**
 		 * Used for aborting requests.
@@ -83,7 +86,10 @@ class FileLoader extends Loader {
 
 		url = this.manager.resolveURL( url );
 
-		const cached = Cache.get( `file:${url}` );
+		( this.useCache ?
+			Cache.get( url, this.responseType, this.mimeType ) :
+			Promise.resolve( undefined ) )
+			.then( ( cached )=>{
 
 		if ( cached !== undefined ) {
 
@@ -274,7 +280,7 @@ class FileLoader extends Loader {
 
 				// Add to cache only on HTTP success, so that we do not cache
 				// error response bodies as proper responses to requests.
-				Cache.add( `file:${url}`, data );
+				if ( this.useCache ) Cache.add( url, data, this.responseType );
 
 				const callbacks = loading[ url ];
 				delete loading[ url ];
@@ -315,11 +321,13 @@ class FileLoader extends Loader {
 			} )
 			.finally( () => {
 
-				this.manager.itemEnd( url );
+				if ( this.useCache ) this.manager.itemEnd( url );
 
 			} );
 
-		this.manager.itemStart( url );
+		if ( this.useCache ) this.manager.itemStart( url );
+
+		} );
 
 	}
 

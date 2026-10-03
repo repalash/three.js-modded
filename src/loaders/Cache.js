@@ -48,17 +48,18 @@ const Cache = {
 	 *
 	 * @static
 	 * @param {string} key - The key to reference the cached file.
-	 * @return {Object|undefined} The cached file. If the key does not exist `undefined` is returned.
+	 * @param {string} [type] - The expected response type. When given, a Promise resolving to the cached file is returned.
+	 * @return {Object|undefined|Promise<Object|undefined>} The cached file. If the key does not exist `undefined` is returned.
 	 */
-	get: function ( key ) {
+	get: function ( key, type ) {
 
-		if ( this.enabled === false ) return;
+		if ( this.enabled === false ) return type ? Promise.resolve() : undefined;
 
-		if ( isBlobURL( key ) ) return;
+		if ( isBlobURL( key ) ) return type ? Promise.resolve() : undefined;
 
 		// log( 'Cache', 'Checking key:', key );
 
-		return this.files[ key ];
+		return type ? Promise.resolve( this.files[ key ] ) : this.files[ key ];
 
 	},
 
@@ -95,6 +96,10 @@ const Cache = {
  * @return {boolean} Whether the given cache key contains the blob: scheme or not.
  */
 function isBlobURL( key ) {
+
+	// three-modded: FileLoader, and ImageLoader and ImageBitmapLoader for the fetched blob, use the url itself as the key,
+	// without a type identifier
+	if ( key.startsWith( 'blob:' ) ) return true;
 
 	try {
 
