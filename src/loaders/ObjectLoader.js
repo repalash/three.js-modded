@@ -15,7 +15,7 @@ import {
 	NearestMipmapLinearFilter,
 	LinearFilter,
 	LinearMipmapNearestFilter,
-	LinearMipmapLinearFilter
+	LinearMipmapLinearFilter, LinearSRGBColorSpace,
 } from '../constants.js';
 import { InstancedBufferAttribute } from '../core/InstancedBufferAttribute.js';
 import { Color } from '../math/Color.js';
@@ -406,7 +406,8 @@ class ObjectLoader extends Loader {
 					return {
 						data: getTypedArray( image.type, image.data ),
 						width: image.width,
-						height: image.height
+						height: image.height,
+						complete: true
 					};
 
 				} else {
@@ -505,7 +506,8 @@ class ObjectLoader extends Loader {
 					return {
 						data: getTypedArray( image.type, image.data ),
 						width: image.width,
-						height: image.height
+						height: image.height,
+						complete: true
 					};
 
 				} else {
@@ -610,7 +612,7 @@ class ObjectLoader extends Loader {
 				}
 
 				const source = images[ data.image ];
-				const image = source.data;
+				const image = source ? source.data : undefined;
 
 				let texture;
 
@@ -632,7 +634,7 @@ class ObjectLoader extends Loader {
 
 					}
 
-					if ( image ) texture.needsUpdate = true; // textures can have undefined image data
+					if ( image && image.complete ) texture.needsUpdate = true; // textures can have undefined image data
 
 				}
 
@@ -661,6 +663,8 @@ class ObjectLoader extends Loader {
 				if ( data.internalFormat !== undefined ) texture.internalFormat = data.internalFormat;
 				if ( data.type !== undefined ) texture.type = data.type;
 				if ( data.colorSpace !== undefined ) texture.colorSpace = data.colorSpace;
+				// todo repalash remove later
+				else if ( data.encoding !== undefined ) texture.encoding = data.encoding; // @deprecated, r152
 
 				if ( data.minFilter !== undefined ) texture.minFilter = parseConstant( data.minFilter, TEXTURE_FILTER );
 				if ( data.magFilter !== undefined ) texture.magFilter = parseConstant( data.magFilter, TEXTURE_FILTER );
@@ -688,6 +692,9 @@ class ObjectLoader extends Loader {
 	parseObject( data, geometries, materials, textures, animations ) {
 
 		let object;
+
+		// only for legacy files. Note: color values of lights is not handled.
+		const hexColorSpace = ( data.metadata && data.metadata.version <= 4.5 ) ? LinearSRGBColorSpace : undefined;
 
 		function getGeometry( name ) {
 
@@ -761,7 +768,7 @@ class ObjectLoader extends Loader {
 
 					if ( Number.isInteger( data.background ) ) {
 
-						object.background = new Color( data.background );
+						object.background = new Color().setHex( data.background, hexColorSpace );
 
 					} else {
 

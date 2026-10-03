@@ -1,3 +1,4 @@
+/* eslint-disable indent */
 import { Cache } from './Cache.js';
 import { Loader } from './Loader.js';
 
@@ -20,6 +21,10 @@ class FileLoader extends Loader {
 
 		super( manager );
 
+		this.responseType = 'text';
+
+		this.useCache = true;
+
 	}
 
 	load( url, onLoad, onProgress, onError ) {
@@ -30,7 +35,10 @@ class FileLoader extends Loader {
 
 		url = this.manager.resolveURL( url );
 
-		const cached = Cache.get( url );
+		( this.useCache ?
+			Cache.get( url, this.responseType, this.mimeType ) :
+			Promise.resolve( undefined ) )
+			.then( ( cached )=>{
 
 		if ( cached !== undefined ) {
 
@@ -219,7 +227,7 @@ class FileLoader extends Loader {
 
 				// Add to cache only on HTTP success, so that we do not cache
 				// error response bodies as proper responses to requests.
-				Cache.add( url, data );
+				if ( this.useCache ) Cache.add( url, data, this.responseType );
 
 				const callbacks = loading[ url ];
 				delete loading[ url ];
@@ -260,11 +268,13 @@ class FileLoader extends Loader {
 			} )
 			.finally( () => {
 
-				this.manager.itemEnd( url );
+				if ( this.useCache ) this.manager.itemEnd( url );
 
 			} );
 
-		this.manager.itemStart( url );
+		if ( this.useCache ) this.manager.itemStart( url );
+
+		} );
 
 	}
 
