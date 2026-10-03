@@ -218,7 +218,12 @@ const ShaderLib = {
 		uniforms: {
 			uvTransform: { value: /*@__PURE__*/ new Matrix3() },
 			t2D: { value: null },
-			backgroundIntensity: { value: 1 }
+			backgroundIntensity: { value: 1 },
+
+			backgroundColor: { value: new Color( 0xffffff ) },
+
+			flipX: { value: false },
+			flipY: { value: false },
 		},
 
 		vertexShader: ShaderChunk.background_vert,
@@ -230,6 +235,8 @@ const ShaderLib = {
 
 		uniforms: {
 			envMap: { value: null },
+			envMapRotation: { value: 0 },
+			envMapIntensity: { value: 1 },
 			flipEnvMap: { value: - 1 },
 			backgroundBlurriness: { value: 0 },
 			backgroundIntensity: { value: 1 },
