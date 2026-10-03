@@ -70,6 +70,8 @@ class Material extends EventDispatcher {
 		this.premultipliedAlpha = false;
 		this.forceSinglePass = false;
 
+		this.allowOverride = true;
+
 		this.visible = true;
 
 		this.toneMapped = true;
@@ -104,6 +106,8 @@ class Material extends EventDispatcher {
 
 	onBeforeRender( /* renderer, scene, camera, geometry, object, group */ ) {}
 
+	onAfterRender( /* renderer, scene, camera, geometry, object, group */ ) {}
+
 	onBeforeCompile( /* shaderobject, renderer */ ) {}
 
 	customProgramCacheKey() {
@@ -131,7 +135,7 @@ class Material extends EventDispatcher {
 
 			if ( currentValue === undefined ) {
 
-				console.warn( `THREE.Material: '${ key }' is not a property of THREE.${ this.type }.` );
+				// console.warn( `THREE.Material: '${ key }' is not a property of THREE.${ this.type }.` );
 				continue;
 
 			}
@@ -143,6 +147,10 @@ class Material extends EventDispatcher {
 			} else if ( ( currentValue && currentValue.isVector3 ) && ( newValue && newValue.isVector3 ) ) {
 
 				currentValue.copy( newValue );
+
+			} else if ( Array.isArray( newValue ) && currentValue && typeof currentValue.fromArray === 'function' ) {
+
+				currentValue.fromArray( newValue );
 
 			} else {
 
@@ -169,7 +177,7 @@ class Material extends EventDispatcher {
 
 		const data = {
 			metadata: {
-				version: 4.6,
+				version: 4.6001,
 				type: 'Material',
 				generator: 'Material.toJSON'
 			}
@@ -502,7 +510,7 @@ class Material extends EventDispatcher {
 
 		this.toneMapped = source.toneMapped;
 
-		this.userData = JSON.parse( JSON.stringify( source.userData ) );
+		this.userData = copyMaterialUserData( {}, source.userData );
 
 		return this;
 
@@ -525,6 +533,28 @@ class Material extends EventDispatcher {
 		console.warn( 'Material: onBuild() has been removed.' ); // @deprecated, r166
 
 	}
+
+}
+
+function copyMaterialUserData( dest, source ) {
+
+	if ( ! source ) return dest;
+	for ( const key of Object.keys( source ) ) {
+
+		if ( key.startsWith( '__' ) ) continue; // double underscore
+		if ( typeof dest[ key ] === 'function' || typeof source[ key ] === 'function' ) continue;
+		const src = source[ key ];
+		const skipClone = ( ! src ) || src.isTexture || src.isObject3D || src.isMaterial || src.isBufferGeometry || src.userDataSkipClone;
+		if ( ! skipClone && typeof source[ key ].clone === 'function' )
+			dest[ key ] = source[ key ].clone();
+		else if ( ! skipClone && ( typeof source[ key ] === 'object' || Array.isArray( source[ key ] ) ) )
+			dest[ key ] = copyMaterialUserData( Array.isArray( source[ key ] ) ? [] : {}, source[ key ] );
+		else
+			dest[ key ] = source[ key ];
+
+	}
+
+	return dest;
 
 }
 

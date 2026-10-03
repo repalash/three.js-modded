@@ -90,7 +90,7 @@ float D_GGX( const in float alpha, const in float dotNH ) {
 }
 
 // https://google.github.io/filament/Filament.md.html#materialsystem/anisotropicmodel/anisotropicspecularbrdf
-#ifdef USE_ANISOTROPY
+#if defined( USE_ANISOTROPY ) || defined( USE_ANISOTROPY_BRDF )
 
 	float V_GGX_SmithCorrelated_Anisotropic( const in float alphaT, const in float alphaB, const in float dotTV, const in float dotBV, const in float dotTL, const in float dotBL, const in float dotNV, const in float dotNL ) {
 
