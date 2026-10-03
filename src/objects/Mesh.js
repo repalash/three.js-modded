@@ -53,6 +53,8 @@ class Mesh extends Object3D {
 
 		super.copy( source, recursive );
 
+		if ( ! source.isMesh ) return this;
+
 		if ( source.morphTargetInfluences !== undefined ) {
 
 			this.morphTargetInfluences = source.morphTargetInfluences.slice();
