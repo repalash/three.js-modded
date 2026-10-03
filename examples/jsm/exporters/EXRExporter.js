@@ -152,10 +152,16 @@ function buildInfoRTT( renderTarget, options = {} ) {
 		3: 16
 	};
 
+	const textureIndex = options.textureIndex || 0;
+	const texture = Array.isArray( renderTarget.textures )
+		? renderTarget.textures[ textureIndex ]
+		: renderTarget.texture;
+
 	const WIDTH = renderTarget.width,
 		HEIGHT = renderTarget.height,
-		TYPE = renderTarget.texture.type,
-		FORMAT = renderTarget.texture.format,
+		TYPE = texture.type,
+		FORMAT = texture.format,
+		COLOR_SPACE = texture.colorSpace,
 		COMPRESSION = ( options.compression !== undefined ) ? options.compression : ZIP_COMPRESSION,
 		EXPORTER_TYPE = ( options.type !== undefined ) ? options.type : HalfFloatType,
 		OUT_TYPE = ( EXPORTER_TYPE === FloatType ) ? 2 : 1,
@@ -167,6 +173,7 @@ function buildInfoRTT( renderTarget, options = {} ) {
 		height: HEIGHT,
 		type: TYPE,
 		format: FORMAT,
+		colorSpace: COLOR_SPACE,
 		compression: COMPRESSION,
 		blockLines: COMPRESSION_SIZE,
 		dataType: OUT_TYPE,
@@ -174,6 +181,8 @@ function buildInfoRTT( renderTarget, options = {} ) {
 		numBlocks: Math.ceil( HEIGHT / COMPRESSION_SIZE ),
 		numInputChannels: 4,
 		numOutputChannels: NUM_CHANNELS,
+		flipY: false,
+		textureIndex: options.textureIndex || 0
 	};
 
 }
@@ -190,6 +199,7 @@ function buildInfoDT( texture, options = {} ) {
 		HEIGHT = texture.image.height,
 		TYPE = texture.type,
 		FORMAT = texture.format,
+		COLOR_SPACE = texture.colorSpace,
 		COMPRESSION = ( options.compression !== undefined ) ? options.compression : ZIP_COMPRESSION,
 		EXPORTER_TYPE = ( options.type !== undefined ) ? options.type : HalfFloatType,
 		OUT_TYPE = ( EXPORTER_TYPE === FloatType ) ? 2 : 1,
@@ -201,6 +211,7 @@ function buildInfoDT( texture, options = {} ) {
 		height: HEIGHT,
 		type: TYPE,
 		format: FORMAT,
+		colorSpace: COLOR_SPACE,
 		compression: COMPRESSION,
 		blockLines: COMPRESSION_SIZE,
 		dataType: OUT_TYPE,
@@ -208,6 +219,8 @@ function buildInfoDT( texture, options = {} ) {
 		numBlocks: Math.ceil( HEIGHT / COMPRESSION_SIZE ),
 		numInputChannels: 4,
 		numOutputChannels: NUM_CHANNELS,
+		flipY: texture.isDataTexture && texture.flipY,
+		textureIndex: options.textureIndex || 0 // todo required here?
 	};
 
 }
@@ -228,7 +241,7 @@ async function getPixelData( renderer, rtt, info ) {
 
 		}
 
-		await renderer.readRenderTargetPixelsAsync( rtt, 0, 0, info.width, info.height, dataBuffer );
+		await renderer.readRenderTargetPixelsAsync( rtt, 0, 0, info.width, info.height, dataBuffer, undefined, info.textureIndex );
 
 	} else {
 
@@ -263,7 +276,7 @@ function reorganizeDataBuffer( inBuffer, info ) {
 			const b = getValue( inBuffer, i + 2 );
 			const a = getValue( inBuffer, i + 3 );
 
-			const line = ( h - y - 1 ) * w * ( 3 + cOffset ) * info.dataSize;
+			const line = ( info.flipY ? y : h - y - 1 ) * w * ( 3 + cOffset ) * info.dataSize;
 
 			decodeLinear( dec, r, g, b, a );
 
@@ -319,7 +332,9 @@ function compressData( inBuffer, info ) {
 
 		const arr = inBuffer.subarray( size * i, size * ( i + 1 ) );
 
-		const block = compress( arr, tmpBuffer );
+		let block = compress( arr, tmpBuffer );
+
+		if ( block.length >= arr.length ) block = arr;
 
 		sum += block.length;
 
@@ -340,6 +355,8 @@ function compressNONE( data ) {
 }
 
 function compressZIP( data, tmpBuffer ) {
+
+	tmpBuffer = tmpBuffer.subarray( 0, data.length );
 
 	//
 	// Reorder the pixel data.

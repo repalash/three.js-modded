@@ -468,7 +468,9 @@ class SVGRenderer {
 
 				if ( light.isDirectionalLight ) {
 
-					const lightPosition = _vector3.setFromMatrixPosition( light.matrixWorld ).normalize();
+					const lightPosition = _vector3.setFromMatrixPosition( light.matrixWorld )
+						.sub( _normal.setFromMatrixPosition( light.target.matrixWorld ) )
+						.normalize();
 
 					let amount = normal.dot( lightPosition );
 
