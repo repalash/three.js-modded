@@ -24,7 +24,7 @@ export default /* glsl */`
 	vec3 n = transformNormalByInverseViewMatrix( normal, viewMatrix );
 
 	vec4 transmitted = getIBLVolumeRefraction(
-		n, v, material.roughness, material.diffuseContribution, material.specularColorBlended, material.specularF90,
+		n, v, roughnessFactor, material.diffuseContribution, material.specularColorBlended, material.specularF90,
 		pos, modelMatrix, viewMatrix, projectionMatrix, material.dispersion, material.ior, material.thickness,
 		material.attenuationColor, material.attenuationDistance );
 
