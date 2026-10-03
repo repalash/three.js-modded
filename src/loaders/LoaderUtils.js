@@ -51,10 +51,19 @@ class LoaderUtils {
 		// Invalid URL
 		if ( typeof url !== 'string' || url === '' ) return '';
 
-		// Host Relative URL
-		if ( /^https?:\/\//i.test( path ) && /^\//.test( url ) ) {
+		if ( url[ 0 ] === '/' ) {
 
-			path = path.replace( /(^https?:\/\/[^\/]+).*/i, '$1' );
+			// Host Relative URL
+			if ( /^https?:\/\//i.test( path ) ) {
+
+				path = path.replace( /(^https?:\/\/[^\/]+).*/i, '$1' );
+
+			} else {
+
+				// Current Host
+				return url;
+
+			}
 
 		}
 
