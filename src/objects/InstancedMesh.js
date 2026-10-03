@@ -28,6 +28,8 @@ class InstancedMesh extends Mesh {
 		this.instanceColor = null;
 		this.morphTexture = null;
 
+		this.sourceTrs = null;
+
 		this.count = count;
 
 		this.boundingBox = null;
@@ -106,6 +108,8 @@ class InstancedMesh extends Mesh {
 	copy( source, recursive ) {
 
 		super.copy( source, recursive );
+
+		if ( ! source.isInstancedMesh ) return this;
 
 		this.instanceMatrix.copy( source.instanceMatrix );
 

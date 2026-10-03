@@ -116,6 +116,7 @@ class LightShadow {
 		this.intensity = source.intensity;
 
 		this.bias = source.bias;
+		this.normalBias = source.normalBias;
 		this.radius = source.radius;
 
 		this.mapSize.copy( source.mapSize );
