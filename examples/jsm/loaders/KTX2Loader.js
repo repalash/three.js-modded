@@ -186,7 +186,7 @@ class KTX2Loader extends Loader {
 			this.transcoderPending = Promise.all( [ jsContent, binaryContent ] )
 				.then( ( [ jsContent, binaryContent ] ) => {
 
-					const fn = KTX2Loader.BasisWorker.toString();
+					const fn = KTX2Loader.BasisWorker;
 
 					const body = [
 						'/* constants */',
@@ -247,6 +247,7 @@ class KTX2Loader extends Loader {
 		const loader = new FileLoader( this.manager );
 
 		loader.setResponseType( 'arraybuffer' );
+		loader.setCrossOrigin( this.crossOrigin );
 		loader.setWithCredentials( this.withCredentials );
 
 		loader.load( url, ( buffer ) => {
@@ -275,7 +276,7 @@ class KTX2Loader extends Loader {
 
 		}
 
-		this._createTexture( buffer )
+			this.createTexture( buffer )
 				.then( ( texture ) => onLoad ? onLoad( texture ) : null )
 				.catch( onError );
 
@@ -320,7 +321,7 @@ class KTX2Loader extends Loader {
 	 * @param {object?} config
 	 * @return {Promise<CompressedTexture|CompressedArrayTexture|DataTexture|Data3DTexture>}
 	 */
-	async _createTexture( buffer, config = {} ) {
+	async createTexture( buffer, config = {} ) {
 
 		const container = read( new Uint8Array( buffer ) );
 
@@ -402,7 +403,7 @@ KTX2Loader.EngineFormat = {
 
 /* WEB WORKER */
 
-KTX2Loader.BasisWorker = function () {
+KTX2Loader.BasisWorker = `function () {
 
 	let config;
 	let transcoderPending;
@@ -728,7 +729,7 @@ KTX2Loader.BasisWorker = function () {
 
 	}
 
-};
+}`;
 
 //
 // Parsing for non-Basis textures. These textures are may have supercompression
