@@ -9,10 +9,12 @@ import { Matrix4 } from '../../math/Matrix4.js';
 import { Mesh } from '../../objects/Mesh.js';
 import { ShaderLib } from '../shaders/ShaderLib.js';
 import { cloneUniforms, getUnlitUniformColorSpace } from '../shaders/UniformsUtils.js';
+import { Matrix3 } from '../../math/Matrix3.js';
 
 const _rgb = { r: 0, b: 0, g: 0 };
 const _e1 = /*@__PURE__*/ new Euler();
 const _m1 = /*@__PURE__*/ new Matrix4();
+const _m2 = /*@__PURE__*/ new Matrix3();
 
 function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha, premultipliedAlpha ) {
 
@@ -29,6 +31,8 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 	function getBackground( scene ) {
 
 		let background = scene.isScene === true ? scene.background : null;
+
+		if ( background === 'environment' ) background = scene.environment;
 
 		if ( background && background.isTexture ) {
 
@@ -87,6 +91,9 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 
 		const background = getBackground( scene );
 
+		const isEnvironment = background && background === scene.environment;
+		const backgroundColor = scene.isScene && scene.backgroundColor !== undefined ? scene.backgroundColor : null;
+
 		if ( background && ( background.isCubeTexture || background.mapping === CubeUVReflectionMapping ) ) {
 
 			if ( boxMesh === undefined ) {
@@ -101,7 +108,8 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 						side: BackSide,
 						depthTest: false,
 						depthWrite: false,
-						fog: false
+						fog: false,
+						allowOverride: false
 					} )
 				);
 
@@ -149,6 +157,26 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 			boxMesh.material.uniforms.backgroundRotation.value.setFromMatrix4( _m1.makeRotationFromEuler( _e1 ) );
 			boxMesh.material.toneMapped = ColorManagement.getTransfer( background.colorSpace ) !== SRGBTransfer;
 
+			if ( isEnvironment ) {
+
+				boxMesh.material.uniforms.backgroundIntensity.value *= scene.environmentIntensity;
+
+				_e1.copy( scene.environmentRotation );
+
+				// accommodate left-handed frame
+				_e1.x *= - 1; _e1.y *= - 1; _e1.z *= - 1;
+				if ( background.isCubeTexture && background.isRenderTargetTexture === false ) {
+
+					// environment maps which are not cube render targets or PMREMs follow a different convention
+					_e1.y *= - 1;
+					_e1.z *= - 1;
+
+				}
+
+				boxMesh.material.uniforms.backgroundRotation.value.premultiply( _m2.setFromMatrix4( _m1.makeRotationFromEuler( _e1 ) ) );
+
+			}
+
 			if ( currentBackground !== background ||
 				currentBackgroundVersion !== background.version ||
 				currentTonemapping !== renderer.toneMapping ) {
@@ -166,7 +194,7 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 			// push to the pre-sorted opaque render list
 			renderList.unshift( boxMesh, boxMesh.geometry, boxMesh.material, 0, 0, null );
 
-		} else if ( background && background.isTexture ) {
+		} else if ( ( background && background.isTexture ) || ( ! background && backgroundColor ) ) {
 
 			if ( planeMesh === undefined ) {
 
@@ -180,7 +208,8 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 						side: FrontSide,
 						depthTest: false,
 						depthWrite: false,
-						fog: false
+						fog: false,
+						allowOverride: false
 					} )
 				);
 
@@ -201,26 +230,42 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 
 			}
 
+			planeMesh.material.uniforms.backgroundColor.value.set( backgroundColor || 0xffffff );
 			planeMesh.material.uniforms.t2D.value = background;
 			planeMesh.material.uniforms.backgroundIntensity.value = scene.backgroundIntensity;
-			planeMesh.material.toneMapped = ColorManagement.getTransfer( background.colorSpace ) !== SRGBTransfer;
 
-			if ( background.matrixAutoUpdate === true ) {
+			if ( background ) {
 
-				background.updateMatrix();
+				planeMesh.material.toneMapped = ColorManagement.getTransfer( background.colorSpace ) !== SRGBTransfer;
+
+				planeMesh.material.uniforms.flipX.value = background.userData.flipX || false;
+				planeMesh.material.uniforms.flipY.value = background.userData.flipY || false;
+
+				if ( background.matrixAutoUpdate === true ) {
+
+					background.updateMatrix();
+
+				}
+
+				planeMesh.material.uniforms.uvTransform.value.copy( background.matrix );
+
+				planeMesh.material.defines.HAS_TEXTURE = '1';
+
+			} else if ( planeMesh.material.defines.HAS_TEXTURE ) {
+
+				delete planeMesh.material.defines.HAS_TEXTURE;
 
 			}
 
-			planeMesh.material.uniforms.uvTransform.value.copy( background.matrix );
-
+			const backgroundVersion = ( background ? background.version : - 1 );
 			if ( currentBackground !== background ||
-				currentBackgroundVersion !== background.version ||
+				currentBackgroundVersion !== backgroundVersion ||
 				currentTonemapping !== renderer.toneMapping ) {
 
 				planeMesh.material.needsUpdate = true;
 
 				currentBackground = background;
-				currentBackgroundVersion = background.version;
+				currentBackgroundVersion = backgroundVersion;
 				currentTonemapping = renderer.toneMapping;
 
 			}
@@ -265,6 +310,62 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 
 			clearAlpha = alpha;
 			setClear( clearColor, clearAlpha );
+
+		},
+		getPlaneMesh: function () {
+
+			return planeMesh;
+
+		},
+		getBoxMesh: function () {
+
+			return boxMesh;
+
+		},
+		getBoxMesh2: function () {
+
+			if ( boxMesh === undefined ) {
+
+				boxMesh = new Mesh(
+					new BoxGeometry( 1, 1, 1 ),
+					new ShaderMaterial( {
+						name: 'BackgroundCubeMaterial',
+						uniforms: cloneUniforms( ShaderLib.backgroundCube.uniforms ),
+						vertexShader: ShaderLib.backgroundCube.vertexShader,
+						fragmentShader: ShaderLib.backgroundCube.fragmentShader,
+						side: BackSide,
+						depthTest: false,
+						depthWrite: false,
+						fog: false,
+						allowOverride: false
+					} )
+				);
+
+				boxMesh.geometry.deleteAttribute( 'normal' );
+				boxMesh.geometry.deleteAttribute( 'uv' );
+
+				boxMesh.onBeforeRender = function ( renderer, scene, camera ) {
+
+					this.matrixWorld.copyPosition( camera.matrixWorld );
+
+				};
+
+				// add "envMap" material property so the renderer can evaluate it like for built-in materials
+				Object.defineProperty( boxMesh.material, 'envMap', {
+
+					get: function () {
+
+						return this.uniforms.envMap.value;
+
+					}
+
+				} );
+
+				objects.update( boxMesh );
+
+			}
+
+			return boxMesh;
 
 		},
 		render: render,
