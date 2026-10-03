@@ -13,6 +13,7 @@ import { cloneUniforms, getUnlitUniformColorSpace } from '../shaders/UniformsUti
 const _rgb = { r: 0, b: 0, g: 0 };
 const _m1 = /*@__PURE__*/ new Matrix4();
 const _m = /*@__PURE__*/ new Matrix3();
+const _m2 = /*@__PURE__*/ new Matrix3();
 
 _m.set( - 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0 );
 
@@ -31,6 +32,8 @@ function WebGLBackground( renderer, environments, state, objects, alpha, premult
 	function getBackground( scene ) {
 
 		let background = scene.isScene === true ? scene.background : null;
+
+		if ( background === 'environment' ) background = scene.environment;
 
 		if ( background && background.isTexture ) {
 
@@ -89,6 +92,9 @@ function WebGLBackground( renderer, environments, state, objects, alpha, premult
 
 		const background = getBackground( scene );
 
+		const isEnvironment = background && background === scene.environment;
+		const backgroundColor = scene.isScene && scene.backgroundColor !== undefined ? scene.backgroundColor : null;
+
 		if ( background && background.isCubeTexture ) {
 
 			if ( boxMesh === undefined ) {
@@ -141,6 +147,16 @@ function WebGLBackground( renderer, environments, state, objects, alpha, premult
 			// note: since the matrix is orthonormal, we can use the more-efficient transpose() in lieu of invert()
 			boxMesh.material.uniforms.backgroundRotation.value.setFromMatrix4( _m1.makeRotationFromEuler( scene.backgroundRotation ) ).transpose();
 
+			if ( isEnvironment ) {
+
+				boxMesh.material.uniforms.backgroundIntensity.value *= scene.environmentIntensity;
+
+				// the environment rotation as WebGLMaterials applies it to envMapRotation, after the background rotation
+				// and before the flip of cube maps that are not render targets
+				boxMesh.material.uniforms.backgroundRotation.value.premultiply( _m2.setFromMatrix4( _m1.makeRotationFromEuler( scene.environmentRotation ) ).transpose() );
+
+			}
+
 			if ( background.isRenderTargetTexture === false ) {
 
 				boxMesh.material.uniforms.backgroundRotation.value.premultiply( _m );
@@ -167,7 +183,7 @@ function WebGLBackground( renderer, environments, state, objects, alpha, premult
 			// push to the pre-sorted opaque render list
 			renderList.unshift( boxMesh, boxMesh.geometry, boxMesh.material, 0, 0, null );
 
-		} else if ( background && background.isTexture ) {
+		} else if ( ( background && background.isTexture ) || ( ! background && backgroundColor ) ) {
 
 			if ( planeMesh === undefined ) {
 
@@ -203,26 +219,42 @@ function WebGLBackground( renderer, environments, state, objects, alpha, premult
 
 			}
 
+			planeMesh.material.uniforms.backgroundColor.value.set( backgroundColor || 0xffffff );
 			planeMesh.material.uniforms.t2D.value = background;
 			planeMesh.material.uniforms.backgroundIntensity.value = scene.backgroundIntensity;
-			planeMesh.material.toneMapped = ColorManagement.getTransfer( background.colorSpace ) !== SRGBTransfer;
 
-			if ( background.matrixAutoUpdate === true ) {
+			if ( background ) {
 
-				background.updateMatrix();
+				planeMesh.material.toneMapped = ColorManagement.getTransfer( background.colorSpace ) !== SRGBTransfer;
+
+				planeMesh.material.uniforms.flipX.value = background.userData.flipX || false;
+				planeMesh.material.uniforms.flipY.value = background.userData.flipY || false;
+
+				if ( background.matrixAutoUpdate === true ) {
+
+					background.updateMatrix();
+
+				}
+
+				planeMesh.material.uniforms.uvTransform.value.copy( background.matrix );
+
+				planeMesh.material.defines.HAS_TEXTURE = '1';
+
+			} else if ( planeMesh.material.defines.HAS_TEXTURE ) {
+
+				delete planeMesh.material.defines.HAS_TEXTURE;
 
 			}
 
-			planeMesh.material.uniforms.uvTransform.value.copy( background.matrix );
-
+			const backgroundVersion = ( background ? background.version : - 1 );
 			if ( currentBackground !== background ||
-				currentBackgroundVersion !== background.version ||
+				currentBackgroundVersion !== backgroundVersion ||
 				currentTonemapping !== renderer.toneMapping ) {
 
 				planeMesh.material.needsUpdate = true;
 
 				currentBackground = background;
-				currentBackgroundVersion = background.version;
+				currentBackgroundVersion = backgroundVersion;
 				currentTonemapping = renderer.toneMapping;
 
 			}
@@ -289,6 +321,62 @@ function WebGLBackground( renderer, environments, state, objects, alpha, premult
 
 			clearAlpha = alpha;
 			setClear( clearColor, clearAlpha );
+
+		},
+		getPlaneMesh: function () {
+
+			return planeMesh;
+
+		},
+		getBoxMesh: function () {
+
+			return boxMesh;
+
+		},
+		getBoxMesh2: function () {
+
+			if ( boxMesh === undefined ) {
+
+				boxMesh = new Mesh(
+					new BoxGeometry( 1, 1, 1 ),
+					new ShaderMaterial( {
+						name: 'BackgroundCubeMaterial',
+						uniforms: cloneUniforms( ShaderLib.backgroundCube.uniforms ),
+						vertexShader: ShaderLib.backgroundCube.vertexShader,
+						fragmentShader: ShaderLib.backgroundCube.fragmentShader,
+						side: BackSide,
+						depthTest: false,
+						depthWrite: false,
+						fog: false,
+						allowOverride: false
+					} )
+				);
+
+				boxMesh.geometry.deleteAttribute( 'normal' );
+				boxMesh.geometry.deleteAttribute( 'uv' );
+
+				boxMesh.onBeforeRender = function ( renderer, scene, camera ) {
+
+					this.matrixWorld.copyPosition( camera.matrixWorld );
+
+				};
+
+				// add "envMap" material property so the renderer can evaluate it like for built-in materials
+				Object.defineProperty( boxMesh.material, 'envMap', {
+
+					get: function () {
+
+						return this.uniforms.envMap.value;
+
+					}
+
+				} );
+
+				objects.update( boxMesh );
+
+			}
+
+			return boxMesh;
 
 		},
 		render: render,
