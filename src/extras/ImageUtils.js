@@ -5,7 +5,7 @@ let _canvas;
 
 class ImageUtils {
 
-	static getDataURL( image ) {
+	static getDataURL( image, forcePng = false ) {
 
 		if ( /^data:/i.test( image.src ) ) {
 
@@ -48,7 +48,7 @@ class ImageUtils {
 
 		}
 
-		if ( canvas.width > 2048 || canvas.height > 2048 ) {
+		if ( ! forcePng && ( canvas.width > 2048 || canvas.height > 2048 ) ) {
 
 			console.warn( 'THREE.ImageUtils.getDataURL: Image converted to jpg for performance reasons', image );
 

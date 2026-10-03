@@ -106,15 +106,32 @@ function serializeImage( image ) {
 		if ( image.data ) {
 
 			// images of DataTexture
+			let data = [];
+			try {
+
+				data = Array.from( image.data );
+
+			} catch ( e ) {
+
+				if ( e.message.includes( 'Invalid array length' ) )
+					console.warn( 'Serializing large texture, might not be saved in JSON structure.' );
+				else
+					console.error( e );
+
+				data = image.data;
+
+			}
 
 			return {
-				data: Array.from( image.data ),
+				data: data,
 				width: image.width,
 				height: image.height,
 				type: image.data.constructor.name
 			};
 
 		} else {
+
+			if ( image.url !== undefined ) return image.url;
 
 			console.warn( 'THREE.Texture: Unable to serialize Texture.' );
 			return {};
