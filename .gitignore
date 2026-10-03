@@ -25,3 +25,8 @@ test/treeshake/three.webgpu.nodes.bundle.min.js
 test/unit/build
 
 **/node_modules
+
+# built outputs are not tracked in the fork: create-release.yml builds before publishing.
+# build/three.cjs is not built: since r186 it is a hand-written CommonJS entry that re-exports three.module.js
+build/*
+!build/three.cjs
