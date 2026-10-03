@@ -541,15 +541,18 @@ class BufferGeometry extends EventDispatcher {
 	/**
 	 * Center the geometry based on its bounding box.
 	 *
+	 * @param {Vector3} [targetOffset] Optional target vector to copy translation into.
 	 * @return {BufferGeometry} A reference to this instance.
 	 */
-	center() {
+	center( targetOffset = undefined ) {
 
 		this.computeBoundingBox();
 
 		this.boundingBox.getCenter( _offset ).negate();
 
 		this.translate( _offset.x, _offset.y, _offset.z );
+
+		if ( targetOffset ) targetOffset.copy( _offset );
 
 		return this;
 
