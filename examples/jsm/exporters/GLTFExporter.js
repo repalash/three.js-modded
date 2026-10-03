@@ -187,9 +187,9 @@ class GLTFExporter {
 	 * @param  {Function} onError  Callback on errors
 	 * @param  {Object} options options
 	 */
-	parse( input, onDone, onError, options ) {
+	parse( input, onDone, onError, options, gltfWriter ) {
 
-		const writer = new GLTFWriter();
+		const writer = gltfWriter || new GLTFWriter();
 		const plugins = [];
 
 		for ( let i = 0, il = this.pluginCallbacks.length; i < il; i ++ ) {
@@ -539,7 +539,9 @@ class GLTFWriter {
 			onlyVisible: true,
 			maxTextureSize: Infinity,
 			animations: [],
-			includeCustomExtensions: false
+			includeCustomExtensions: false,
+			ignoreInvalidMorphTargetTracks: false,
+			ignoreEmptyTextures: false,
 		}, options );
 
 		if ( this.options.animations.length > 0 ) {
@@ -650,7 +652,7 @@ class GLTFWriter {
 	/**
 	 * Serializes a userData.
 	 *
-	 * @param {THREE.Object3D|THREE.Material} object
+	 * @param {THREE.Object3D|THREE.Material|THREE.BufferGeometry|THREE.AnimationClip} object
 	 * @param {Object} objectDef
 	 */
 	serializeUserData( object, objectDef ) {
@@ -685,6 +687,7 @@ class GLTFWriter {
 
 			console.warn( 'THREE.GLTFExporter: userData of \'' + object.name + '\' ' +
 				'won\'t be serialized because of JSON.stringify error - ' + error.message );
+			console.warn( { ...object.userData } );
 
 		}
 
@@ -849,13 +852,13 @@ class GLTFWriter {
 
 		console.warn( 'THREE.GLTFExporter: Merged metalnessMap and roughnessMap textures.' );
 
-		if ( metalnessMap instanceof CompressedTexture ) {
+		if ( metalnessMap instanceof CompressedTexture /*&& ! metalnessMap.source._canSerialize*/ ) {
 
 			metalnessMap = decompress( metalnessMap );
 
 		}
 
-		if ( roughnessMap instanceof CompressedTexture ) {
+		if ( roughnessMap instanceof CompressedTexture /*&& ! roughnessMap.source._canSerialize*/ ) {
 
 			roughnessMap = decompress( roughnessMap );
 
@@ -1142,6 +1145,26 @@ class GLTFWriter {
 
 	}
 
+	processBufferViewImageBuffer( buffer ) {
+
+		const writer = this;
+		const json = writer.json;
+
+		if ( ! json.bufferViews ) json.bufferViews = [];
+
+		buffer = getPaddedArrayBuffer( buffer );
+
+		const bufferViewDef = {
+			buffer: writer.processBuffer( buffer ),
+			byteOffset: writer.byteOffset,
+			byteLength: buffer.byteLength
+		};
+
+		writer.byteOffset += buffer.byteLength;
+		return json.bufferViews.push( bufferViewDef ) - 1;
+
+	}
+
 	/**
 	 * Process attribute to generate an accessor
 	 * @param  {BufferAttribute} attribute Attribute to process
@@ -1246,9 +1269,11 @@ class GLTFWriter {
 	 * @param  {Integer} format of the image (RGBAFormat)
 	 * @param  {Boolean} flipY before writing out the image
 	 * @param  {String} mimeType export format
+	 * @param  {Integer} width override image width
+	 * @param  {Integer} height override image height
 	 * @return {Integer}     Index of the processed texture in the "images" array
 	 */
-	processImage( image, format, flipY, mimeType = 'image/png' ) {
+	processImage( image, format, flipY, mimeType = 'image/png', width = undefined, height = undefined ) {
 
 		if ( image !== null ) {
 
@@ -1262,7 +1287,7 @@ class GLTFWriter {
 
 			const cachedImages = cache.images.get( image );
 
-			const key = mimeType + ':flipY/' + flipY.toString();
+			const key = mimeType + ':flipY/' + flipY.toString() + ( width || height ? ';' + width + ';' + height : '' );
 
 			if ( cachedImages[ key ] !== undefined ) return cachedImages[ key ];
 
@@ -1272,8 +1297,8 @@ class GLTFWriter {
 
 			const canvas = getCanvas();
 
-			canvas.width = Math.min( image.width, options.maxTextureSize );
-			canvas.height = Math.min( image.height, options.maxTextureSize );
+			canvas.width = Math.min( width || image.width, options.maxTextureSize );
+			canvas.height = Math.min( height || image.height, options.maxTextureSize );
 
 			const ctx = canvas.getContext( '2d', {
 				willReadFrequently: true,
@@ -1419,7 +1444,7 @@ class GLTFWriter {
 		if ( ! json.textures ) json.textures = [];
 
 		// make non-readable textures (e.g. CompressedTexture) readable by blitting them into a new texture
-		if ( map instanceof CompressedTexture ) {
+		if ( map instanceof CompressedTexture && ! map.source._canSerialize ) {
 
 			map = decompress( map, options.maxTextureSize );
 
@@ -1428,10 +1453,19 @@ class GLTFWriter {
 		let mimeType = map.userData.mimeType;
 
 		if ( mimeType === 'image/webp' ) mimeType = 'image/png';
+		if ( mimeType === 'image/jpg' ) mimeType = 'image/jpeg';
+
+		const implTypes = [ 'image/jpeg', 'image/png' ];
+
+		// if ( mimeType && ! implTypes.includes( mimeType ) ) {
+		//
+		// 	console.error( 'GLTFExporter: Unsupported mime type: ' + mimeType + '. Cannot export texture.', map );
+		//
+		// }
 
 		const textureDef = {
 			sampler: this.processSampler( map ),
-			source: this.processImage( map.image, map.format, map.flipY, mimeType )
+			source: ( ! mimeType || implTypes.includes( mimeType ) ) ? this.processImage( map.image, map.format, map.flipY, mimeType ) : null
 		};
 
 		if ( map.name ) textureDef.name = map.name;
@@ -1441,6 +1475,13 @@ class GLTFWriter {
 			ext.writeTexture && ext.writeTexture( map, textureDef );
 
 		} );
+
+		if ( textureDef.source === null ) {
+
+			console.error( 'GLTFExporter: Unsupported mime type: ' + mimeType + '. Cannot export texture.', map );
+
+		}
+
 
 		const index = json.textures.push( textureDef ) - 1;
 		cache.textures.set( map, index );
@@ -1500,7 +1541,7 @@ class GLTFWriter {
 		}
 
 		// pbrMetallicRoughness.metallicRoughnessTexture
-		if ( material.metalnessMap || material.roughnessMap ) {
+		if ( this.checkEmptyMap( material.metalnessMap ) || this.checkEmptyMap( material.roughnessMap ) ) {
 
 			const metalRoughTexture = this.buildMetalRoughTexture( material.metalnessMap, material.roughnessMap );
 
@@ -1514,7 +1555,7 @@ class GLTFWriter {
 		}
 
 		// pbrMetallicRoughness.baseColorTexture
-		if ( material.map ) {
+		if ( this.checkEmptyMap( material.map ) ) {
 
 			const baseColorMapDef = {
 				index: this.processTexture( material.map ),
@@ -1537,7 +1578,7 @@ class GLTFWriter {
 			}
 
 			// emissiveTexture
-			if ( material.emissiveMap ) {
+			if ( this.checkEmptyMap( material.emissiveMap ) ) {
 
 				const emissiveMapDef = {
 					index: this.processTexture( material.emissiveMap ),
@@ -1551,7 +1592,7 @@ class GLTFWriter {
 		}
 
 		// normalTexture
-		if ( material.normalMap ) {
+		if ( this.checkEmptyMap( material.normalMap ) ) {
 
 			const normalMapDef = {
 				index: this.processTexture( material.normalMap ),
@@ -1572,7 +1613,7 @@ class GLTFWriter {
 		}
 
 		// occlusionTexture
-		if ( material.aoMap ) {
+		if ( this.checkEmptyMap( material.aoMap ) ) {
 
 			const occlusionMapDef = {
 				index: this.processTexture( material.aoMap ),
@@ -2083,7 +2124,20 @@ class GLTFWriter {
 
 		if ( ! json.animations ) json.animations = [];
 
-		clip = GLTFExporter.Utils.mergeMorphTargetTracks( clip.clone(), root );
+		try {
+
+			clip = GLTFExporter.Utils.mergeMorphTargetTracks( clip.clone(), root );
+
+		} catch ( e ) {
+
+			console.warn( 'THREE.GLTFExporter: Could not export animation clip "%s".', clip.name );
+
+			if ( ! this.options.ignoreInvalidMorphTargetTracks ) throw e;
+
+			console.error( e );
+			return null;
+
+		}
 
 		const tracks = clip.tracks;
 		const channels = [];
@@ -2168,11 +2222,15 @@ class GLTFWriter {
 
 		}
 
-		json.animations.push( {
+		const animationDef = {
 			name: clip.name || 'clip_' + json.animations.length,
 			samplers: samplers,
 			channels: channels
-		} );
+		};
+
+		this.serializeUserData( clip, animationDef );
+
+		json.animations.push( animationDef );
 
 		return json.animations.length - 1;
 
@@ -2459,6 +2517,12 @@ class GLTFWriter {
 
 	}
 
+	checkEmptyMap( map ) {
+
+		return !! map && ( ! this.options.ignoreEmptyTextures || !! map.image );
+
+	}
+
 }
 
 /**
@@ -2614,7 +2678,7 @@ class GLTFMaterialsClearcoatExtension {
 
 		extensionDef.clearcoatFactor = material.clearcoat;
 
-		if ( material.clearcoatMap ) {
+		if ( writer.checkEmptyMap( material.clearcoatMap ) ) {
 
 			const clearcoatMapDef = {
 				index: writer.processTexture( material.clearcoatMap ),
@@ -2627,7 +2691,7 @@ class GLTFMaterialsClearcoatExtension {
 
 		extensionDef.clearcoatRoughnessFactor = material.clearcoatRoughness;
 
-		if ( material.clearcoatRoughnessMap ) {
+		if ( writer.checkEmptyMap( material.clearcoatRoughnessMap ) ) {
 
 			const clearcoatRoughnessMapDef = {
 				index: writer.processTexture( material.clearcoatRoughnessMap ),
@@ -2638,7 +2702,7 @@ class GLTFMaterialsClearcoatExtension {
 
 		}
 
-		if ( material.clearcoatNormalMap ) {
+		if ( writer.checkEmptyMap( material.clearcoatNormalMap ) ) {
 
 			const clearcoatNormalMapDef = {
 				index: writer.processTexture( material.clearcoatNormalMap ),
@@ -2721,7 +2785,7 @@ class GLTFMaterialsIridescenceExtension {
 
 		extensionDef.iridescenceFactor = material.iridescence;
 
-		if ( material.iridescenceMap ) {
+		if ( writer.checkEmptyMap( material.iridescenceMap ) ) {
 
 			const iridescenceMapDef = {
 				index: writer.processTexture( material.iridescenceMap ),
@@ -2736,7 +2800,7 @@ class GLTFMaterialsIridescenceExtension {
 		extensionDef.iridescenceThicknessMinimum = material.iridescenceThicknessRange[ 0 ];
 		extensionDef.iridescenceThicknessMaximum = material.iridescenceThicknessRange[ 1 ];
 
-		if ( material.iridescenceThicknessMap ) {
+		if ( writer.checkEmptyMap( material.iridescenceThicknessMap ) ) {
 
 			const iridescenceThicknessMapDef = {
 				index: writer.processTexture( material.iridescenceThicknessMap ),
@@ -2781,7 +2845,7 @@ class GLTFMaterialsTransmissionExtension {
 
 		extensionDef.transmissionFactor = material.transmission;
 
-		if ( material.transmissionMap ) {
+		if ( writer.checkEmptyMap( material.transmissionMap ) ) {
 
 			const transmissionMapDef = {
 				index: writer.processTexture( material.transmissionMap ),
@@ -2826,7 +2890,7 @@ class GLTFMaterialsVolumeExtension {
 
 		extensionDef.thicknessFactor = material.thickness;
 
-		if ( material.thicknessMap ) {
+		if ( writer.checkEmptyMap( material.thicknessMap ) ) {
 
 			const thicknessMapDef = {
 				index: writer.processTexture( material.thicknessMap ),
@@ -2913,7 +2977,7 @@ class GLTFMaterialsSpecularExtension {
 
 		const extensionDef = {};
 
-		if ( material.specularIntensityMap ) {
+		if ( writer.checkEmptyMap( material.specularIntensityMap ) ) {
 
 			const specularIntensityMapDef = {
 				index: writer.processTexture( material.specularIntensityMap ),
@@ -2924,7 +2988,7 @@ class GLTFMaterialsSpecularExtension {
 
 		}
 
-		if ( material.specularColorMap ) {
+		if ( writer.checkEmptyMap( material.specularColorMap ) ) {
 
 			const specularColorMapDef = {
 				index: writer.processTexture( material.specularColorMap ),
@@ -2963,14 +3027,14 @@ class GLTFMaterialsSheenExtension {
 
 	writeMaterial( material, materialDef ) {
 
-		if ( ! material.isMeshPhysicalMaterial || material.sheen == 0.0 ) return;
+		if ( ! material.isMeshPhysicalMaterial || material.sheen < 0.001 ) return;
 
 		const writer = this.writer;
 		const extensionsUsed = writer.extensionsUsed;
 
 		const extensionDef = {};
 
-		if ( material.sheenRoughnessMap ) {
+		if ( writer.checkEmptyMap( material.sheenRoughnessMap ) ) {
 
 			const sheenRoughnessMapDef = {
 				index: writer.processTexture( material.sheenRoughnessMap ),
@@ -2981,7 +3045,7 @@ class GLTFMaterialsSheenExtension {
 
 		}
 
-		if ( material.sheenColorMap ) {
+		if ( writer.checkEmptyMap( material.sheenColorMap ) ) {
 
 			const sheenColorMapDef = {
 				index: writer.processTexture( material.sheenColorMap ),
@@ -2997,6 +3061,9 @@ class GLTFMaterialsSheenExtension {
 
 		materialDef.extensions = materialDef.extensions || {};
 		materialDef.extensions[ this.name ] = extensionDef;
+
+		materialDef.extras = materialDef.extras || {};
+		materialDef.extras.sheenFactor = material.sheen;
 
 		extensionsUsed[ this.name ] = true;
 
@@ -3027,7 +3094,7 @@ class GLTFMaterialsAnisotropyExtension {
 
 		const extensionDef = {};
 
-		if ( material.anisotropyMap ) {
+		if ( writer.checkEmptyMap( material.anisotropyMap ) ) {
 
 			const anisotropyMapDef = { index: writer.processTexture( material.anisotropyMap ) };
 			writer.applyTextureTransform( anisotropyMapDef, material.anisotropyMap );
@@ -3194,6 +3261,7 @@ class GLTFMeshGpuInstancing {
  * Static utility functions
  */
 GLTFExporter.Utils = {
+	GLTFWriter,
 
 	insertKeyframe: function ( track, time ) {
 
