@@ -40,6 +40,8 @@ const _plane = new Plane();
 const _TILT_LIMIT = Math.cos( 70 * MathUtils.DEG2RAD );
 
 const _v = new Vector3();
+const _sphericalStart = new Spherical();
+const _targetStart = new Vector3();
 const _twoPI = 2 * Math.PI;
 
 const _STATE = {
@@ -120,9 +122,9 @@ class OrbitControls extends Controls {
 		 * How far you can dolly in (perspective camera only).
 		 *
 		 * @type {number}
-		 * @default 0
+		 * @default 0.00001
 		 */
-		this.minDistance = 0;
+		this.minDistance = 0.00001;
 
 		/**
 		 * How far you can dolly out (perspective camera only).
@@ -131,6 +133,13 @@ class OrbitControls extends Controls {
 		 * @default Infinity
 		 */
 		this.maxDistance = Infinity;
+
+		this.autoPushTarget = true; // push target when zoomed even after minDistance
+		this.autoPullTarget = true; // push target when zoomed even after minDistance
+
+		this.clampMax = new Vector3( Infinity, Infinity, Infinity ); // clamp position and target
+		this.clampMin = new Vector3( - Infinity, - Infinity, - Infinity ); // clamp position and target
+		// this.clampBounds = new Box3( new Vector3( - 0.3, - 0.2, - 0.8 ), new Vector3( 1.25, 0.3, 0.2 ) ); // Box3 or null
 
 		/**
 		 * How far you can zoom in (orthographic camera only).
@@ -233,6 +242,9 @@ class OrbitControls extends Controls {
 		 * @default 1
 		 */
 		this.zoomSpeed = 1.0;
+		this.maxZoomSpeed = 1.0; // only used while damping
+		this.maxZoomSpeed = 1.0; // only used while damping
+		this.dollyZoom = false; // only for PerspectiveCamera, control zoom with wheel.
 
 		/**
 		 * Enable or disable horizontal and vertical rotation of the camera.
@@ -328,6 +340,8 @@ class OrbitControls extends Controls {
 		 */
 		this.autoRotateSpeed = 2.0;
 
+		this.throttleUpdate = 0; // limit to n updates per second, set to 0 to disable throttling
+
 		/**
 		 * This object contains references to the keycodes for controlling camera panning.
 		 *
@@ -406,7 +420,7 @@ class OrbitControls extends Controls {
 
 		// current position in spherical coordinates
 		this._spherical = new Spherical();
-		this._sphericalDelta = new Spherical();
+		this._sphericalDelta = new Spherical( 0 );
 
 		this._scale = 1;
 		this._panOffset = new Vector3();
@@ -449,6 +463,8 @@ class OrbitControls extends Controls {
 
 		this._interceptControlDown = interceptControlDown.bind( this );
 		this._interceptControlUp = interceptControlUp.bind( this );
+
+		this._lastUpdateTime = 0;
 
 		//
 
@@ -501,6 +517,8 @@ class OrbitControls extends Controls {
 	dispose() {
 
 		this.disconnect();
+
+		//this.dispatchEvent( { type: 'dispose' } ); // should this be added here?
 
 	}
 
@@ -596,6 +614,16 @@ class OrbitControls extends Controls {
 
 	update( deltaTime = null ) {
 
+		if ( this.throttleUpdate && this.throttleUpdate >= 1 ) {
+
+			const now = Date.now();
+			const dt = now - this._lastUpdateTime;
+			if ( dt < 1000 / this.throttleUpdate ) return;
+			// todo this breaks target(lookat) update etc
+			// this._lastUpdateTime = now;
+
+		}
+
 		const position = this.object.position;
 
 		_v.copy( position ).sub( this.target );
@@ -605,6 +633,9 @@ class OrbitControls extends Controls {
 
 		// angle from z-axis around y-axis
 		this._spherical.setFromVector3( _v );
+
+		_sphericalStart.copy( this._spherical );
+		_targetStart.copy( this.target );
 
 		if ( this.autoRotate && this.state === _STATE.NONE ) {
 
@@ -672,6 +703,8 @@ class OrbitControls extends Controls {
 		this.target.clampLength( this.minTargetRadius, this.maxTargetRadius );
 		this.target.add( this.cursor );
 
+		let pushDelta = 0;
+
 		let zoomChanged = false;
 		// adjust the camera position based on zoom only if we're not zooming to the cursor or if it's an ortho camera
 		// we adjust zoom later in these cases
@@ -682,26 +715,95 @@ class OrbitControls extends Controls {
 		} else {
 
 			const prevRadius = this._spherical.radius;
-			this._spherical.radius = this._clampDistance( this._spherical.radius * this._scale );
+
+			if ( Math.abs( this._sphericalDelta.radius ) > 0 ) {
+
+				if ( this.dollyZoom ) {
+
+					this.object.zoom = Math.max( Math.max( this.minZoom, 0.1 ), Math.min( Math.min( this.maxZoom, 20 ), this.object.zoom * ( 1 + this._sphericalDelta.radius * ( this.enableDamping ? this.dampingFactor : 1 ) ) ) );
+					this.object.updateProjectionMatrix();
+
+					if ( this.object.zoom >= Math.min( this.maxZoom, 20 ) || this.object.zoom <= Math.max( this.minZoom, 0.1 ) )
+						this._sphericalDelta.radius = 0;
+
+				}
+
+				// this._spherical.radius += this._spherical.radius * this._sphericalDelta.radius * this.dampingFactor;
+				this._spherical.radius *= 1 + this._sphericalDelta.radius * ( this.enableDamping ? this.dampingFactor : 1 );
+
+			}
+
+			if ( Math.abs( this._scale - 1 ) > 0.00001 ) { // this will be used when using touch, otherwise it will be 1.
+
+				if ( this.dollyZoom ) {
+
+					this.object.zoom = Math.max( Math.max( this.minZoom, 0.1 ), Math.min( Math.min( this.maxZoom, 20 ), this.object.zoom * this._scale ) );
+					this.object.updateProjectionMatrix();
+
+					if ( this.object.zoom >= Math.min( this.maxZoom, 20 ) || this.object.zoom <= Math.max( this.minZoom, 0.1 ) )
+						this._scale = 1;
+
+				}
+
+				this._spherical.radius *= this._scale;
+
+			}
+
+			// push target
+			if ( this.autoPushTarget && this._spherical.radius < this.minDistance )
+				pushDelta = this.minDistance - this._spherical.radius;
+			// pull target
+			if ( this.autoPullTarget && this._spherical.radius > this.maxDistance )
+				pushDelta = this.maxDistance - this._spherical.radius;
+
+			// this._spherical.radius = this._clampDistance( this._spherical.radius * this._scale );
+			this._spherical.radius = this._clampDistance( this._spherical.radius );
+
 			zoomChanged = prevRadius != this._spherical.radius;
 
 		}
 
-		_v.setFromSpherical( this._spherical );
+		// Rebuild the position only when the orbit changed. The round trip through spherical coordinates is not
+		// exact, so an update with nothing to apply would otherwise move the camera by rounding.
+		if ( pushDelta !== 0 || ! this.target.equals( _targetStart ) ||
+			this._spherical.radius !== _sphericalStart.radius ||
+			this._spherical.phi !== _sphericalStart.phi ||
+			this._spherical.theta !== _sphericalStart.theta ) {
 
-		// rotate offset back to "camera-up-vector-is-up" space
-		_v.applyQuaternion( this._quatInverse );
+			_v.setFromSpherical( this._spherical );
+			// transform(offset, spherical); // todo https://math.stackexchange.com/questions/69099/equation-of-a-rectangle
 
-		position.copy( this.target ).add( _v );
+			// rotate offset back to "camera-up-vector-is-up" space
+			_v.applyQuaternion( this._quatInverse );
+
+			position.copy( this.target ).add( _v );
+
+			this.target.add( _v.normalize().multiplyScalar( - pushDelta ) );
+
+		}
+
+		// restrict position and target in clamp bounds
+		position.clamp( this.clampMin, this.clampMax );
+		this.target.clamp( this.clampMin, this.clampMax );
 
 		this.object.lookAt( this.target );
 
-		if ( this.enableDamping === true ) {
+		let isDamping = false;
+
+		if ( this.enableDamping === true && (
+			Math.abs( this._sphericalDelta.theta ) +
+			Math.abs( this._sphericalDelta.phi ) +
+			Math.abs( this._sphericalDelta.radius ) +
+			this._panOffset.length()
+		) > 0.001 ) {
 
 			this._sphericalDelta.theta *= ( 1 - this.dampingFactor );
 			this._sphericalDelta.phi *= ( 1 - this.dampingFactor );
+			this._sphericalDelta.radius *= ( 1 - this.dampingFactor );
 
 			this._panOffset.multiplyScalar( 1 - this.dampingFactor );
+
+			isDamping = true;
 
 		} else {
 
@@ -711,6 +813,7 @@ class OrbitControls extends Controls {
 
 		}
 
+		// todo this should be moved above previous `if`
 		// adjust camera position
 		if ( this.zoomToCursor && this._performCursorZoom ) {
 
@@ -719,8 +822,10 @@ class OrbitControls extends Controls {
 
 				// move the camera down the pointer ray
 				// this method avoids floating point error
-				const prevRadius = _v.length();
-				newRadius = this._clampDistance( prevRadius * this._scale );
+				const prevRadius = this._spherical.radius;
+				newRadius = this._spherical.radius * this._scale;
+				// newRadius = this._spherical.radius * ( 1 + this._sphericalDelta.radius * ( this.enableDamping ? this.dampingFactor : 0 ) );
+				newRadius = this._clampDistance( newRadius );
 
 				const radiusDelta = prevRadius - newRadius;
 				this.object.position.addScaledVector( this._dollyDirection, radiusDelta );
@@ -746,7 +851,7 @@ class OrbitControls extends Controls {
 				this.object.position.sub( mouseAfter ).add( mouseBefore );
 				this.object.updateMatrixWorld();
 
-				newRadius = _v.length();
+				newRadius = this._spherical.radius;
 
 			} else {
 
@@ -811,6 +916,7 @@ class OrbitControls extends Controls {
 		// using small-angle approximation cos(x/2) = 1 - x^2 / 8
 
 		if ( zoomChanged ||
+			isDamping ||
 			this._lastPosition.distanceToSquared( this.object.position ) > _EPS ||
 			8 * ( 1 - this._lastQuaternion.dot( this.object.quaternion ) ) > _EPS ||
 			this._lastTargetPosition.distanceToSquared( this.target ) > _EPS ) {
@@ -826,6 +932,14 @@ class OrbitControls extends Controls {
 		}
 
 		return false;
+
+	}
+
+	stopDamping() {
+
+		this._sphericalDelta.set( 0, 0, 0 );
+
+		this._panOffset.set( 0, 0, 0 );
 
 	}
 
@@ -845,8 +959,10 @@ class OrbitControls extends Controls {
 
 	_getZoomScale( delta ) {
 
-		const normalizedDelta = Math.abs( delta * 0.01 );
-		return Math.pow( 0.95, this.zoomSpeed * normalizedDelta );
+		return this.enableDamping && ! this.zoomToCursor && ! this.object.isOrthographicCamera ? 1 : Math.pow( 0.95, this.zoomSpeed );
+		// todo try with delta
+		// const normalizedDelta = Math.abs( delta * 0.01 );
+		// return Math.pow( 0.95, this.zoomSpeed * normalizedDelta );
 
 	}
 
@@ -925,11 +1041,12 @@ class OrbitControls extends Controls {
 
 	}
 
-	_dollyOut( dollyScale ) {
+	_dollyOut( dollyScale, delta = 0 ) {
 
 		if ( this.object.isPerspectiveCamera || this.object.isOrthographicCamera ) {
 
 			this._scale /= dollyScale;
+			this._sphericalDelta.radius = Math.max( - this.maxZoomSpeed, Math.min( this.maxZoomSpeed, this._sphericalDelta.radius - delta ) );
 
 		} else {
 
@@ -940,11 +1057,13 @@ class OrbitControls extends Controls {
 
 	}
 
-	_dollyIn( dollyScale ) {
+	_dollyIn( dollyScale, delta = 0 ) {
 
 		if ( this.object.isPerspectiveCamera || this.object.isOrthographicCamera ) {
 
 			this._scale *= dollyScale;
+			this._sphericalDelta.radius = Math.max( - this.maxZoomSpeed, Math.min( this.maxZoomSpeed, this._sphericalDelta.radius + delta ) );
+
 
 		} else {
 
@@ -952,6 +1071,18 @@ class OrbitControls extends Controls {
 			this.enableZoom = false;
 
 		}
+
+	}
+
+	zoomIn( delta ) {
+
+		this._dollyOut( 1, delta * this.zoomSpeed );
+
+	}
+
+	zoomOut( delta ) {
+
+		this._dollyIn( 1, delta * this.zoomSpeed );
 
 	}
 
@@ -996,7 +1127,7 @@ class OrbitControls extends Controls {
 
 	_handleMouseDownDolly( event ) {
 
-		this._updateZoomParameters( event.clientX, event.clientX );
+		this._updateZoomParameters( event.clientX, event.clientY );
 		this._dollyStart.set( event.clientX, event.clientY );
 
 	}
@@ -1065,13 +1196,40 @@ class OrbitControls extends Controls {
 
 		this._updateZoomParameters( event.clientX, event.clientY );
 
+		let delta = 0;
+		// from trackball controls
+		switch ( event.deltaMode ) {
+
+			case 2:
+			// Zoom in pages
+				delta += event.deltaY * 1;
+				break;
+
+			case 1:
+			// Zoom in lines
+				delta += event.deltaY * 0.4;
+				break;
+
+			default:
+			// undefined, 0, assume pixels
+				delta += event.deltaY * 0.01;
+				break;
+
+		}
+
 		if ( event.deltaY < 0 ) {
 
-			this._dollyIn( this._getZoomScale( event.deltaY ) );
+			if ( this.zoomToCursor || this.object.isOrthographicCamera )
+				this._dollyIn( this._getZoomScale( event.deltaY ) );
+			else
+				this._dollyIn( 1, delta * this.zoomSpeed );
 
 		} else if ( event.deltaY > 0 ) {
 
-			this._dollyOut( this._getZoomScale( event.deltaY ) );
+			if ( this.zoomToCursor || this.object.isOrthographicCamera )
+				this._dollyOut( this._getZoomScale( event.deltaY ) );
+			else
+				this._dollyOut( 1, - delta * this.zoomSpeed );
 
 		}
 
@@ -1323,7 +1481,8 @@ class OrbitControls extends Controls {
 
 		this._dollyEnd.set( 0, distance );
 
-		this._dollyDelta.set( 0, Math.pow( this._dollyEnd.y / this._dollyStart.y, this.zoomSpeed ) );
+		// todo ` * 6`?
+		this._dollyDelta.set( 0, Math.pow( this._dollyEnd.y / this._dollyStart.y, this.zoomSpeed * 6 ) );
 
 		this._dollyOut( this._dollyDelta.y );
 
@@ -1448,6 +1607,18 @@ class OrbitControls extends Controls {
 
 	}
 
+	rotateUp( angle ) {
+
+		this._rotateUp( angle );
+
+	}
+	rotateLeft( angle ) {
+
+		this._rotateLeft( angle );
+
+	}
+
+
 }
 
 function onPointerDown( event ) {
@@ -1493,7 +1664,8 @@ function onPointerMove( event ) {
 
 	} else {
 
-		this._onMouseMove( event );
+		if ( ! event.buttons ) this._onPointerUp( event );
+		else this._onMouseMove( event );
 
 	}
 
