@@ -182,6 +182,7 @@ function buildInfoRTT( renderTarget, options = {} ) {
 		HEIGHT = renderTarget.height,
 		TYPE = TEXTURE.type,
 		FORMAT = TEXTURE.format,
+		COLOR_SPACE = TEXTURE.colorSpace,
 		COMPRESSION = ( options.compression !== undefined ) ? options.compression : ZIP_COMPRESSION,
 		EXPORTER_TYPE = ( options.type !== undefined ) ? options.type : HalfFloatType,
 		OUT_TYPE = ( EXPORTER_TYPE === FloatType ) ? 2 : 1,
@@ -193,6 +194,7 @@ function buildInfoRTT( renderTarget, options = {} ) {
 		height: HEIGHT,
 		type: TYPE,
 		format: FORMAT,
+		colorSpace: COLOR_SPACE,
 		compression: COMPRESSION,
 		blockLines: COMPRESSION_SIZE,
 		dataType: OUT_TYPE,
@@ -200,6 +202,7 @@ function buildInfoRTT( renderTarget, options = {} ) {
 		numBlocks: Math.ceil( HEIGHT / COMPRESSION_SIZE ),
 		numInputChannels: 4,
 		numOutputChannels: NUM_CHANNELS,
+		flipY: false,
 		textureIndex: TEXTURE_INDEX,
 	};
 
@@ -219,6 +222,7 @@ function buildInfoDT( texture, options = {} ) {
 		HEIGHT = texture.image.height,
 		TYPE = texture.type,
 		FORMAT = texture.format,
+		COLOR_SPACE = texture.colorSpace,
 		COMPRESSION = ( options.compression !== undefined ) ? options.compression : ZIP_COMPRESSION,
 		EXPORTER_TYPE = ( options.type !== undefined ) ? options.type : HalfFloatType,
 		OUT_TYPE = ( EXPORTER_TYPE === FloatType ) ? 2 : 1,
@@ -230,6 +234,7 @@ function buildInfoDT( texture, options = {} ) {
 		height: HEIGHT,
 		type: TYPE,
 		format: FORMAT,
+		colorSpace: COLOR_SPACE,
 		compression: COMPRESSION,
 		blockLines: COMPRESSION_SIZE,
 		dataType: OUT_TYPE,
@@ -237,6 +242,8 @@ function buildInfoDT( texture, options = {} ) {
 		numBlocks: Math.ceil( HEIGHT / COMPRESSION_SIZE ),
 		numInputChannels: 4,
 		numOutputChannels: NUM_CHANNELS,
+		flipY: texture.isDataTexture && texture.flipY,
+		textureIndex: options.textureIndex || 0 // todo required here?
 	};
 
 }
@@ -292,7 +299,7 @@ function reorganizeDataBuffer( inBuffer, info ) {
 			const b = getValue( inBuffer, i + 2 );
 			const a = getValue( inBuffer, i + 3 );
 
-			const line = ( h - y - 1 ) * w * ( 3 + cOffset ) * info.dataSize;
+			const line = ( info.flipY ? y : h - y - 1 ) * w * ( 3 + cOffset ) * info.dataSize;
 
 			decodeLinear( dec, r, g, b, a );
 
