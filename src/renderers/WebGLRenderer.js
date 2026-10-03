@@ -289,6 +289,18 @@ class WebGLRenderer {
 		 */
 		this.transmissionResolutionScale = 1.0;
 
+		// user data
+
+		this.userData = {};
+
+		// extra context events
+
+		this.onContextLost = () => {};
+
+		this.onContextRestore = () => {};
+
+		this.onContextCreationError = () => {};
+
 		// internal properties
 
 		const _this = this;
@@ -536,6 +548,10 @@ class WebGLRenderer {
 			 * @type {WebGLRenderer~Info}
 			 */
 			_this.info = info;
+			_this.background = background;
+			_this.cubemaps = cubemaps;
+			_this.cubeuvmaps = cubeuvmaps;
+			_this.materials = materials;
 
 		}
 
@@ -945,6 +961,14 @@ class WebGLRenderer {
 		 */
 		this.clear = function ( color = true, depth = true, stencil = true ) {
 
+			// if ( ! _scissorTest ) {
+			//
+			// 	// https://stackoverflow.com/questions/11544608/how-to-clear-a-rectangle-area-in-webgl
+			// 	_gl.enable( _gl.SCISSOR_TEST );
+			// 	_gl.scissor( _viewport.x, _viewport.y, _viewport.z, _viewport.w );
+			//
+			// }
+
 			let bits = 0;
 
 			if ( color ) {
@@ -1011,6 +1035,13 @@ class WebGLRenderer {
 			}
 
 			_gl.clear( bits );
+
+			// if ( ! _scissorTest ) {
+			//
+			// 	_gl.disable( _gl.SCISSOR_TEST );
+			// 	_gl.scissor( _scissor.x, _scissor.y, _scissor.z, _scissor.w );
+			//
+			// }
 
 		};
 
@@ -1081,6 +1112,8 @@ class WebGLRenderer {
 
 			_isContextLost = true;
 
+			_this.onContextLost( event );
+
 		}
 
 		function onContextRestore( /* event */ ) {
@@ -1089,7 +1122,7 @@ class WebGLRenderer {
 
 			_isContextLost = false;
 
-			const infoAutoReset = info.autoReset;
+			const infoAutoReset = _this.info ? _this.info.autoReset : undefined;
 			const shadowMapEnabled = shadowMap.enabled;
 			const shadowMapAutoUpdate = shadowMap.autoUpdate;
 			const shadowMapNeedsUpdate = shadowMap.needsUpdate;
@@ -1097,17 +1130,23 @@ class WebGLRenderer {
 
 			initGLContext();
 
-			info.autoReset = infoAutoReset;
+			if ( _this.info && infoAutoReset !== undefined ) _this.info.autoReset = infoAutoReset;
 			shadowMap.enabled = shadowMapEnabled;
 			shadowMap.autoUpdate = shadowMapAutoUpdate;
 			shadowMap.needsUpdate = shadowMapNeedsUpdate;
 			shadowMap.type = shadowMapType;
+
+			_this.onContextRestore && _this.onContextRestore();
+
+			//console.log( 'restored' );
 
 		}
 
 		function onContextCreationError( event ) {
 
 			error( 'WebGLRenderer: A WebGL context could not be created. Reason: ', event.statusMessage );
+
+			_this.onContextCreationError( event );
 
 		}
 
@@ -1666,6 +1705,7 @@ class WebGLRenderer {
 			}
 
 			_renderBackground = xr.enabled === false || xr.isPresenting === false || xr.hasDepthSensing() === false;
+			_renderBackground = _renderBackground && _this.userData.backgroundRender !== false;
 			if ( _renderBackground ) {
 
 				background.addToRenderList( currentRenderList, scene );
@@ -1676,13 +1716,18 @@ class WebGLRenderer {
 
 			this.info.render.frame ++;
 
-			if ( _clippingEnabled === true ) clipping.beginShadows();
+			if ( _this.userData.shadowMapRender !== false ) {
 
-			const shadowsArray = currentRenderState.state.shadowsArray;
+				if ( _clippingEnabled === true ) clipping.beginShadows();
 
-			shadowMap.render( shadowsArray, scene, camera );
+				const shadowsArray = currentRenderState.state.shadowsArray;
 
-			if ( _clippingEnabled === true ) clipping.endShadows();
+				if ( shadowsArray.length > 0 )
+					shadowMap.render( shadowsArray, scene, camera );
+
+				if ( _clippingEnabled === true ) clipping.endShadows();
+
+			}
 
 			//
 
@@ -1692,7 +1737,7 @@ class WebGLRenderer {
 
 			const skipSceneRender = useOutput && output.hasRenderPass();
 
-			if ( skipSceneRender === false ) {
+			if ( skipSceneRender === false && _this.userData.sceneRender !== false ) {
 
 				const opaqueObjects = currentRenderList.opaque;
 				const transmissiveObjects = currentRenderList.transmissive;
@@ -1721,13 +1766,17 @@ class WebGLRenderer {
 
 						const camera2 = cameras[ i ];
 
-						renderScene( currentRenderList, scene, camera2, camera2.viewport );
+						renderScene( currentRenderList, scene, camera2, camera2.viewport ); // viewport is set by WebXRManager
 
 					}
 
 				} else {
 
-					if ( transmissiveObjects.length > 0 ) renderTransmissionPass( opaqueObjects, transmissiveObjects, scene, camera );
+					if ( _this.userData.transmissionRender === undefined && _this.userData.renderTransmissionPass !== false ) {
+
+						if ( transmissiveObjects.length > 0 ) renderTransmissionPass( opaqueObjects, transmissiveObjects, scene, camera );
+
+					}
 
 					if ( _renderBackground ) background.render( scene );
 
@@ -1736,7 +1785,6 @@ class WebGLRenderer {
 				}
 
 			}
-
 			//
 
 			if ( _currentRenderTarget !== null && _currentActiveMipmapLevel === 0 ) {
@@ -1921,9 +1969,72 @@ class WebGLRenderer {
 
 			if ( viewport ) state.viewport( _currentViewport.copy( viewport ) );
 
-			if ( opaqueObjects.length > 0 ) renderObjects( opaqueObjects, scene, camera );
-			if ( transmissiveObjects.length > 0 ) renderObjects( transmissiveObjects, scene, camera );
-			if ( transparentObjects.length > 0 ) renderObjects( transparentObjects, scene, camera );
+			if ( _this.userData.opaqueRender !== false ) {
+
+				if ( opaqueObjects.length > 0 ) renderObjects( opaqueObjects, scene, camera );
+
+			}
+
+			if ( _this.userData.transparentRender !== false ) {
+
+				if ( transparentObjects.length > 0 ) renderObjects( transparentObjects, scene, camera );
+
+			}
+
+			if ( _this.userData.transmissionRender !== false ) {
+
+				if ( _this.userData.transmissionRender === undefined && _this.userData.renderTransmissionPass !== false ) {
+
+					if ( transmissiveObjects.length > 0 ) renderObjects( transmissiveObjects, scene, camera );
+
+				} else {
+
+					// Custom version of renderTransmissionPass.
+					if ( transmissiveObjects.length > 0 ) {
+
+						if ( ! currentRenderState.state.transmissionRenderTarget ) currentRenderState.state.transmissionRenderTarget = {};
+						if ( ! currentRenderState.state.transmissionRenderTarget[ camera.id ] ) currentRenderState.state.transmissionRenderTarget[ camera.id ] = new WebGLRenderTarget( 1, 1 );
+
+						const texture = ( _this.userData.transmissionRenderTarget || currentRenderState.state.transmissionRenderTarget[ camera.id ] ).texture;
+						const isWebGL2 = capabilities.isWebGL2;
+
+						const generateMipmaps = texture.generateMipmaps;
+						const minFilter = texture.minFilter;
+						// const magFilter = texture.magFilter;
+
+						if ( isWebGL2 && _this.userData.blurTransmissionTarget && _this.userData.transmissionRenderTarget ) {
+
+							texture.generateMipmaps = true;
+							texture.minFilter = LinearMipmapLinearFilter;
+							// texture.magFilter = LinearMipmapLinearFilter;
+							texture.needsUpdate = true;
+
+							textures.updateMultisampleRenderTarget( _this.userData.transmissionRenderTarget ); // todo?
+							textures.updateRenderTargetMipmap( _this.userData.transmissionRenderTarget );
+
+						}
+
+						// todo; do we need to set backside when double-side like below in renderTransmissionPass.
+
+						renderObjects( transmissiveObjects, scene, camera );
+
+						if ( isWebGL2 && _this.userData.blurTransmissionTarget && _this.userData.transmissionRenderTarget ) {
+
+							texture.generateMipmaps = generateMipmaps;
+							texture.minFilter = minFilter;
+							// texture.magFilter = magFilter;
+							texture.needsUpdate = true;
+
+							textures.updateMultisampleRenderTarget( _this.userData.transmissionRenderTarget ); // todo?
+							textures.updateRenderTargetMipmap( _this.userData.transmissionRenderTarget );
+
+						}
+
+					}
+
+				}
+
+			}
 
 			// Ensure depth buffer writing is enabled so it can be cleared on next render
 
@@ -1964,7 +2075,7 @@ class WebGLRenderer {
 
 				/*
 				const geometry = new PlaneGeometry();
-				const material = new MeshBasicMaterial( { map: _transmissionRenderTarget.texture } );
+				const material = new MeshBasicMaterial( { map: currentRenderState.state.transmissionRenderTarget.texture } );
 
 				const mesh = new Mesh( geometry, material );
 				scene.add( mesh );
@@ -2061,6 +2172,13 @@ class WebGLRenderer {
 
 		function renderObjects( renderList, scene, camera ) {
 
+			// todo palash: find a better fix... PMREM and other ShaderPass wouldn't work for transparent and transmission objects
+			const temp = { ..._this.userData };
+			_this.userData.opaqueRender = undefined;
+			_this.userData.transparentRender = undefined;
+			_this.userData.transmissionRender = undefined;
+			_this.userData.backgroundRender = undefined;
+
 			const overrideMaterial = scene.isScene === true ? scene.overrideMaterial : null;
 
 			for ( let i = 0, l = renderList.length; i < l; i ++ ) {
@@ -2083,6 +2201,8 @@ class WebGLRenderer {
 				}
 
 			}
+
+			Object.assign( _this.userData, temp );
 
 		}
 
@@ -2114,6 +2234,7 @@ class WebGLRenderer {
 			}
 
 			object.onAfterRender( _this, scene, camera, geometry, material, group );
+			material.onAfterRender( _this, scene, camera, geometry, object, group );
 
 		}
 
@@ -2135,7 +2256,7 @@ class WebGLRenderer {
 
 			// always update environment and fog - changing these trigger an getProgram call, but it's possible that the program doesn't change
 
-			materialProperties.environment = material.isMeshStandardMaterial ? scene.environment : null;
+			materialProperties.environment = material.userData && material.userData.envMapSlotKey && scene.textureSlots && scene.textureSlots[ material.userData.envMapSlotKey ] ? scene.textureSlots[ material.userData.envMapSlotKey ] : material.isMeshStandardMaterial ? scene.environment : null;
 			materialProperties.fog = scene.fog;
 			materialProperties.envMap = ( material.isMeshStandardMaterial ? cubeuvmaps : cubemaps ).get( material.envMap || materialProperties.environment );
 			materialProperties.envMapRotation = ( materialProperties.environment !== null && material.envMap === null ) ? scene.environmentRotation : material.envMapRotation;
@@ -2271,11 +2392,11 @@ class WebGLRenderer {
 			textures.resetTextureUnits();
 
 			const fog = scene.fog;
-			const environment = material.isMeshStandardMaterial ? scene.environment : null;
-			const colorSpace = ( _currentRenderTarget === null ) ? _this.outputColorSpace : ( _currentRenderTarget.isXRRenderTarget === true ? _currentRenderTarget.texture.colorSpace : LinearSRGBColorSpace );
+			const environment = material.userData && material.userData.envMapSlotKey && scene.textureSlots && scene.textureSlots[ material.userData.envMapSlotKey ] ? scene.textureSlots[ material.userData.envMapSlotKey ] : material.isMeshStandardMaterial ? scene.environment : null;
+			const colorSpace = ( _currentRenderTarget === null ) ? _this.outputColorSpace : ( ( _currentRenderTarget.isXRRenderTarget === true || _currentRenderTarget.texture.colorSpace && _currentRenderTarget.texture.colorSpace !== SRGBColorSpace ) ? _currentRenderTarget.texture.colorSpace : LinearSRGBColorSpace );
 			const envMap = ( material.isMeshStandardMaterial ? cubeuvmaps : cubemaps ).get( material.envMap || environment );
 			const vertexAlphas = material.vertexColors === true && !! geometry.attributes.color && geometry.attributes.color.itemSize === 4;
-			const vertexTangents = !! geometry.attributes.tangent && ( !! material.normalMap || material.anisotropy > 0 );
+			const vertexTangents = !! geometry.attributes.tangent && ( !! material.normalMap || material.anisotropy > 0 || geometry.userData.__forceUseTangent );
 			const morphTargets = !! geometry.morphAttributes.position;
 			const morphNormals = !! geometry.morphAttributes.normal;
 			const morphColors = !! geometry.morphAttributes.color;
@@ -2610,7 +2731,15 @@ class WebGLRenderer {
 
 			if ( material.isMeshStandardMaterial && material.envMap === null && scene.environment !== null ) {
 
-				m_uniforms.envMapIntensity.value = scene.environmentIntensity;
+				if ( ! ( material.userData && material.userData.separateEnvMapIntensity ) ) {
+
+					m_uniforms.envMapIntensity.value = scene.environmentIntensity;
+
+				} else {
+
+					m_uniforms.envMapIntensity.value = material.envMapIntensity;
+
+				}
 
 			}
 
@@ -2648,7 +2777,7 @@ class WebGLRenderer {
 
 				}
 
-				materials.refreshMaterialUniforms( m_uniforms, material, _pixelRatio, _height, currentRenderState.state.transmissionRenderTarget[ camera.id ] );
+				materials.refreshMaterialUniforms( m_uniforms, material, _pixelRatio, _height, _this.userData.transmissionRenderTarget || currentRenderState.state.transmissionRenderTarget[ camera.id ] );
 
 				WebGLUniforms.upload( _gl, getUniformList( materialProperties ), m_uniforms, textures );
 
@@ -2672,6 +2801,19 @@ class WebGLRenderer {
 			p_uniforms.setValue( _gl, 'modelViewMatrix', object.modelViewMatrix );
 			p_uniforms.setValue( _gl, 'normalMatrix', object.normalMatrix );
 			p_uniforms.setValue( _gl, 'modelMatrix', object.matrixWorld );
+
+			// Update this in Material.onBeforeRender(which has access to object). This is set for each object each frame, useful for things like inverseModelMatrix, uvTransform, geometry offsets etc.
+			const extraUniformsToUpload = material.extraUniformsToUpload;
+			extraUniformsToUpload && Object.entries( extraUniformsToUpload ).forEach( ( [ k, v ] )=> {
+
+				if ( v.needsUpdate !== false ) {
+
+					// note: always updating when .needsUpdate is undefined
+					p_uniforms.setValue( _gl, k, v.value, textures );
+
+				}
+
+			} );
 
 			// UBOs
 
@@ -3031,7 +3173,7 @@ class WebGLRenderer {
 
 					// restore framebuffer of current render target if necessary
 
-					const framebuffer = ( _currentRenderTarget !== null ) ? properties.get( _currentRenderTarget ).__webglFramebuffer : null;
+					const framebuffer = ( _currentRenderTarget ) ? properties.get( _currentRenderTarget ).__webglFramebuffer : null;
 					state.bindFramebuffer( _gl.FRAMEBUFFER, framebuffer );
 
 				}
@@ -3489,6 +3631,12 @@ class WebGLRenderer {
 
 		};
 
+		this.resetCurrentMaterial = function () {
+
+			_currentMaterialId = - 1;
+
+		};
+
 		if ( typeof __THREE_DEVTOOLS__ !== 'undefined' ) {
 
 			__THREE_DEVTOOLS__.dispatchEvent( new CustomEvent( 'observe', { detail: this } ) );
@@ -3531,6 +3679,20 @@ class WebGLRenderer {
 		const gl = this.getContext();
 		gl.drawingBufferColorSpace = ColorManagement._getDrawingBufferColorSpace( colorSpace );
 		gl.unpackColorSpace = ColorManagement._getUnpackColorSpace();
+
+	}
+
+	get useLegacyLights() { // @deprecated, r155
+
+		// console.warn( 'THREE.WebGLRenderer: The property .useLegacyLights has been deprecated. Migrate your lighting according to the following guide: https://discourse.threejs.org/t/updates-to-lighting-in-three-js-r155/53733.' );
+		return this._useLegacyLights;
+
+	}
+
+	set useLegacyLights( value ) { // @deprecated, r155
+
+		// console.warn( 'THREE.WebGLRenderer: The property .useLegacyLights has been deprecated. Migrate your lighting according to the following guide: https://discourse.threejs.org/t/updates-to-lighting-in-three-js-r155/53733.' );
+		this._useLegacyLights = value;
 
 	}
 
