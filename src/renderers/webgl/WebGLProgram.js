@@ -1,7 +1,7 @@
 import { WebGLUniforms } from './WebGLUniforms.js';
 import { WebGLShader } from './WebGLShader.js';
 import { ShaderChunk } from '../shaders/ShaderChunk.js';
-import { NoToneMapping, AddOperation, MixOperation, MultiplyOperation, CubeRefractionMapping, CubeUVReflectionMapping, CubeReflectionMapping, PCFSoftShadowMap, PCFShadowMap, VSMShadowMap, AgXToneMapping, ACESFilmicToneMapping, NeutralToneMapping, CineonToneMapping, CustomToneMapping, ReinhardToneMapping, LinearToneMapping, GLSL3, LinearTransfer, SRGBTransfer } from '../../constants.js';
+import { NoToneMapping, AddOperation, MixOperation, MultiplyOperation, CubeRefractionMapping, CubeUVReflectionMapping, CubeReflectionMapping, PCFSoftShadowMap, PCFShadowMap, VSMShadowMap, AgXToneMapping, ACESFilmicToneMapping, NeutralToneMapping, CineonToneMapping, CustomToneMapping, ReinhardToneMapping, LinearToneMapping, GLSL3, LinearTransfer, SRGBTransfer, NoColorSpace, RGBM16ColorSpace, LinearSRGBColorSpace, SRGBColorSpace } from '../../constants.js';
 import { ColorManagement } from '../../math/ColorManagement.js';
 import { Vector3 } from '../../math/Vector3.js';
 import { Matrix3 } from '../../math/Matrix3.js';
@@ -33,6 +33,11 @@ function handleSource( string, errorLine ) {
 const _m0 = /*@__PURE__*/ new Matrix3();
 
 function getEncodingComponents( colorSpace ) {
+
+	// three-modded: a NoColorSpace output is written as is (used for intermediate render targets), and RGBM16 output is
+	// encoded by LinearToRGBM16 (its ColorManagement definition is linear sRGB, so no gamut mapping is needed).
+	if ( colorSpace === NoColorSpace ) return [ 'mat3( 1.0 )', 'LinearTransferOETF' ];
+	if ( colorSpace === RGBM16ColorSpace ) return [ 'mat3( 1.0 )', 'LinearToRGBM16' ];
 
 	ColorManagement._getMatrix( _m0, ColorManagement.workingColorSpace, colorSpace );
 
@@ -75,6 +80,32 @@ function getShaderErrors( gl, shader, type ) {
 		return errors;
 
 	}
+
+}
+
+function getTexelDecodingFunction( functionName, colorSpace ) {
+
+	let fn;
+	switch ( colorSpace ) {
+
+		case LinearSRGBColorSpace:
+			fn = '';
+			break;
+		case SRGBColorSpace:
+			fn = 'sRGBToLinear'; // todo required?
+			break;
+		case RGBM16ColorSpace:
+			fn = 'RGBM16ToLinear';
+			break;
+		default:
+			console.warn( 'THREE.WebGLProgram: Unsupported color space:', colorSpace );
+			fn = '';
+			break;
+
+	}
+
+	// return `vec4 ${functionName}( vec4 value ) { return ${components[ 0 ]}ToLinear${components[ 1 ]}; }`;
+	return `vec4 ${functionName}( vec4 value ) { return ${fn} ( value ); }`;
 
 }
 
@@ -738,6 +769,9 @@ function WebGLProgram( renderer, cacheKey, parameters, bindingStates ) {
 
 			customDefines,
 
+			parameters.instancing ? '#define USE_INSTANCING' : '',
+			parameters.instancingColor ? '#define USE_INSTANCING_COLOR' : '',
+
 			parameters.useFog && parameters.fog ? '#define USE_FOG' : '',
 			parameters.useFog && parameters.fogExp2 ? '#define FOG_EXP2' : '',
 
@@ -792,7 +826,7 @@ function WebGLProgram( renderer, cacheKey, parameters, bindingStates ) {
 			parameters.transmissionMap ? '#define USE_TRANSMISSIONMAP' : '',
 			parameters.thicknessMap ? '#define USE_THICKNESSMAP' : '',
 
-			parameters.vertexTangents && parameters.flatShading === false ? '#define USE_TANGENT' : '',
+			parameters.vertexTangents && parameters.flatShading === false ? '#define USE_TANGENT' : '', // todo this might break stuff, flatShading should not be related to tangents
 			parameters.vertexColors || parameters.instancingColor || parameters.batchingColor ? '#define USE_COLOR' : '',
 			parameters.vertexAlphas ? '#define USE_COLOR_ALPHA' : '',
 			parameters.vertexUv1s ? '#define USE_UV1' : '',
@@ -835,6 +869,8 @@ function WebGLProgram( renderer, cacheKey, parameters, bindingStates ) {
 			ShaderChunk[ 'colorspace_pars_fragment' ], // this code is required here because it is used by the various encoding/decoding function defined below
 			getTexelEncodingFunction( 'linearToOutputTexel', parameters.outputColorSpace ),
 			getLuminanceFunction(),
+
+			parameters.transmissionSamplerMapEncoding ? getTexelDecodingFunction( 'transmissionSamplerMapTexelToLinear', parameters.transmissionSamplerMapEncoding ) : '',
 
 			parameters.useDepthPacking ? '#define DEPTH_PACKING ' + parameters.depthPacking : '',
 
@@ -881,7 +917,8 @@ function WebGLProgram( renderer, cacheKey, parameters, bindingStates ) {
 			'#define textureCubeLodEXT textureLod',
 			'#define texture2DGradEXT textureGrad',
 			'#define texture2DProjGradEXT textureProjGrad',
-			'#define textureCubeGradEXT textureGrad'
+			'#define textureCubeGradEXT textureGrad',
+			'#define WebGL2Context 1'
 		].join( '\n' ) + '\n' + prefixFragment;
 
 	}
