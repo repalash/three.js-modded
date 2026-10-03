@@ -82,6 +82,14 @@ export default /* glsl */`
 
 	}
 
+	#ifndef WebGL2Context
+
+	#define textureLod texture2DLodEXT
+	#define textureSize(s, lod) vec2(1024./pow(2.,float(lod)),1024./pow(2.,float(lod)))
+	#define isinf(x) (x > 1e20 || x < -1e20)
+
+	#endif
+
 	vec4 bicubic( sampler2D tex, vec2 uv, vec4 texelSize, float lod ) {
 
 		uv = uv * texelSize.zw + 0.5;
@@ -143,15 +151,16 @@ export default /* glsl */`
 	}
 
 	vec4 getTransmissionSample( const in vec2 fragCoord, const in float roughness, const in float ior ) {
+		if(roughness == 0.0) return transmissionSamplerMapTexelToLinear( texture2D( transmissionSamplerMap, fragCoord.xy ) );
 
 		float lod = log2( transmissionSamplerSize.x ) * applyIorToRoughness( roughness, ior );
-		return textureBicubic( transmissionSamplerMap, fragCoord.xy, lod );
+		return transmissionSamplerMapTexelToLinear( textureBicubic( transmissionSamplerMap, fragCoord.xy, lod ) );
 
 	}
 
 	vec3 volumeAttenuation( const in float transmissionDistance, const in vec3 attenuationColor, const in float attenuationDistance ) {
 
-		if ( isinf( attenuationDistance ) ) {
+		if ( isinf( attenuationDistance ) || attenuationDistance == 0.0) {
 
 			// Attenuation distance is +∞, i.e. the transmitted color is not attenuated at all.
 			return vec3( 1.0 );
