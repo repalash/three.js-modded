@@ -129,6 +129,14 @@ function WebGLMaterials( renderer, properties ) {
 
 		} else if ( material.isShaderMaterial ) {
 
+			if ( material.transmission !== undefined ) {
+
+				if ( uniforms.transmission ) uniforms.transmission.value = material.transmission;
+				if ( uniforms.transmissionSamplerMap && transmissionRenderTarget ) uniforms.transmissionSamplerMap.value = transmissionRenderTarget ? transmissionRenderTarget.texture : null;
+				if ( uniforms.transmissionSamplerSize && transmissionRenderTarget ) uniforms.transmissionSamplerSize.value.set( transmissionRenderTarget.width, transmissionRenderTarget.height );
+
+			}
+
 			material.uniformsNeedUpdate = false; // #15581
 
 		}
@@ -240,6 +248,8 @@ function WebGLMaterials( renderer, properties ) {
 		if ( envMap ) {
 
 			uniforms.envMap.value = envMap;
+			// const envMapOrig = material.envMap || properties.get( material ).environment || envMap;
+			// uniforms.envMapRotation.value = envMapOrig ? envMapOrig.rotation : 0;
 
 			// note: since the matrix is orthonormal, we can use the more-efficient transpose() in lieu of invert()
 			uniforms.envMapRotation.value.setFromMatrix4( _m1.makeRotationFromEuler( envMapRotation ) ).transpose();
@@ -612,6 +622,7 @@ function WebGLMaterials( renderer, properties ) {
 	}
 
 	return {
+		refreshTransformUniform: refreshTransformUniform,
 		refreshFogUniforms: refreshFogUniforms,
 		refreshMaterialUniforms: refreshMaterialUniforms
 	};
