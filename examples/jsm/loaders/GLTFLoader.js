@@ -248,7 +248,7 @@ class GLTFLoader extends Loader {
 
 					scope.manager.itemEnd( url );
 
-				}, _onError );
+				}, _onError, url );
 
 			} catch ( e ) {
 
@@ -305,7 +305,7 @@ class GLTFLoader extends Loader {
 
 	}
 
-	parse( data, path, onLoad, onError ) {
+	parse( data, path, onLoad, onError, url ) {
 
 		let json;
 		const extensions = {};
@@ -442,6 +442,19 @@ class GLTFLoader extends Loader {
 
 }
 
+GLTFLoader.ObjectConstructors = {
+	'DirectionalLight': DirectionalLight,
+	'PointLight': PointLight,
+	'SpotLight': SpotLight,
+	'MeshStandardMaterial': MeshStandardMaterial,
+	'MeshBasicMaterial': MeshBasicMaterial,
+	'MeshPhysicalMaterial': MeshPhysicalMaterial,
+	'LineBasicMaterial': LineBasicMaterial,
+	'PointsMaterial': PointsMaterial,
+	'PerspectiveCamera': PerspectiveCamera,
+	'OrthographicCamera': OrthographicCamera
+};
+
 /* GLTFREGISTRY */
 
 function GLTFRegistry() {
@@ -568,18 +581,18 @@ class GLTFLightsExtension {
 		switch ( lightDef.type ) {
 
 			case 'directional':
-				lightNode = new DirectionalLight( color );
+				lightNode = new GLTFLoader.ObjectConstructors.DirectionalLight( color );
 				lightNode.target.position.set( 0, 0, - 1 );
 				lightNode.add( lightNode.target );
 				break;
 
 			case 'point':
-				lightNode = new PointLight( color );
+				lightNode = new GLTFLoader.ObjectConstructors.PointLight( color );
 				lightNode.distance = range;
 				break;
 
 			case 'spot':
-				lightNode = new SpotLight( color );
+				lightNode = new GLTFLoader.ObjectConstructors.SpotLight( color );
 				lightNode.distance = range;
 				// Handle spotlight properties.
 				lightDef.spot = lightDef.spot || {};
@@ -660,7 +673,7 @@ class GLTFMaterialsUnlitExtension {
 
 	getMaterialType() {
 
-		return MeshBasicMaterial;
+		return GLTFLoader.ObjectConstructors.MeshBasicMaterial;
 
 	}
 
@@ -758,7 +771,7 @@ class GLTFMaterialsClearcoatExtension {
 
 		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
 
-		return MeshPhysicalMaterial;
+		return GLTFLoader.ObjectConstructors.MeshPhysicalMaterial;
 
 	}
 
@@ -888,7 +901,7 @@ class GLTFMaterialsIridescenceExtension {
 
 		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
 
-		return MeshPhysicalMaterial;
+		return GLTFLoader.ObjectConstructors.MeshPhysicalMaterial;
 
 	}
 
@@ -976,7 +989,7 @@ class GLTFMaterialsSheenExtension {
 
 		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
 
-		return MeshPhysicalMaterial;
+		return GLTFLoader.ObjectConstructors.MeshPhysicalMaterial;
 
 	}
 
@@ -1024,6 +1037,13 @@ class GLTFMaterialsSheenExtension {
 
 		}
 
+		if ( materialDef.extras && materialDef.extras.sheenFactor !== undefined ) {
+
+			materialParams.sheen = materialDef.extras.sheenFactor;
+			delete materialDef.extras.sheenFactor; // so that it doesn't get into userData.
+
+		}
+
 		return Promise.all( pending );
 
 	}
@@ -1052,7 +1072,7 @@ class GLTFMaterialsTransmissionExtension {
 
 		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
 
-		return MeshPhysicalMaterial;
+		return GLTFLoader.ObjectConstructors.MeshPhysicalMaterial;
 
 	}
 
@@ -1110,7 +1130,7 @@ class GLTFMaterialsVolumeExtension {
 
 		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
 
-		return MeshPhysicalMaterial;
+		return GLTFLoader.ObjectConstructors.MeshPhysicalMaterial;
 
 	}
 
@@ -1169,7 +1189,7 @@ class GLTFMaterialsIorExtension {
 
 		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
 
-		return MeshPhysicalMaterial;
+		return GLTFLoader.ObjectConstructors.MeshPhysicalMaterial;
 
 	}
 
@@ -1215,7 +1235,7 @@ class GLTFMaterialsSpecularExtension {
 
 		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
 
-		return MeshPhysicalMaterial;
+		return GLTFLoader.ObjectConstructors.MeshPhysicalMaterial;
 
 	}
 
@@ -1279,7 +1299,7 @@ class GLTFMaterialsBumpExtension {
 
 		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
 
-		return MeshPhysicalMaterial;
+		return GLTFLoader.ObjectConstructors.MeshPhysicalMaterial;
 
 	}
 
@@ -1333,7 +1353,7 @@ class GLTFMaterialsAnisotropyExtension {
 
 		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
 
-		return MeshPhysicalMaterial;
+		return GLTFLoader.ObjectConstructors.MeshPhysicalMaterial;
 
 	}
 
@@ -1791,6 +1811,8 @@ class GLTFMeshGpuInstancing {
 
 				}
 
+				instancedMesh.sourceTrs = attributes;
+
 				// Add instance attributes to the geometry, excluding TRS.
 				for ( const attributeName in attributes ) {
 
@@ -2016,7 +2038,10 @@ class GLTFTextureTransformExtension {
 
 		}
 
-		texture = texture.clone();
+		if ( ! texture.__hasGLTFUuid ) // uuid of the sampler not considered in this texture, so we can clone.
+			texture = texture.clone(); // Its done always in default three.js,
+		// todo: why?. this will create a new uuid and break texture caching. Uncommenting will break mapdef copy in webgi manager importViewer
+		// answer - this is actually done because samplers can be different for textures with the same source on different objects
 
 		if ( transform.texCoord !== undefined ) {
 
@@ -2033,6 +2058,7 @@ class GLTFTextureTransformExtension {
 		if ( transform.rotation !== undefined ) {
 
 			texture.rotation = transform.rotation;
+			// texture.center.set( 0.5, 0.5 ); // todo: texture center is not saved in gltf.
 
 		}
 
@@ -2263,7 +2289,7 @@ function createDefaultMaterial( cache ) {
 
 	if ( cache[ 'DefaultMaterial' ] === undefined ) {
 
-		cache[ 'DefaultMaterial' ] = new MeshStandardMaterial( {
+		cache[ 'DefaultMaterial' ] = new GLTFLoader.ObjectConstructors.MeshStandardMaterial( {
 			color: 0xFFFFFF,
 			emissive: 0x000000,
 			metalness: 1,
@@ -2297,7 +2323,7 @@ function addUnknownExtensionsToUserData( knownExtensions, object, objectDef ) {
 }
 
 /**
- * @param {Object3D|Material|BufferGeometry} object
+ * @param {Object3D|Material|BufferGeometry|AnimationClip} object
  * @param {GLTF.definition} gltfDef
  */
 function assignExtrasToUserData( object, gltfDef ) {
@@ -3191,8 +3217,23 @@ class GLTFParser {
 
 		const json = this.json;
 		const options = this.options;
+		if ( textureIndex < 0 || textureIndex >= json.textures.length ) {
+
+			console.warn( 'THREE.GLTFLoader: Invalid texture index:', textureIndex );
+			return null;
+
+		}
+
 		const textureDef = json.textures[ textureIndex ];
 		const sourceIndex = textureDef.source;
+
+		if ( sourceIndex < 0 || sourceIndex >= json.images.length ) {
+
+			console.warn( 'THREE.GLTFLoader: Invalid source index:', sourceIndex );
+			return null;
+
+		}
+
 		const sourceDef = json.images[ sourceIndex ];
 
 		let loader = this.textureLoader;
@@ -3227,7 +3268,7 @@ class GLTFParser {
 
 		const promise = this.loadImageSource( sourceIndex, loader ).then( function ( texture ) {
 
-			texture.flipY = false;
+			// texture.flipY = false;
 
 			texture.name = textureDef.name || sourceDef.name || '';
 
@@ -3246,6 +3287,26 @@ class GLTFParser {
 			texture.wrapT = WEBGL_WRAPPINGS[ sampler.wrapT ] || RepeatWrapping;
 			texture.generateMipmaps = ! texture.isCompressedTexture && texture.minFilter !== NearestFilter && texture.minFilter !== LinearFilter;
 
+			if ( sampler.extras ) { // this won't be available for now, see GLTFWriter2.processSampler
+
+				if ( sampler.extras.uuid !== undefined ) {
+
+					texture.uuid = sampler.extras.uuid;
+					texture.__hasGLTFUuid = true; // this is read in GLTFTextureTransformExtension.extendTexture
+					// delete sampler.extras.uuid; // do not delete this. It can be read for finding texture references by uuid in after parse. Also sampler extras is not copied to user data so no problem.
+
+				}
+
+				if ( sampler.extras.colorSpace !== undefined ) {
+
+					texture.colorSpace = sampler.extras.colorSpace;
+					texture.userData._forcedColorSpace = true;
+					delete sampler.extras.colorSpace;
+
+				}
+
+			}
+
 			parser.associations.set( texture, { textures: textureIndex } );
 
 			return texture;
@@ -3262,13 +3323,14 @@ class GLTFParser {
 
 	}
 
-	loadImageSource( sourceIndex, loader ) {
+	// do not call this from any extension.
+	loadImageSource( sourceIndex, loader, preferUri = false, skipCache = false ) {
 
 		const parser = this;
 		const json = this.json;
 		const options = this.options;
 
-		if ( this.sourceCache[ sourceIndex ] !== undefined ) {
+		if ( ! skipCache && this.sourceCache[ sourceIndex ] !== undefined ) {
 
 			return this.sourceCache[ sourceIndex ].then( ( texture ) => texture.clone() );
 
@@ -3278,10 +3340,17 @@ class GLTFParser {
 
 		const URL = self.URL || self.webkitURL;
 
+		if ( sourceDef.uri === undefined && sourceDef.extras && sourceDef.extras.uri ) {
+
+			sourceDef.uri = sourceDef.extras.uri;
+
+		}
+
 		let sourceURI = sourceDef.uri || '';
 		let isObjectURL = false;
+		let sourceBlob = null;
 
-		if ( sourceDef.bufferView !== undefined ) {
+		if ( sourceDef.bufferView !== undefined && ( ! preferUri || ! sourceURI ) ) {
 
 			// Load binary image data from bufferView, if provided.
 
@@ -3290,6 +3359,7 @@ class GLTFParser {
 				isObjectURL = true;
 				const blob = new Blob( [ bufferView ], { type: sourceDef.mimeType } );
 				sourceURI = URL.createObjectURL( blob );
+				sourceBlob = blob;
 				return sourceURI;
 
 			} );
@@ -3319,7 +3389,19 @@ class GLTFParser {
 
 				}
 
-				loader.load( LoaderUtils.resolveURL( sourceURI, options.path ), onLoad, undefined, reject );
+				loader.load( LoaderUtils.resolveURL( sourceURI, options.path ), onLoad, undefined, function ( e ) {
+
+					if ( loader.isImageBitmapLoader === true ) { // special check in-case ImageBitmapLoader fails, like with loading SVGs
+
+						loader = new TextureLoader( parser.options.manager ); // todo: instead get handler from loading manager, so that we can load HDR files also
+						onLoad = resolve; // reset from override done above for ImageBitmapLoader
+						loader.setCrossOrigin( parser.options.crossOrigin );
+						loader.setRequestHeader( parser.options.requestHeader );
+						loader.load( LoaderUtils.resolveURL( sourceURI, options.path ), onLoad, undefined, reject );
+
+					} else reject( e );
+
+				} );
 
 			} );
 
@@ -3336,6 +3418,92 @@ class GLTFParser {
 			assignExtrasToUserData( texture, sourceDef );
 
 			texture.userData.mimeType = sourceDef.mimeType || getImageURIMimeType( sourceDef.uri );
+
+			texture.flipY = false;
+
+			if ( sourceDef.extras ) {
+
+				if ( sourceDef.extras.flipY !== undefined ) { // we still need to handle this for externally loaded textures, which cannot be flipped during export
+
+					// https://github.com/mrdoob/three.js/issues/16144
+					if ( loader.isImageBitmapLoader === true && typeof createImageBitmap !== undefined ) {
+
+						let t1 = texture;
+						const flip = sourceDef.extras.flipY && ! t1.flipY;
+						createImageBitmap( t1.source.data, {
+							imageOrientation: flip ? 'flipY' : 'none',
+						} ).then( function ( imageBitmap ) { // this is a terrible hack, todo: find a better way
+
+							if ( t1._newTex ) t1 = t1._newTex; // search for _newTex below
+							if ( t1.source.data.close ) t1.source.data.close();
+							t1.source.data = imageBitmap;
+							t1.source.needsUpdate = true;
+							t1.needsUpdate = true;
+
+						} );
+
+					}
+
+					texture.flipY = sourceDef.extras.flipY;
+					texture.needsUpdate = true;
+
+					delete sourceDef.extras.flipY;
+
+				}
+
+				if ( sourceDef.extras.uuid !== undefined ) {
+
+					texture.source.uuid = sourceDef.extras.uuid;
+					// delete sourceDef.extras.uuid; // do not delete
+
+				}
+
+				if ( sourceDef.extras.t_uuid !== undefined ) {
+
+					texture.uuid = sourceDef.extras.t_uuid;
+					texture.__hasGLTFUuid = true; // this is read in GLTFTextureTransformExtension.extendTexture
+					// delete sourceDef.extras.t_uuid; // do not delete
+
+				}
+
+				if ( sourceDef.extras.t_colorSpace !== undefined ) {
+
+					texture.colorSpace = sourceDef.extras.t_colorSpace;
+					texture.userData._forcedColorSpace = true;
+					delete sourceDef.extras.t_colorSpace;
+
+				}
+
+			}
+
+			if ( sourceDef.uri && typeof sourceDef.uri === 'string' && isObjectURL === false )
+				texture.userData.rootPath = options.path && options.path.startsWith( '/' ) ? sourceDef.uri : LoaderUtils.resolveURL( sourceDef.uri, options.path );
+
+			if ( sourceBlob ) texture.userData.__sourceBlob = sourceBlob;
+
+			// load image again if preferUri is false to replace embedded preview images
+			if ( ! preferUri && sourceDef.uri && sourceDef.uri !== sourceURI ) {
+
+				// load again with uri.
+				parser.loadImageSource( sourceIndex, loader, true, true ).then( function ( texture2 ) {
+
+					if ( texture.source.data && texture.source.data.close ) texture.source.data.close();
+					texture.dispose();
+					// texture.source.data = texture2.source.data;
+					texture.source = texture2.source;
+					texture.source.needsUpdate = true;
+					texture.needsUpdate = true;
+					texture.uuid = texture2.uuid;
+					if ( texture2.__hasGLTFUuid ) texture.__hasGLTFUuid = true;
+					texture.flipY = texture2.flipY;
+					texture.colorSpace = texture2.colorSpace;
+					texture.userData = texture2.userData;
+					texture.setDirty && texture.setDirty();
+					texture2._newTex = texture;
+
+				} );
+
+			}
 
 			return texture;
 
@@ -3389,7 +3557,7 @@ class GLTFParser {
 
 			}
 
-			if ( colorSpace !== undefined ) {
+			if ( colorSpace !== undefined && ! texture.userData._forcedColorSpace ) {
 
 				texture.colorSpace = colorSpace;
 
@@ -3428,7 +3596,7 @@ class GLTFParser {
 
 			if ( ! pointsMaterial ) {
 
-				pointsMaterial = new PointsMaterial();
+				pointsMaterial = new GLTFLoader.ObjectConstructors.PointsMaterial();
 				Material.prototype.copy.call( pointsMaterial, material );
 				pointsMaterial.color.copy( material.color );
 				pointsMaterial.map = material.map;
@@ -3448,7 +3616,7 @@ class GLTFParser {
 
 			if ( ! lineMaterial ) {
 
-				lineMaterial = new LineBasicMaterial();
+				lineMaterial = new GLTFLoader.ObjectConstructors.LineBasicMaterial();
 				Material.prototype.copy.call( lineMaterial, material );
 				lineMaterial.color.copy( material.color );
 				lineMaterial.map = material.map;
@@ -3461,8 +3629,11 @@ class GLTFParser {
 
 		}
 
+		// do not clone the material if the properties are in the extras extension
+		const hasExtrasExtension = ( material.userData && material.userData.gltfExtensions ) ? !! material.userData.gltfExtensions[ 'WEBGI_material_extras' ] : false;
+
 		// Clone the material if it will be modified
-		if ( useDerivativeTangents || useVertexColors || useFlatShading ) {
+		if ( ( useDerivativeTangents || useVertexColors || useFlatShading ) && ! ( hasExtrasExtension ) ) {
 
 			let cacheKey = 'ClonedMaterial:' + material.uuid + ':';
 
@@ -3503,7 +3674,7 @@ class GLTFParser {
 
 	getMaterialType( /* materialIndex */ ) {
 
-		return MeshStandardMaterial;
+		return GLTFLoader.ObjectConstructors.MeshStandardMaterial;
 
 	}
 
@@ -3607,7 +3778,7 @@ class GLTFParser {
 
 		}
 
-		if ( materialDef.normalTexture !== undefined && materialType !== MeshBasicMaterial ) {
+		if ( materialDef.normalTexture !== undefined && materialType !== GLTFLoader.ObjectConstructors.MeshBasicMaterial ) {
 
 			pending.push( parser.assignTexture( materialParams, 'normalMap', materialDef.normalTexture ) );
 
@@ -3623,7 +3794,7 @@ class GLTFParser {
 
 		}
 
-		if ( materialDef.occlusionTexture !== undefined && materialType !== MeshBasicMaterial ) {
+		if ( materialDef.occlusionTexture !== undefined && materialType !== GLTFLoader.ObjectConstructors.MeshBasicMaterial ) {
 
 			pending.push( parser.assignTexture( materialParams, 'aoMap', materialDef.occlusionTexture ) );
 
@@ -3635,14 +3806,14 @@ class GLTFParser {
 
 		}
 
-		if ( materialDef.emissiveFactor !== undefined && materialType !== MeshBasicMaterial ) {
+		if ( materialDef.emissiveFactor !== undefined && materialType !== GLTFLoader.ObjectConstructors.MeshBasicMaterial ) {
 
 			const emissiveFactor = materialDef.emissiveFactor;
 			materialParams.emissive = new Color().setRGB( emissiveFactor[ 0 ], emissiveFactor[ 1 ], emissiveFactor[ 2 ], LinearSRGBColorSpace );
 
 		}
 
-		if ( materialDef.emissiveTexture !== undefined && materialType !== MeshBasicMaterial ) {
+		if ( materialDef.emissiveTexture !== undefined && materialType !== GLTFLoader.ObjectConstructors.MeshBasicMaterial ) {
 
 			pending.push( parser.assignTexture( materialParams, 'emissiveMap', materialDef.emissiveTexture, SRGBColorSpace ) );
 
@@ -3651,6 +3822,9 @@ class GLTFParser {
 		return Promise.all( pending ).then( function () {
 
 			const material = new materialType( materialParams );
+
+			if ( materialDef.extras && materialDef.extras.uuid )
+				material.uuid = materialDef.extras.uuid;
 
 			if ( materialDef.name ) material.name = materialDef.name;
 
@@ -3863,15 +4037,25 @@ class GLTFParser {
 
 				mesh.name = parser.createUniqueName( meshDef.name || ( 'mesh_' + meshIndex ) );
 
-				assignExtrasToUserData( mesh, meshDef );
+				if ( mesh.geometry && meshDef.extras && meshDef.extras.isGeometryUserData ) {
 
-				if ( primitive.extensions ) addUnknownExtensionsToUserData( extensions, mesh, primitive );
+					assignExtrasToUserData( mesh.geometry, meshDef );
+					if ( primitive.extensions ) addUnknownExtensionsToUserData( extensions, mesh.geometry, primitive );
+
+				} else {
+
+					assignExtrasToUserData( mesh, meshDef );
+					if ( primitive.extensions ) addUnknownExtensionsToUserData( extensions, mesh, primitive );
+
+				}
 
 				parser.assignFinalMaterial( mesh );
 
 				meshes.push( mesh );
 
 			}
+
+			if ( meshDef.extensions ) meshes.forEach( mesh => addUnknownExtensionsToUserData( extensions, mesh, meshDef ) );
 
 			for ( let i = 0, il = meshes.length; i < il; i ++ ) {
 
@@ -3928,11 +4112,11 @@ class GLTFParser {
 
 		if ( cameraDef.type === 'perspective' ) {
 
-			camera = new PerspectiveCamera( MathUtils.radToDeg( params.yfov ), params.aspectRatio || 1, params.znear || 1, params.zfar || 2e6 );
+			camera = new GLTFLoader.ObjectConstructors.PerspectiveCamera( MathUtils.radToDeg( params.yfov ), params.aspectRatio || 1, params.znear || 1, params.zfar || 2e6 );
 
 		} else if ( cameraDef.type === 'orthographic' ) {
 
-			camera = new OrthographicCamera( - params.xmag, params.xmag, params.ymag, - params.ymag, params.znear, params.zfar );
+			camera = new GLTFLoader.ObjectConstructors.OrthographicCamera( - params.xmag, params.xmag, params.ymag, - params.ymag, params.znear, params.zfar );
 
 		}
 
@@ -4100,7 +4284,11 @@ class GLTFParser {
 
 			}
 
-			return new AnimationClip( animationName, undefined, tracks );
+			const animation = new AnimationClip( animationName, undefined, tracks );
+
+			assignExtrasToUserData( animation, animationDef );
+
+			return animation;
 
 		} );
 
@@ -4744,4 +4932,4 @@ function addPrimitiveAttributes( geometry, primitiveDef, parser ) {
 
 }
 
-export { GLTFLoader };
+export { GLTFLoader, GLTFBinaryExtension, GLTFParser };
