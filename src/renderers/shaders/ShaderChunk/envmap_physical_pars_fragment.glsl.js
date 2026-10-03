@@ -5,7 +5,11 @@ export default /* glsl */`
 
 		#ifdef ENVMAP_TYPE_PMREM
 
+		#if defined( FIX_ENV_DIRECTION )
+			vec3 worldNormal = normal;
+		#else
 			vec3 worldNormal = transformNormalByInverseViewMatrix( normal, viewMatrix );
+		#endif
 
 			vec4 envMapColor = textureLod( envMap, envMapRotation * worldNormal, ENVMAP_MAX_LOD );
 
@@ -28,7 +32,11 @@ export default /* glsl */`
 			// Mixing the reflection with the normal is more accurate and keeps rough objects from gathering light from behind their tangent plane.
 			reflectVec = normalize( mix( reflectVec, normal, pow4( roughness ) ) );
 
+			#if !defined( FIX_ENV_DIRECTION )
+
 			reflectVec = transformDirectionByInverseViewMatrix( reflectVec, viewMatrix );
+
+			#endif
 
 			vec4 envMapColor = textureLod( envMap, envMapRotation * reflectVec, roughnessToMip( roughness ) );
 
@@ -51,7 +59,11 @@ export default /* glsl */`
 				// The retroreflective lobe returns light toward its source, so the environment is sampled along the view direction
 				vec3 retroVec = normalize( mix( viewDir, normal, pow4( roughness ) ) );
 
+				#if !defined( FIX_ENV_DIRECTION )
+
 				retroVec = transformDirectionByInverseViewMatrix( retroVec, viewMatrix );
+
+				#endif
 
 				vec4 envMapColor = textureLod( envMap, envMapRotation * retroVec, roughnessToMip( roughness ) );
 

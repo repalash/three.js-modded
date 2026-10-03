@@ -518,6 +518,8 @@ class Material extends EventDispatcher {
 	 */
 	onBeforeRender( /* renderer, scene, camera, geometry, object, group */ ) {}
 
+	onAfterRender( /* renderer, scene, camera, geometry, object, group */ ) {}
+
 	/**
 	 * An optional callback that is executed immediately before the shader
 	 * program is compiled. This function is called with the shader source code
@@ -573,7 +575,7 @@ class Material extends EventDispatcher {
 
 			if ( currentValue === undefined ) {
 
-				warn( `Material: '${ key }' is not a property of THREE.${ this.type }.` );
+				// warn( `Material: '${ key }' is not a property of THREE.${ this.type }.` );
 				continue;
 
 			}
@@ -589,6 +591,10 @@ class Material extends EventDispatcher {
 			) {
 
 				currentValue.copy( newValue );
+
+			} else if ( Array.isArray( newValue ) && currentValue && typeof currentValue.fromArray === 'function' ) {
+
+				currentValue.fromArray( newValue );
 
 			} else {
 
@@ -1211,7 +1217,7 @@ class Material extends EventDispatcher {
 
 		this.toneMapped = source.toneMapped;
 
-		this.userData = JSON.parse( JSON.stringify( source.userData ) );
+		this.userData = copyMaterialUserData( {}, source.userData );
 
 		return this;
 
@@ -1248,6 +1254,28 @@ class Material extends EventDispatcher {
 		if ( value === true ) this.version ++;
 
 	}
+
+}
+
+function copyMaterialUserData( dest, source ) {
+
+	if ( ! source ) return dest;
+	for ( const key of Object.keys( source ) ) {
+
+		if ( key.startsWith( '__' ) ) continue; // double underscore
+		if ( typeof dest[ key ] === 'function' || typeof source[ key ] === 'function' ) continue;
+		const src = source[ key ];
+		const skipClone = ( ! src ) || src.isTexture || src.isObject3D || src.isMaterial || src.isBufferGeometry || src.userDataSkipClone;
+		if ( ! skipClone && typeof source[ key ].clone === 'function' )
+			dest[ key ] = source[ key ].clone();
+		else if ( ! skipClone && ( typeof source[ key ] === 'object' || Array.isArray( source[ key ] ) ) )
+			dest[ key ] = copyMaterialUserData( Array.isArray( source[ key ] ) ? [] : {}, source[ key ] );
+		else
+			dest[ key ] = source[ key ];
+
+	}
+
+	return dest;
 
 }
 
