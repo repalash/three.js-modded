@@ -9,12 +9,16 @@ import {
 	LinearFilter,
 	UVMapping,
 	NoColorSpace,
+	LinearEncoding,
+	SRGBColorSpace,
+	sRGBEncoding,
 } from '../constants.js';
 import { generateUUID } from '../math/MathUtils.js';
 import { Vector2 } from '../math/Vector2.js';
 import { Vector3 } from '../math/Vector3.js';
 import { Matrix3 } from '../math/Matrix3.js';
 import { Source } from './Source.js';
+import { warnOnce } from '../utils.js';
 
 let _textureId = 0;
 
@@ -295,7 +299,18 @@ class Texture extends EventDispatcher {
 		 * @type {string}
 		 * @default NoColorSpace
 		 */
-		this.colorSpace = colorSpace;
+		// todo repalash remove later
+		if ( typeof colorSpace === 'string' ) {
+
+			this.colorSpace = colorSpace;
+
+		} else { // @deprecated, r152
+
+			warnOnce( 'THREE.Texture: Property .encoding has been replaced by .colorSpace.' );
+			this.colorSpace = colorSpace === sRGBEncoding ? SRGBColorSpace : NoColorSpace;
+
+		}
+
 
 		/**
 		 * An object that can be used to store custom data about the texture. It
@@ -366,6 +381,10 @@ class Texture extends EventDispatcher {
 		 * @default 0
 		 */
 		this.pmremVersion = 0;
+
+		// this is required otherwise the data is not uploaded
+		if ( typeof ImageData !== 'undefined' && image instanceof ImageData && image !== Texture.DEFAULT_IMAGE ) // ImageData is not defined in Node
+			this.needsUpdate = true;
 
 	}
 
@@ -501,7 +520,7 @@ class Texture extends EventDispatcher {
 		this.isRenderTargetTexture = source.isRenderTargetTexture;
 		this.isArrayTexture = source.isArrayTexture;
 
-		this.userData = JSON.parse( JSON.stringify( source.userData ) );
+		this.userData = copyTextureUserData( this.userData, source.userData );
 
 		this.needsUpdate = true;
 
@@ -568,7 +587,7 @@ class Texture extends EventDispatcher {
 
 		const isRootObject = ( meta === undefined || typeof meta === 'string' );
 
-		if ( ! isRootObject && meta.textures[ this.uuid ] !== undefined ) {
+		if ( ! isRootObject && meta.textures && meta.textures[ this.uuid ] !== undefined ) {
 
 			return meta.textures[ this.uuid ];
 
@@ -601,6 +620,7 @@ class Texture extends EventDispatcher {
 			internalFormat: this.internalFormat,
 			type: this.type,
 			colorSpace: this.colorSpace,
+			encoding: this.colorSpace === SRGBColorSpace ? sRGBEncoding : LinearEncoding, // deprecated in r152, added for backwards compatibility, remove later
 
 			minFilter: this.minFilter,
 			magFilter: this.magFilter,
@@ -614,9 +634,9 @@ class Texture extends EventDispatcher {
 
 		};
 
-		if ( Object.keys( this.userData ).length > 0 ) output.userData = this.userData;
+		if ( Object.keys( this.userData ).length > 0 ) output.userData = copyTextureUserData( {}, this.userData );
 
-		if ( ! isRootObject ) {
+		if ( ! isRootObject && meta.textures ) {
 
 			meta.textures[ this.uuid ] = output;
 
@@ -745,8 +765,24 @@ class Texture extends EventDispatcher {
 
 			this.version ++;
 			this.source.needsUpdate = true;
+			this.dispatchEvent( { type: 'update' } );
 
 		}
+
+	}
+
+	// todo repalash remove later
+	get encoding() { // @deprecated, r152
+
+		warnOnce( 'THREE.Texture: Property .encoding has been replaced by .colorSpace.' );
+		return this.colorSpace === SRGBColorSpace ? sRGBEncoding : LinearEncoding;
+
+	}
+
+	set encoding( encoding ) { // @deprecated, r152
+
+		warnOnce( 'THREE.Texture: Property .encoding has been replaced by .colorSpace.' );
+		this.colorSpace = encoding === sRGBEncoding ? SRGBColorSpace : NoColorSpace;
 
 	}
 
@@ -798,3 +834,23 @@ Texture.DEFAULT_MAPPING = UVMapping;
 Texture.DEFAULT_ANISOTROPY = 1;
 
 export { Texture };
+
+const iTextureIgnoredUserData = [ 'appliedMaterials', 'uuid' ]; // todo: these are not set by the material
+function copyTextureUserData( dest, source ) {
+
+	if ( source ) {
+
+		for ( const key of Object.keys( source ) ) {
+
+			if ( iTextureIgnoredUserData.includes( key ) ) continue;
+			if ( key.startsWith( '__' ) ) continue; // double underscore
+			if ( typeof dest[ key ] === 'function' || typeof source[ key ] === 'function' ) continue;
+			dest[ key ] = typeof source[ key ] === 'object' ? JSON.parse( JSON.stringify( source[ key ] ) ) : source[ key ];
+
+		}
+
+	}
+
+	return dest;
+
+}
