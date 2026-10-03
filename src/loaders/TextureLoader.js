@@ -23,13 +23,32 @@ class TextureLoader extends Loader {
 			texture.image = image;
 			texture.needsUpdate = true;
 
+			// todo repalash do the same in other texture/embedded asset loaders that are using in loaders like GLTF, FBXLoader etc
+			if ( ! url.startsWith( 'blob:' ) )
+				texture.userData.rootPath = loader.path + url;
+
+
 			if ( onLoad !== undefined ) {
 
 				onLoad( texture );
 
 			}
 
-		}, onProgress, onError );
+		}, onProgress, function ( event ) {
+
+			if ( texture.image instanceof ImageData ) { // todo should we do it for all?
+
+				texture.needsUpdate = true;
+
+			}
+
+			if ( onError !== undefined ) {
+
+				onError( event );
+
+			}
+
+		} );
 
 		return texture;
 
