@@ -2667,7 +2667,7 @@ class Renderer {
 
 		//
 
-		if ( scene.overrideMaterial !== null ) {
+		if ( material.allowOverride === true && scene.overrideMaterial !== null ) {
 
 			const overrideMaterial = scene.overrideMaterial;
 
