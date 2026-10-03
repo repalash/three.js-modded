@@ -1,4 +1,4 @@
-import { SRGBColorSpace, LinearSRGBColorSpace, SRGBTransfer, LinearTransfer, NoColorSpace } from '../constants.js';
+import { SRGBColorSpace, LinearSRGBColorSpace, SRGBTransfer, LinearTransfer, NoColorSpace, RGBM16ColorSpace } from '../constants.js';
 import { Matrix3 } from './Matrix3.js';
 import { warnOnce } from '../utils.js';
 
@@ -127,6 +127,9 @@ function createColorManagement() {
 
 		_getDrawingBufferColorSpace: function ( colorSpace ) {
 
+			// three-modded: NoColorSpace output means the app encodes the final colors itself (e.g. a screen pass); the canvas stays sRGB
+			if ( colorSpace === NoColorSpace ) return SRGBColorSpace;
+
 			return this.spaces[ colorSpace ].outputColorSpaceConfig.drawingBufferColorSpace;
 
 		},
@@ -185,6 +188,19 @@ function createColorManagement() {
 			toXYZ: LINEAR_REC709_TO_XYZ,
 			fromXYZ: XYZ_TO_LINEAR_REC709,
 			luminanceCoefficients: REC709_LUMINANCE_COEFFICIENTS,
+			outputColorSpaceConfig: { drawingBufferColorSpace: SRGBColorSpace }
+		},
+
+		// three-modded: RGBM16 is a storage encoding of linear sRGB (decoded/encoded in the shader, see
+		// WebGLProgram getTexelDecodingFunction/getTexelEncodingFunction); for colour management it is linear sRGB.
+		[ RGBM16ColorSpace ]: {
+			primaries: REC709_PRIMARIES,
+			whitePoint: D65,
+			transfer: LinearTransfer,
+			toXYZ: LINEAR_REC709_TO_XYZ,
+			fromXYZ: XYZ_TO_LINEAR_REC709,
+			luminanceCoefficients: REC709_LUMINANCE_COEFFICIENTS,
+			workingColorSpaceConfig: { unpackColorSpace: SRGBColorSpace },
 			outputColorSpaceConfig: { drawingBufferColorSpace: SRGBColorSpace }
 		},
 
