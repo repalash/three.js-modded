@@ -296,7 +296,7 @@ class DRACOLoader extends Loader {
 
 				}
 
-				const fn = DRACOWorker.toString();
+				const fn = DRACOWorkerStr;
 
 				const body = [
 					'/* draco decoder */',
@@ -407,7 +407,7 @@ class DRACOLoader extends Loader {
 }
 
 /* WEB WORKER */
-
+const DRACOWorkerStr = `
 function DRACOWorker() {
 
 	let decoderConfig;
@@ -517,7 +517,7 @@ function DRACOWorker() {
 			// A Draco file may be created with default vertex attributes, whose attribute IDs
 			// are mapped 1:1 from their semantic name (POSITION, NORMAL, ...). Alternatively,
 			// a Draco file may contain a custom set of attributes, identified by known unique
-			// IDs. glTF files always do the latter, and `.drc` files typically do the former.
+			// IDs. glTF files always do the latter, and .drc files typically do the former.
 			if ( taskConfig.useUniqueIDs ) {
 
 				attributeID = attributeIDs[ attributeName ];
@@ -611,5 +611,5 @@ function DRACOWorker() {
 	}
 
 }
-
+`;
 export { DRACOLoader };
