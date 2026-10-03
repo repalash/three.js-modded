@@ -6,6 +6,12 @@ on:
       - 'build/**'
       - 'docs/**'
       - 'files/**'
+  push:
+    branches: ['master']
+    paths-ignore:
+      - 'build/**'
+      - 'docs/**'
+      - 'files/**'
 
 permissions:
   contents: read
