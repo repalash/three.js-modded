@@ -124,9 +124,17 @@ class Object3D extends EventDispatcher {
 
 	onAfterShadow( /* renderer, object, camera, shadowCamera, geometry, depthMaterial, group */ ) {}
 
-	onBeforeRender( /* renderer, scene, camera, geometry, material, group */ ) {}
+	onBeforeRender( renderer, scene, camera, geometry, material, group ) {
 
-	onAfterRender( /* renderer, scene, camera, geometry, material, group */ ) {}
+		this.dispatchEvent( { type: 'beforeRender', renderer, scene, camera, geometry, material, group } );
+
+	}
+
+	onAfterRender( renderer, scene, camera, geometry, material, group ) {
+
+		this.dispatchEvent( { type: 'afterRender', renderer, scene, camera, geometry, material, group } );
+
+	}
 
 	applyMatrix4( matrix ) {
 
@@ -688,7 +696,8 @@ class Object3D extends EventDispatcher {
 				shapes: {},
 				skeletons: {},
 				animations: {},
-				nodes: {}
+				nodes: {},
+				extras: {},
 			};
 
 			output.metadata = {
@@ -998,7 +1007,12 @@ class Object3D extends EventDispatcher {
 
 		this.animations = source.animations.slice();
 
-		this.userData = JSON.parse( JSON.stringify( source.userData ) );
+		this.userData = {};
+		for ( const [ key, value ] of Object.entries( source.userData ) ) {
+
+			this.userData[ key ] = ! value || ( value && ( value.isTexture || value.isObject3D ) ) ? value : JSON.parse( JSON.stringify( value ) );
+
+		}
 
 		if ( recursive === true ) {
 
