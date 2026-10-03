@@ -1,4 +1,4 @@
-import { LinearFilter, LinearMipmapLinearFilter, LinearMipmapNearestFilter, NearestFilter, NearestMipmapLinearFilter, NearestMipmapNearestFilter, RGBAFormat, DepthFormat, DepthStencilFormat, UnsignedIntType, FloatType, MirroredRepeatWrapping, ClampToEdgeWrapping, RepeatWrapping, UnsignedByteType, NoColorSpace, LinearSRGBColorSpace, NeverCompare, AlwaysCompare, LessCompare, LessEqualCompare, EqualCompare, GreaterEqualCompare, GreaterCompare, NotEqualCompare, SRGBTransfer, LinearTransfer, UnsignedShortType, UnsignedInt248Type } from '../../constants.js';
+import { LinearFilter, LinearMipmapLinearFilter, LinearMipmapNearestFilter, NearestFilter, NearestMipmapLinearFilter, NearestMipmapNearestFilter, RGBAFormat, DepthFormat, DepthStencilFormat, UnsignedIntType, FloatType, MirroredRepeatWrapping, ClampToEdgeWrapping, RepeatWrapping, UnsignedByteType, NoColorSpace, LinearSRGBColorSpace, NeverCompare, AlwaysCompare, LessCompare, LessEqualCompare, EqualCompare, GreaterEqualCompare, GreaterCompare, NotEqualCompare, SRGBTransfer, LinearTransfer, UnsignedShortType, UnsignedInt248Type, RGBM16ColorSpace } from '../../constants.js';
 import { createElementNS } from '../../utils.js';
 import { ColorManagement } from '../../math/ColorManagement.js';
 import { Vector2 } from '../../math/Vector2.js';
@@ -867,9 +867,10 @@ function WebGLTextures( _gl, extensions, state, properties, capabilities, utils,
 			state.activeTexture( _gl.TEXTURE0 + slot );
 
 			const workingPrimaries = ColorManagement.getPrimaries( ColorManagement.workingColorSpace );
-			const texturePrimaries = texture.colorSpace === NoColorSpace ? null : ColorManagement.getPrimaries( texture.colorSpace );
-			const unpackConversion = texture.colorSpace === NoColorSpace || workingPrimaries === texturePrimaries ? _gl.NONE : _gl.BROWSER_DEFAULT_WEBGL;
+			const texturePrimaries = texture.colorSpace === NoColorSpace || texture.colorSpace === RGBM16ColorSpace ? null : ColorManagement.getPrimaries( texture.colorSpace );
+			const unpackConversion = texture.colorSpace === NoColorSpace || texture.colorSpace === RGBM16ColorSpace || workingPrimaries === texturePrimaries ? _gl.NONE : _gl.BROWSER_DEFAULT_WEBGL;
 
+			// Note: flipY, premultiplyAlpha does not work for ImageBitmap, it must be set while creating the image with createImageBitmap (see https://threejs.org/docs/index.html#api/en/loaders/ImageBitmapLoader , https://github.com/mrdoob/three.js/issues/16144)
 			_gl.pixelStorei( _gl.UNPACK_FLIP_Y_WEBGL, texture.flipY );
 			_gl.pixelStorei( _gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, texture.premultiplyAlpha );
 			_gl.pixelStorei( _gl.UNPACK_ALIGNMENT, texture.unpackAlignment );
@@ -1298,8 +1299,8 @@ function WebGLTextures( _gl, extensions, state, properties, capabilities, utils,
 			state.activeTexture( _gl.TEXTURE0 + slot );
 
 			const workingPrimaries = ColorManagement.getPrimaries( ColorManagement.workingColorSpace );
-			const texturePrimaries = texture.colorSpace === NoColorSpace ? null : ColorManagement.getPrimaries( texture.colorSpace );
-			const unpackConversion = texture.colorSpace === NoColorSpace || workingPrimaries === texturePrimaries ? _gl.NONE : _gl.BROWSER_DEFAULT_WEBGL;
+			const texturePrimaries = texture.colorSpace === NoColorSpace || texture.colorSpace === RGBM16ColorSpace ? null : ColorManagement.getPrimaries( texture.colorSpace );
+			const unpackConversion = texture.colorSpace === NoColorSpace || texture.colorSpace === RGBM16ColorSpace || workingPrimaries === texturePrimaries ? _gl.NONE : _gl.BROWSER_DEFAULT_WEBGL;
 
 			_gl.pixelStorei( _gl.UNPACK_FLIP_Y_WEBGL, texture.flipY );
 			_gl.pixelStorei( _gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, texture.premultiplyAlpha );
@@ -2066,15 +2067,25 @@ function WebGLTextures( _gl, extensions, state, properties, capabilities, utils,
 	function updateRenderTargetMipmap( renderTarget ) {
 
 		const textures = renderTarget.textures;
+		const targetType = getTargetType( renderTarget );
 
 		for ( let i = 0, il = textures.length; i < il; i ++ ) {
 
 			const texture = textures[ i ];
+			const textureProperties = properties.get( texture );
+			const webglTexture = textureProperties.__webglTexture;
+
+			// three-modded: re-apply the texture parameters when the texture changed (needsUpdate after a filter/generateMipmaps change)
+			if ( textureProperties.__version !== texture.version ) {
+
+				state.bindTexture( targetType, webglTexture );
+				setTextureParameters( targetType, texture );
+				state.unbindTexture();
+				textureProperties.__version = texture.version;
+
+			}
 
 			if ( textureNeedsGenerateMipmaps( texture ) ) {
-
-				const targetType = getTargetType( renderTarget );
-				const webglTexture = properties.get( texture ).__webglTexture;
 
 				state.bindTexture( targetType, webglTexture );
 				generateMipmap( targetType );
@@ -2265,6 +2276,9 @@ function WebGLTextures( _gl, extensions, state, properties, capabilities, utils,
 					console.warn( 'THREE.WebGLTextures: sRGB encoded textures have to use RGBAFormat and UnsignedByteType.' );
 
 				}
+
+			} else if ( colorSpace === RGBM16ColorSpace ) {
+				// do nothing
 
 			} else {
 
