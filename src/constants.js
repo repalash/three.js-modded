@@ -165,6 +165,7 @@ export const SRGBColorSpace = 'srgb';
 export const LinearSRGBColorSpace = 'srgb-linear';
 export const DisplayP3ColorSpace = 'display-p3';
 export const LinearDisplayP3ColorSpace = 'display-p3-linear';
+export const RGBM16ColorSpace = 'rgbm-16';
 
 export const LinearTransfer = 'linear';
 export const SRGBTransfer = 'srgb';
@@ -214,3 +215,8 @@ export const GLSL3 = '300 es';
 
 export const WebGLCoordinateSystem = 2000;
 export const WebGPUCoordinateSystem = 2001;
+
+/** @deprecated Use LinearSRGBColorSpace or NoColorSpace in three.js r152+. */
+export const LinearEncoding = 3000;
+/** @deprecated Use SRGBColorSpace in three.js r152+. */
+export const sRGBEncoding = 3001;

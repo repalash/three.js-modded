@@ -1,4 +1,15 @@
-import { BackSide, DoubleSide, CubeUVReflectionMapping, ObjectSpaceNormalMap, TangentSpaceNormalMap, NoToneMapping, NormalBlending, LinearSRGBColorSpace, SRGBTransfer } from '../../constants.js';
+import {
+	BackSide,
+	DoubleSide,
+	CubeUVReflectionMapping,
+	ObjectSpaceNormalMap,
+	TangentSpaceNormalMap,
+	NoToneMapping,
+	NormalBlending,
+	LinearSRGBColorSpace,
+	SRGBTransfer,
+	SRGBColorSpace,
+} from '../../constants.js';
 import { Layers } from '../../core/Layers.js';
 import { WebGLProgram } from './WebGLProgram.js';
 import { WebGLShaderCache } from './WebGLShaderCache.js';
@@ -108,6 +119,7 @@ function WebGLPrograms( renderer, cubemaps, cubeuvmaps, extensions, capabilities
 		}
 
 		const currentRenderTarget = renderer.getRenderTarget();
+		const transmissionRenderTarget = renderer.userData && renderer.userData.transmissionRenderTarget;
 
 		const IS_INSTANCEDMESH = object.isInstancedMesh === true;
 		const IS_BATCHEDMESH = object.isBatchedMesh === true;
@@ -198,7 +210,9 @@ function WebGLPrograms( renderer, cubemaps, cubeuvmaps, extensions, capabilities
 			instancingMorph: IS_INSTANCEDMESH && object.morphTexture !== null,
 
 			supportsVertexTextures: SUPPORTS_VERTEX_TEXTURES,
-			outputColorSpace: ( currentRenderTarget === null ) ? renderer.outputColorSpace : ( currentRenderTarget.isXRRenderTarget === true ? currentRenderTarget.texture.colorSpace : LinearSRGBColorSpace ),
+			// todo repalash?
+			// outputColorSpace: ( currentRenderTarget === null ) ? renderer.outputColorSpace : ( currentRenderTarget.isXRRenderTarget === true ? currentRenderTarget.texture.colorSpace : LinearSRGBColorSpace ),
+			outputColorSpace: ( currentRenderTarget === null ) ? renderer.outputColorSpace : ( ( currentRenderTarget.isXRRenderTarget === true || currentRenderTarget.texture.colorSpace && currentRenderTarget.texture.colorSpace !== SRGBColorSpace ) ? currentRenderTarget.texture.colorSpace : LinearSRGBColorSpace ),
 			alphaToCoverage: !! material.alphaToCoverage,
 
 			map: HAS_MAP,
@@ -245,9 +259,11 @@ function WebGLPrograms( renderer, cubemaps, cubeuvmaps, extensions, capabilities
 			transmissionMap: HAS_TRANSMISSIONMAP,
 			thicknessMap: HAS_THICKNESSMAP,
 
+			transmissionSamplerMapEncoding: transmissionRenderTarget ? transmissionRenderTarget.texture.colorSpace || LinearSRGBColorSpace : LinearSRGBColorSpace,
+
 			gradientMap: HAS_GRADIENTMAP,
 
-			opaque: material.transparent === false && material.blending === NormalBlending && material.alphaToCoverage === false,
+			opaque: material.transparent === false && material.blending === NormalBlending && material.alphaToCoverage === false && ! ( material.transmission > 0 ),
 
 			alphaMap: HAS_ALPHAMAP,
 			alphaTest: HAS_ALPHATEST,
@@ -291,7 +307,7 @@ function WebGLPrograms( renderer, cubemaps, cubeuvmaps, extensions, capabilities
 
 			//
 
-			vertexTangents: !! geometry.attributes.tangent && ( HAS_NORMALMAP || HAS_ANISOTROPY ),
+			vertexTangents: !! geometry.attributes.tangent && ( HAS_NORMALMAP || HAS_ANISOTROPY || geometry.userData.__forceUseTangent ),
 			vertexColors: material.vertexColors,
 			vertexAlphas: material.vertexColors === true && !! geometry.attributes.color && geometry.attributes.color.itemSize === 4,
 
