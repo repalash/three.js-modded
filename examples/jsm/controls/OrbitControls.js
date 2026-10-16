@@ -419,7 +419,7 @@ class OrbitControls extends Controls {
 				}
 
 				// this._spherical.radius += this._spherical.radius * this._sphericalDelta.radius * this.dampingFactor;
-				this._spherical.radius *= 1 + this._sphericalDelta.radius * ( this.enableDamping ? this.dampingFactor : 0 );
+				this._spherical.radius *= 1 + this._sphericalDelta.radius * ( this.enableDamping ? this.dampingFactor : 1 );
 
 			}
 
