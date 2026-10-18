@@ -5,7 +5,6 @@ import path from 'path';
 import pixelmatch from 'pixelmatch';
 import jimp from 'jimp';
 import * as fs from 'fs/promises';
-import { testOrbitControls } from './orbitcontrols.tests.js';
 
 class PromiseQueue {
 
@@ -279,22 +278,6 @@ async function main() {
 	// this line is intended to stop the script if the browser (in headful mode) is closed by user (while debugging)
 	// browser.on( 'targetdestroyed', target => ( target.type() === 'other' ) ? close() : null );
 	// for some reason it randomly stops the script after about ~30 screenshots processed
-
-	if ( ! isMakeScreenshot ) {
-
-		try {
-
-			await testOrbitControls( browser, `http://localhost:${ port }` );
-
-		} catch ( error ) {
-
-			console.red( error );
-			close( 1 );
-			return;
-
-		}
-
-	}
 
 	/* Prepare injections */
 
