@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>OrbitControls zoom regression</title>
+		<style>
+			body { margin: 0; }
+			#viewport { width: 400px; height: 400px; }
+		</style>
+		<script type="importmap">
+			{"imports":{"three":"/build/three.module.js"}}
+		</script>
+	</head>
+	<body>
+		<div id="viewport"></div>
+		<script type="module">
+			import { PerspectiveCamera, OrthographicCamera } from 'three';
+			import { OrbitControls } from '../../examples/jsm/controls/OrbitControls.js';
+
+			window.setup = ( perspective, damping, resetForInput = true ) => {
+
+				if ( window.controls ) window.controls.dispose();
+				const camera = perspective ? new PerspectiveCamera( 60, 1, 0.1, 100 ) : new OrthographicCamera( - 5, 5, 5, - 5, 0.1, 100 );
+				camera.position.set( 0, 0, 10 );
+				const element = document.getElementById( 'viewport' );
+				const controls = new OrbitControls( camera, element );
+				const construction = { distance: controls.getDistance(), zoom: camera.zoom };
+				// Test input independently of construction, which has its own assertion.
+				if ( resetForInput ) {
+
+					camera.position.set( 0, 0, 10 );
+					controls.update();
+
+				}
+
+				controls.enableDamping = damping;
+				controls.enablePan = false;
+				controls.enableRotate = false;
+				window.controls = controls;
+				window.changes = 0;
+				window.inputs = 0;
+				controls.addEventListener( 'change', () => window.changes ++ );
+				element.onwheel = () => window.inputs ++;
+				element.onpointermove = event => {
+
+					if ( event.pointerType === 'touch' ) window.inputs ++;
+
+				};
+
+				window.snapshot = () => ( {
+					distance: controls.getDistance(),
+					zoom: camera.zoom,
+					target: controls.target.toArray(),
+					changes: window.changes
+				} );
+
+				return construction;
+
+			};
+		</script>
+	</body>
+</html>
