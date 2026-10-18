@@ -1,68 +1,50 @@
 import assert from 'node:assert/strict';
-import { once } from 'node:events';
-import path from 'node:path';
-import express from 'express';
-import puppeteer from 'puppeteer';
 
-async function main() {
+export async function testOrbitControls( browser, baseURL ) {
 
-	// Exercise the public DOM event path, including trackpad and touchscreen pinch.
-	// Run after build-module, just like the screenshot E2E tests.
-	const app = express();
-	app.use( express.static( path.resolve() ) );
-	const server = app.listen( 0, '127.0.0.1' );
-	await once( server, 'listening' );
-
-	let browser;
+	const page = await browser.newPage();
 	let failures = 0;
 	let total = 0;
 
 	try {
 
-		browser = await puppeteer.launch( { headless: true } );
-		console.log( `Browser: ${ await browser.version() }` );
-		const page = await browser.newPage();
 		await page.setViewport( { width: 400, height: 400, hasTouch: true } );
 		const errors = [];
 		page.on( 'pageerror', error => errors.push( error.message ) );
-		await page.goto( `http://127.0.0.1:${ server.address().port }/test/e2e/orbitcontrols.html` );
+		await page.goto( `${ baseURL }/test/e2e/orbitcontrols.html` );
 		const client = await page.createCDPSession();
 
-		if ( ! process.argv.includes( '--zoom-only' ) ) {
+		for ( const perspective of [ true, false ] ) {
 
-			for ( const perspective of [ true, false ] ) {
+			const name = `${ perspective ? 'perspective' : 'orthographic' } construction preserves camera distance`;
+			total ++;
+			try {
 
-				const name = `${ perspective ? 'perspective' : 'orthographic' } construction preserves camera distance`;
-				total ++;
-				try {
+				const result = await page.evaluate( perspective => window.setup( perspective, false, false ), perspective );
+				console.log( JSON.stringify( { name, result } ) );
+				assert.equal( result.distance, 10, 'construction must not dolly without input' );
+				assert.equal( result.zoom, 1, 'construction preserves zoom' );
+				for ( const damping of [ false, true ] ) {
 
-					const result = await page.evaluate( perspective => window.setup( perspective, false, false ), perspective );
-					console.log( JSON.stringify( { name, result } ) );
-					assert.equal( result.distance, 10, 'construction must not dolly without input' );
-					assert.equal( result.zoom, 1, 'construction preserves zoom' );
-					for ( const damping of [ false, true ] ) {
+					const idle = await page.evaluate( damping => {
 
-						const idle = await page.evaluate( damping => {
+						window.controls.enableDamping = damping;
+						for ( let i = 0; i < 200; i ++ ) window.controls.update();
+						return window.snapshot();
 
-							window.controls.enableDamping = damping;
-							for ( let i = 0; i < 200; i ++ ) window.controls.update();
-							return window.snapshot();
-
-						}, damping );
-						assert.equal( idle.distance, 10, 'no-input updates preserve distance' );
-						assert.equal( idle.zoom, 1, 'no-input updates preserve zoom' );
-						assert.equal( idle.changes, 0, 'no-input updates emit no change' );
-
-					}
-
-					console.log( `PASS ${ name }` );
-
-				} catch ( error ) {
-
-					failures ++;
-					console.error( `FAIL ${ name }: ${ error.message }` );
+					}, damping );
+					assert.equal( idle.distance, 10, 'no-input updates preserve distance' );
+					assert.equal( idle.zoom, 1, 'no-input updates preserve zoom' );
+					assert.equal( idle.changes, 0, 'no-input updates emit no change' );
 
 				}
+
+				console.log( `PASS ${ name }` );
+
+			} catch ( error ) {
+
+				failures ++;
+				console.error( `FAIL ${ name }: ${ error.message }` );
 
 			}
 
@@ -192,20 +174,12 @@ async function main() {
 		}
 
 		console.log( `OrbitControls: ${ total - failures } passed, ${ failures } failed, ${ total } total` );
-		if ( failures > 0 ) process.exitCode = 1;
+		if ( failures > 0 ) throw new Error( `OrbitControls: ${ failures } regression checks failed.` );
 
 	} finally {
 
-		if ( browser ) await browser.close();
-		await new Promise( resolve => server.close( resolve ) );
+		await page.close();
 
 	}
 
 }
-
-main().catch( error => {
-
-	console.error( error );
-	process.exitCode = 1;
-
-} );
