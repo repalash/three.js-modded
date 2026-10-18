@@ -30,6 +30,39 @@ export default QUnit.module( 'Addons', () => {
 
 			} );
 
+			QUnit.test( 'idle updates leave the camera position exactly as set', ( assert ) => {
+
+				// [3, 2, 7] read back as [3, 1.9999999999999996, 7.000000000000001] after one update through spherical coordinates
+				const camera = new PerspectiveCamera();
+				camera.position.set( 3, 2, 7 );
+				const controls = new OrbitControls( camera );
+				camera.position.set( 3, 2, 7 );
+				controls.target.set( 0, 0, 0 );
+
+				for ( const damping of [ false, true ] ) {
+
+					controls.enableDamping = damping;
+					for ( let i = 0; i < 10; i ++ ) controls.update();
+					assert.deepEqual( camera.position.toArray(), [ 3, 2, 7 ], `position is unchanged with damping=${ damping }` );
+					assert.deepEqual( controls.target.toArray(), [ 0, 0, 0 ], `target is unchanged with damping=${ damping }` );
+
+				}
+
+			} );
+
+			QUnit.test( 'limits still apply on an idle update', ( assert ) => {
+
+				const camera = new PerspectiveCamera();
+				camera.position.set( 0, 0, 10 );
+				const controls = new OrbitControls( camera );
+				controls.enableDamping = false;
+				controls.autoPullTarget = false; // on, it moves the target instead of clamping the distance
+				controls.maxDistance = 5;
+				controls.update();
+				assert.ok( Math.abs( controls.getDistance() - 5 ) < 1e-12, 'distance is clamped to maxDistance' );
+
+			} );
+
 			for ( const [ method, expectedDistance ] of [[ 'zoomIn', 9 ], [ 'zoomOut', 11 ]] ) {
 
 				QUnit.test( `${ method } without damping`, ( assert ) => {
