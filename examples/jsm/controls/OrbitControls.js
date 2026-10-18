@@ -146,7 +146,7 @@ class OrbitControls extends Controls {
 
 		// current position in spherical coordinates
 		this._spherical = new Spherical();
-		this._sphericalDelta = new Spherical();
+		this._sphericalDelta = new Spherical( 0 );
 
 		this._scale = 1;
 		this._panOffset = new Vector3();
