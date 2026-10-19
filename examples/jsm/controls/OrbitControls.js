@@ -26,6 +26,8 @@ const _plane = new Plane();
 const _TILT_LIMIT = Math.cos( 70 * MathUtils.DEG2RAD );
 
 const _v = new Vector3();
+const _sphericalStart = new Spherical();
+const _targetStart = new Vector3();
 const _twoPI = 2 * Math.PI;
 
 const _STATE = {
@@ -327,6 +329,9 @@ class OrbitControls extends Controls {
 		// angle from z-axis around y-axis
 		this._spherical.setFromVector3( _v );
 
+		_sphericalStart.copy( this._spherical );
+		_targetStart.copy( this.target );
+
 		if ( this.autoRotate && this.state === _STATE.NONE ) {
 
 			this._rotateLeft( this._getAutoRotationAngle( deltaTime ) );
@@ -453,15 +458,24 @@ class OrbitControls extends Controls {
 
 		}
 
-		_v.setFromSpherical( this._spherical );
-		// transform(offset, spherical); // todo https://math.stackexchange.com/questions/69099/equation-of-a-rectangle
+		// Rebuild the position only when the orbit changed. The round trip through spherical coordinates is not
+		// exact, so an update with nothing to apply would otherwise move the camera by rounding.
+		if ( pushDelta !== 0 || ! this.target.equals( _targetStart ) ||
+			this._spherical.radius !== _sphericalStart.radius ||
+			this._spherical.phi !== _sphericalStart.phi ||
+			this._spherical.theta !== _sphericalStart.theta ) {
 
-		// rotate offset back to "camera-up-vector-is-up" space
-		_v.applyQuaternion( this._quatInverse );
+			_v.setFromSpherical( this._spherical );
+			// transform(offset, spherical); // todo https://math.stackexchange.com/questions/69099/equation-of-a-rectangle
 
-		position.copy( this.target ).add( _v );
+			// rotate offset back to "camera-up-vector-is-up" space
+			_v.applyQuaternion( this._quatInverse );
 
-		this.target.add( _v.normalize().multiplyScalar( - pushDelta ) );
+			position.copy( this.target ).add( _v );
+
+			this.target.add( _v.normalize().multiplyScalar( - pushDelta ) );
+
+		}
 
 		// restrict position and target in clamp bounds
 		position.clamp( this.clampMin, this.clampMax );
