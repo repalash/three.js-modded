@@ -65,8 +65,16 @@ class WebGPUTextureUtils {
 			magFilter: this._convertFilterMode( texture.magFilter ),
 			minFilter: this._convertFilterMode( texture.minFilter ),
 			mipmapFilter: this._convertFilterMode( texture.minFilter ),
-			maxAnisotropy: texture.anisotropy
+			maxAnisotropy: 1
 		};
+
+		// anisotropy can only be used when all filter modes are set to linear.
+
+		if ( samplerDescriptorGPU.magFilter === GPUFilterMode.Linear && samplerDescriptorGPU.minFilter === GPUFilterMode.Linear && samplerDescriptorGPU.mipmapFilter === GPUFilterMode.Linear ) {
+
+			samplerDescriptorGPU.maxAnisotropy = texture.anisotropy;
+
+		}
 
 		if ( texture.isDepthTexture && texture.compareFunction !== null ) {
 
@@ -119,14 +127,26 @@ class WebGPUTextureUtils {
 
 		const { width, height, depth, levels } = options;
 
+		if ( texture.isFramebufferTexture ) {
+
+			if ( options.renderTarget ) {
+
+				options.format = this.backend.utils.getCurrentColorFormat( options.renderTarget );
+
+			} else {
+
+				options.format = this.backend.utils.getPreferredCanvasFormat();
+
+			}
+
+		}
+
 		const dimension = this._getDimension( texture );
 		const format = texture.internalFormat || options.format || getFormat( texture, backend.device );
 
-		let sampleCount = options.sampleCount !== undefined ? options.sampleCount : 1;
+		textureData.format = format;
 
-		sampleCount = backend.utils.getSampleCount( sampleCount );
-
-		const primarySampleCount = texture.isRenderTargetTexture && ! texture.isMultisampleRenderTargetTexture ? 1 : sampleCount;
+		const { samples, primarySamples, isMSAA } = backend.utils.getTextureSampleData( texture );
 
 		let usage = GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC;
 
@@ -150,7 +170,7 @@ class WebGPUTextureUtils {
 				depthOrArrayLayers: depth,
 			},
 			mipLevelCount: levels,
-			sampleCount: primarySampleCount,
+			sampleCount: primarySamples,
 			dimension: dimension,
 			format: format,
 			usage: usage
@@ -184,12 +204,12 @@ class WebGPUTextureUtils {
 
 		}
 
-		if ( texture.isRenderTargetTexture && sampleCount > 1 && ! texture.isMultisampleRenderTargetTexture ) {
+		if ( isMSAA ) {
 
 			const msaaTextureDescriptorGPU = Object.assign( {}, textureDescriptorGPU );
 
 			msaaTextureDescriptorGPU.label = msaaTextureDescriptorGPU.label + '-msaa';
-			msaaTextureDescriptorGPU.sampleCount = sampleCount;
+			msaaTextureDescriptorGPU.sampleCount = samples;
 
 			textureData.msaaTexture = backend.device.createTexture( msaaTextureDescriptorGPU );
 
@@ -206,7 +226,7 @@ class WebGPUTextureUtils {
 		const backend = this.backend;
 		const textureData = backend.get( texture );
 
-		textureData.texture.destroy();
+		if ( textureData.texture !== undefined ) textureData.texture.destroy();
 
 		if ( textureData.msaaTexture !== undefined ) textureData.msaaTexture.destroy();
 
@@ -312,7 +332,7 @@ class WebGPUTextureUtils {
 		depthTexture.image.width = width;
 		depthTexture.image.height = height;
 
-		this.createTexture( depthTexture, { sampleCount: backend.utils.getSampleCount( backend.renderer.samples ), width, height } );
+		this.createTexture( depthTexture, { width, height } );
 
 		return backend.get( depthTexture ).texture;
 
@@ -369,7 +389,7 @@ class WebGPUTextureUtils {
 
 	}
 
-	async copyTextureToBuffer( texture, x, y, width, height ) {
+	async copyTextureToBuffer( texture, x, y, width, height, faceIndex ) {
 
 		const device = this.backend.device;
 
@@ -393,7 +413,7 @@ class WebGPUTextureUtils {
 		encoder.copyTextureToBuffer(
 			{
 				texture: textureGPU,
-				origin: { x, y },
+				origin: { x, y, z: faceIndex },
 			},
 			{
 				buffer: readBuffer,
@@ -792,9 +812,9 @@ class WebGPUTextureUtils {
 		if ( format === GPUTextureFormat.RG16Sint ) return Int16Array;
 		if ( format === GPUTextureFormat.RGBA16Uint ) return Uint16Array;
 		if ( format === GPUTextureFormat.RGBA16Sint ) return Int16Array;
-		if ( format === GPUTextureFormat.R16Float ) return Float32Array;
-		if ( format === GPUTextureFormat.RG16Float ) return Float32Array;
-		if ( format === GPUTextureFormat.RGBA16Float ) return Float32Array;
+		if ( format === GPUTextureFormat.R16Float ) return Uint16Array;
+		if ( format === GPUTextureFormat.RG16Float ) return Uint16Array;
+		if ( format === GPUTextureFormat.RGBA16Float ) return Uint16Array;
 
 
 		if ( format === GPUTextureFormat.R32Uint ) return Uint32Array;
@@ -848,11 +868,7 @@ export function getFormat( texture, device = null ) {
 
 	let formatGPU;
 
-	if ( texture.isFramebufferTexture === true && texture.type === UnsignedByteType ) {
-
-		formatGPU = GPUTextureFormat.BGRA8Unorm;
-
-	} else if ( texture.isCompressedTexture === true || texture.isCompressedArrayTexture === true ) {
+	if ( texture.isCompressedTexture === true || texture.isCompressedArrayTexture === true ) {
 
 		switch ( format ) {
 
@@ -930,6 +946,10 @@ export function getFormat( texture, device = null ) {
 
 			case RGBA_ASTC_12x12_Format:
 				formatGPU = ( colorSpace === SRGBColorSpace ) ? GPUTextureFormat.ASTC12x12UnormSRGB : GPUTextureFormat.ASTC12x12Unorm;
+				break;
+
+			case RGBAFormat:
+				formatGPU = ( colorSpace === SRGBColorSpace ) ? GPUTextureFormat.RGBA8UnormSRGB : GPUTextureFormat.RGBA8Unorm;
 				break;
 
 			default:

@@ -117,6 +117,14 @@ class ImageLoader extends Loader {
 
 			} );
 
+		} ).catch( ( error )=>{
+
+			// a failing cache lookup (CacheStorage unavailable, quota, corrupted entry) must not leave the load pending forever
+			removeEventListeners();
+			if ( onError ) onError( error );
+			scope.manager.itemError( url );
+			scope.manager.itemEnd( url );
+
 		} );
 
 		return image;

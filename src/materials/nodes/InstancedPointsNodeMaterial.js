@@ -1,68 +1,112 @@
-import NodeMaterial, { registerNodeMaterial } from './NodeMaterial.js';
-import { property } from '../../nodes/core/PropertyNode.js';
+import NodeMaterial from './NodeMaterial.js';
 import { attribute } from '../../nodes/core/AttributeNode.js';
 import { cameraProjectionMatrix } from '../../nodes/accessors/Camera.js';
 import { materialColor, materialOpacity, materialPointWidth } from '../../nodes/accessors/MaterialNode.js'; // or should this be a property, instead?
 import { modelViewMatrix } from '../../nodes/accessors/ModelNode.js';
 import { positionGeometry } from '../../nodes/accessors/Position.js';
-import { smoothstep } from '../../nodes/math/MathNode.js';
-import { Fn, varying, vec2, vec4 } from '../../nodes/tsl/TSLBase.js';
+import { smoothstep, lengthSq } from '../../nodes/math/MathNode.js';
+import { Fn, vec4, float } from '../../nodes/tsl/TSLBase.js';
 import { uv } from '../../nodes/accessors/UV.js';
-import { viewport } from '../../nodes/display/ViewportNode.js';
+import { viewport } from '../../nodes/display/ScreenNode.js';
 
 import { PointsMaterial } from '../PointsMaterial.js';
 
 const _defaultValues = /*@__PURE__*/ new PointsMaterial();
 
+/**
+ * Unlike WebGL, WebGPU can render point primitives only with a size
+ * of one pixel. This type node material can be used to mimic the WebGL
+ * points rendering by rendering small planes via instancing.
+ *
+ * This material should be used with {@link InstancedPointsGeometry}.
+ *
+ * @augments NodeMaterial
+ */
 class InstancedPointsNodeMaterial extends NodeMaterial {
 
-	constructor( params = {} ) {
+	static get type() {
+
+		return 'InstancedPointsNodeMaterial';
+
+	}
+
+	/**
+	 * Constructs a new instanced points node material.
+	 *
+	 * @param {Object?} parameters - The configuration parameter.
+	 */
+	constructor( parameters = {} ) {
 
 		super();
 
-		this.lights = false;
+		/**
+		 * This flag can be used for type testing.
+		 *
+		 * @type {Boolean}
+		 * @readonly
+		 * @default true
+		 */
+		this.isInstancedPointsNodeMaterial = true;
 
-		this.useAlphaToCoverage = true;
+		/**
+		 * Whether vertex colors should be used or not. If set to `true`,
+		 * each point instance can receive a custom color value.
+		 *
+		 * @type {Boolean}
+		 * @default false
+		 */
+		this.useColor = parameters.vertexColors;
 
-		this.useColor = params.vertexColors;
-
+		/**
+		 * The points width in pixels.
+		 *
+		 * @type {Number}
+		 * @default 1
+		 */
 		this.pointWidth = 1;
 
+		/**
+		 * This node can be used to define the colors for each instance.
+		 *
+		 * @type {Node<vec3>?}
+		 * @default null
+		 */
 		this.pointColorNode = null;
 
+		/**
+		 * This node can be used to define the width for each point instance.
+		 *
+		 * @type {Node<float>?}
+		 * @default null
+		 */
 		this.pointWidthNode = null;
+
+		this._useAlphaToCoverage = true;
 
 		this.setDefaultValues( _defaultValues );
 
-		this.setupShaders();
-
-		this.setValues( params );
+		this.setValues( parameters );
 
 	}
 
+	/**
+	 * Setups the vertex and fragment stage of this node material.
+	 *
+	 * @param {NodeBuilder} builder - The current node builder.
+	 */
 	setup( builder ) {
 
-		this.setupShaders();
+		const { renderer } = builder;
 
-		super.setup( builder );
-
-	}
-
-	setupShaders() {
-
-		const useAlphaToCoverage = this.alphaToCoverage;
+		const useAlphaToCoverage = this._useAlphaToCoverage;
 		const useColor = this.useColor;
 
 		this.vertexNode = Fn( () => {
 
-			//vUv = uv;
-			varying( vec2(), 'vUv' ).assign( uv() ); // @TODO: Analyze other way to do this
-
 			const instancePosition = attribute( 'instancePosition' ).xyz;
 
 			// camera space
-			const mvPos = property( 'vec4', 'mvPos' );
-			mvPos.assign( modelViewMatrix.mul( vec4( instancePosition, 1.0 ) ) );
+			const mvPos = vec4( modelViewMatrix.mul( vec4( instancePosition, 1.0 ) ) );
 
 			const aspect = viewport.z.div( viewport.w );
 
@@ -70,8 +114,7 @@ class InstancedPointsNodeMaterial extends NodeMaterial {
 			const clipPos = cameraProjectionMatrix.mul( mvPos );
 
 			// offset in ndc space
-			const offset = property( 'vec2', 'offset' );
-			offset.assign( positionGeometry.xy );
+			const offset = positionGeometry.xy.toVar();
 
 			offset.mulAssign( this.pointWidthNode ? this.pointWidthNode : materialPointWidth );
 
@@ -82,32 +125,21 @@ class InstancedPointsNodeMaterial extends NodeMaterial {
 			offset.assign( offset.mul( clipPos.w ) );
 
 			//clipPos.xy += offset;
-			clipPos.assign( clipPos.add( vec4( offset, 0, 0 ) ) );
+			clipPos.addAssign( vec4( offset, 0, 0 ) );
 
 			return clipPos;
-
-			//vec4 mvPosition = mvPos; // this was used for somethihng...
 
 		} )();
 
 		this.fragmentNode = Fn( () => {
 
-			const vUv = varying( vec2(), 'vUv' );
+			const alpha = float( 1 ).toVar();
 
-			// force assignment into correct place in flow
-			const alpha = property( 'float', 'alpha' );
-			alpha.assign( 1 );
+			const len2 = lengthSq( uv().mul( 2 ).sub( 1 ) );
 
-			const a = vUv.x;
-			const b = vUv.y;
+			if ( useAlphaToCoverage && renderer.samples > 1 ) {
 
-			const len2 = a.mul( a ).add( b.mul( b ) );
-
-			if ( useAlphaToCoverage ) {
-
-				// force assignment out of following 'if' statement - to avoid uniform control flow errors
-				const dlen = property( 'float', 'dlen' );
-				dlen.assign( len2.fwidth() );
+				const dlen = float( len2.fwidth() ).toVar();
 
 				alpha.assign( smoothstep( dlen.oneMinus(), dlen.add( 1 ), len2 ).oneMinus() );
 
@@ -145,19 +177,27 @@ class InstancedPointsNodeMaterial extends NodeMaterial {
 
 		} )();
 
+		super.setup( builder );
+
 	}
 
+	/**
+	 * Whether alpha to coverage should be used or not.
+	 *
+	 * @type {Boolean}
+	 * @default true
+	 */
 	get alphaToCoverage() {
 
-		return this.useAlphaToCoverage;
+		return this._useAlphaToCoverage;
 
 	}
 
 	set alphaToCoverage( value ) {
 
-		if ( this.useAlphaToCoverage !== value ) {
+		if ( this._useAlphaToCoverage !== value ) {
 
-			this.useAlphaToCoverage = value;
+			this._useAlphaToCoverage = value;
 			this.needsUpdate = true;
 
 		}
@@ -167,5 +207,3 @@ class InstancedPointsNodeMaterial extends NodeMaterial {
 }
 
 export default InstancedPointsNodeMaterial;
-
-InstancedPointsNodeMaterial.type = /*@__PURE__*/ registerNodeMaterial( 'InstancedPoints', InstancedPointsNodeMaterial );

@@ -36,7 +36,7 @@ class TextureLoader extends Loader {
 
 		}, onProgress, function ( event ) {
 
-			if ( texture.image instanceof ImageData ) { // todo should we do it for all?
+			if ( typeof ImageData !== 'undefined' && texture.image instanceof ImageData ) { // todo should we do it for all?
 
 				texture.needsUpdate = true;
 

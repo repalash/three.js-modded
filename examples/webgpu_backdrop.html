@@ -16,7 +16,8 @@
 			{
 				"imports": {
 					"three": "../build/three.webgpu.js",
-					"three/tsl": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+					"three/tsl": "../build/three.tsl.js",
 					"three/addons/": "./jsm/"
 				}
 			}
@@ -25,7 +26,7 @@
 		<script type="module">
 
 			import * as THREE from 'three';
-			import { float, vec3, color, viewportSharedTexture, hue, overlay, posterize, grayscale, saturation, viewportSafeUV, viewportUV, checker, uv, timerLocal, oscSine, output } from 'three/tsl';
+			import { float, vec3, color, viewportSharedTexture, hue, blendOverlay, posterize, grayscale, saturation, viewportSafeUV, screenUV, checker, uv, time, oscSine, output } from 'three/tsl';
 
 			import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -43,7 +44,7 @@
 				camera.position.set( 1, 2, 3 );
 
 				scene = new THREE.Scene();
-				scene.backgroundNode = viewportUV.y.mix( color( 0x66bbff ), color( 0x4466ff ) );
+				scene.backgroundNode = screenUV.y.mix( color( 0x66bbff ), color( 0x4466ff ) );
 				camera.lookAt( 0, 1, 0 );
 
 				clock = new THREE.Clock();
@@ -62,7 +63,7 @@
 					mixer = new THREE.AnimationMixer( object );
 
 					const material = object.children[ 0 ].children[ 0 ].material;
-					material.outputNode = oscSine( timerLocal( .1 ) ).mix( output, posterize( output.add( .1 ), 4 ).mul( 2 ) );
+					material.outputNode = oscSine( time.mul( .1 ) ).mix( output, posterize( output.add( .1 ), 4 ).mul( 2 ) );
 
 					const action = mixer.clipAction( gltf.animations[ 0 ] );
 					action.play();
@@ -106,9 +107,9 @@
 				addBackdropSphere( viewportSharedTexture().rgb.oneMinus() );
 				addBackdropSphere( grayscale( viewportSharedTexture().rgb ) );
 				addBackdropSphere( saturation( viewportSharedTexture().rgb, 10 ), oscSine() );
-				addBackdropSphere( overlay( viewportSharedTexture().rgb, checker( uv().mul( 10 ) ) ) );
-				addBackdropSphere( viewportSharedTexture( viewportSafeUV( viewportUV.mul( 40 ).floor().div( 40 ) ) ) );
-				addBackdropSphere( viewportSharedTexture( viewportSafeUV( viewportUV.mul( 80 ).floor().div( 80 ) ) ).add( color( 0x0033ff ) ) );
+				addBackdropSphere( blendOverlay( viewportSharedTexture().rgb, checker( uv().mul( 10 ) ) ) );
+				addBackdropSphere( viewportSharedTexture( viewportSafeUV( screenUV.mul( 40 ).floor().div( 40 ) ) ) );
+				addBackdropSphere( viewportSharedTexture( viewportSafeUV( screenUV.mul( 80 ).floor().div( 80 ) ) ).add( color( 0x0033ff ) ) );
 				addBackdropSphere( vec3( 0, 0, viewportSharedTexture().b ) );
 
 				// renderer
