@@ -15,7 +15,8 @@
 			{
 				"imports": {
 					"three": "../build/three.webgpu.js",
-					"three/tsl": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+					"three/tsl": "../build/three.tsl.js",
 					"three/addons/": "./jsm/"
 				}
 			}
@@ -24,6 +25,7 @@
 		<script type="module">
 
 			import * as THREE from 'three';
+			import { toonOutlinePass } from 'three/tsl';
 
 			import Stats from 'three/addons/libs/stats.module.js';
 
@@ -33,7 +35,7 @@
 
 			let container, stats;
 
-			let camera, scene, renderer;
+			let camera, scene, renderer, postProcessing;
 			let particleLight;
 
 			const loader = new FontLoader();
@@ -64,12 +66,19 @@
 				renderer.setAnimationLoop( render );
 				container.appendChild( renderer.domElement );
 
+				//
+
+				postProcessing = new THREE.PostProcessing( renderer );
+
+				postProcessing.outputNode = toonOutlinePass( scene, camera );
+
+
 				// Materials
 
 				const cubeWidth = 400;
-				const numberOfSphersPerSide = 5;
-				const sphereRadius = ( cubeWidth / numberOfSphersPerSide ) * 0.8 * 0.5;
-				const stepSize = 1.0 / numberOfSphersPerSide;
+				const numberOfSpheresPerSide = 5;
+				const sphereRadius = ( cubeWidth / numberOfSpheresPerSide ) * 0.8 * 0.5;
+				const stepSize = 1.0 / numberOfSpheresPerSide;
 
 				const geometry = new THREE.SphereGeometry( sphereRadius, 32, 16 );
 
@@ -184,7 +193,7 @@
 
 				stats.begin();
 
-				renderer.render( scene, camera );
+				postProcessing.render();
 
 				stats.end();
 

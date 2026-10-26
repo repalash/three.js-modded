@@ -141,7 +141,7 @@ class WebGLAttributeUtils {
 
 		if ( attribute.isStorageBufferAttribute || attribute.isStorageInstancedBufferAttribute ) {
 
-			// create buffer for tranform feedback use
+			// create buffer for transform feedback use
 			const bufferGPUDual = this._createBuffer( gl, bufferType, array, usage );
 			attributeData = new DualAttributeData( attributeData, bufferGPUDual );
 
@@ -233,9 +233,15 @@ class WebGLAttributeUtils {
 
 		const dstBuffer = new attribute.array.constructor( array.length );
 
+		// Ensure the buffer is bound before reading
+		gl.bindBuffer( gl.COPY_WRITE_BUFFER, writeBuffer );
+
 		gl.getBufferSubData( gl.COPY_WRITE_BUFFER, 0, dstBuffer );
 
 		gl.deleteBuffer( writeBuffer );
+
+		gl.bindBuffer( gl.COPY_READ_BUFFER, null );
+		gl.bindBuffer( gl.COPY_WRITE_BUFFER, null );
 
 		return dstBuffer.buffer;
 
