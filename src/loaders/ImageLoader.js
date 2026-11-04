@@ -173,6 +173,8 @@ class ImageLoader extends Loader {
 			}
 
 			const fileLoader = new FileLoader( this.manager );
+			fileLoader.setPriority( this.priority );
+			fileLoader.setCache( this.cache );
 			fileLoader.useCache = false;
 			fileLoader.setPath( this.path );
 			fileLoader.setCrossOrigin( this.crossOrigin );
