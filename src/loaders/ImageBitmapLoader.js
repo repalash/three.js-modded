@@ -83,6 +83,8 @@ class ImageBitmapLoader extends Loader {
 		const fetchOptions = {};
 		fetchOptions.credentials = ( this.crossOrigin === 'anonymous' ) ? 'same-origin' : 'include';
 		fetchOptions.headers = this.requestHeader;
+		fetchOptions.priority = this.priority;
+		fetchOptions.cache = this.cache;
 
 		const promise = fetch( url, fetchOptions ).then( function ( res ) {
 
