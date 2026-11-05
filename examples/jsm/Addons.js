@@ -125,7 +125,7 @@ export * from './loaders/TGALoader.js';
 export * from './loaders/TIFFLoader.js';
 export * from './loaders/TTFLoader.js';
 export * from './loaders/TiltLoader.js';
-export * from './loaders/USDZLoader.js';
+export * from './loaders/USDLoader.js';
 export * from './loaders/VOXLoader.js';
 export * from './loaders/VRMLLoader.js';
 export * from './loaders/VTKLoader.js';
