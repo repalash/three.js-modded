@@ -14,15 +14,74 @@ For each three.js revision, this file has:
   [Migration Guide](https://github.com/mrdoob/three.js/wiki/Migration-Guide).
 - One section per release, newest first. **Breaking** marks a change that can need a change in an app.
 
-## Unreleased
+## r172
 
+### Changes over three.js r172
+
+All the [changes over three.js r168](#changes-over-threejs-r168), and:
+- `USDLoader` from three.js r187, with USDC (binary) support. The editor opens `.usd`, `.usda` and `.usdc` files with
+  it.
+- `Loader.setPriority( 'high' | 'low' | 'auto' )` and `Loader.setCache( RequestCache )` from three.js r187. They set
+  the `priority` and `cache` of the `fetch()` requests of a loader, and the core loaders pass them to the loaders they
+  use.
+- `WebGLRenderer.readRenderTargetPixelsAsync( ..., activeCubeFaceIndex, textureIndex )` reads one texture of a render
+  target with several textures (three.js has it since r177).
+- `ColorManagement`: `RGBM16ColorSpace` is a registered color space, linear sRGB for color management. With
+  `NoColorSpace` as the output color space, the canvas stays sRGB: the app encodes the final colors itself, for example
+  in a screen pass.
+- `GLTFExporter`: the `writeMesh`, `writeNode`, `beforeParse` and `afterParse` hooks of a plugin can return a promise,
+  and the writer waits for it.
+- `ImageLoader`: a failing cache lookup calls `onError` instead of leaving the load pending.
+
+### Upgrading from r168
+
+From three-modded:
 - **Breaking** `USDZLoader` is no longer exported from `three/addons` (`examples/jsm/Addons.js`), as in three.js r179.
   Use `USDLoader`, which loads `.usdz`, `.usda` and `.usdc` files:
   `import { USDLoader } from 'three/addons/loaders/USDLoader.js'` (or from `three/addons`).
-  `three/addons/loaders/USDZLoader.js` is still there as a deprecated subclass of `USDLoader`.
-- `USDLoader` from three.js r187, with USDC (binary) support. The editor opens `.usd`, `.usda` and `.usdc` files with it.
-- `Loader.setPriority( 'high' | 'low' | 'auto' )` and `Loader.setCache( RequestCache )` from three.js r187. They set
-  the `priority` and `cache` of the `fetch()` requests of a loader, and the core loaders pass them to the loaders they use.
+  `three/addons/loaders/USDZLoader.js` is still there as a deprecated subclass of `USDLoader`, and its `parse()` still
+  returns the group.
+
+From three.js r169–r172, the changes most likely to need a change in an app (all of them are in the
+[Migration Guide](https://github.com/mrdoob/three.js/wiki/Migration-Guide)):
+- r169
+  - **Breaking** `EXRExporter.parse()`, `KTX2Exporter.parse()` and `LightProbeGenerator.fromCubeRenderTarget()` are
+    async.
+  - **Breaking** `TransformControls` is a `Controls`: add `controls.getHelper()` to the scene, not the controls.
+  - **Breaking** `TiltLoader`, `PackedPhongMaterial`, `SDFGeometryGenerator` and `GPUStatsPanel` are removed.
+  - The functions of `GeometryCompressionUtils` take geometries, not meshes.
+  - Raycast hits on `Points` have `faceIndex: null`, as those on `Line` have.
+- r170
+  - **Breaking** `GLTFExporter` writes asynchronously. In a `GLTFWriter` subclass, `write()`, `processInput()`,
+    `processObjects()`, `processMaterial()` and `processTexture()` are `writeAsync()`, `processInputAsync()`,
+    `processObjectsAsync()`, `processMaterialAsync()` and `processTextureAsync()`. A plugin's `writeMaterial()` is
+    `writeMaterialAsync()`; the old name is not called.
+  - **Breaking** To export a compressed texture (for example KTX2) without its source, call
+    `exporter.setTextureUtils( { decompress } )` with `decompress` from `three/addons/utils/WebGLTextureUtils.js`.
+  - **Breaking** `DisplayP3ColorSpace` and `LinearDisplayP3ColorSpace` are not in the core: import them from
+    `three/addons/math/ColorSpaces.js` and register them with `ColorManagement.define()`.
+  - **Breaking** `Material.type` is a static property and cannot be changed by app code.
+  - Mipmaps are generated whenever `Texture.generateMipmaps` is `true`, whatever the filters.
+  - `GLTFExporter` writes non-PBR materials with `metallicFactor` 0 and `roughnessFactor` 1.
+  - `CinematicCamera` is removed. `WebGLRenderer.copyTextureToTexture3D()` is deprecated: use
+    `copyTextureToTexture()`. The MMD modules are deprecated.
+  - `WebXRManager` uses the layers of the scene's camera.
+- r171
+  - `WebGPURenderer` and node materials are imported from `three/webgpu`, TSL from `three/tsl`. Some TSL functions are
+    renamed.
+- r172
+  - **Breaking** The MMD modules are removed.
+  - More TSL renames, and `PostProcessingUtils` is `RendererUtils`.
+
+### 0.172.10001-rc.2
+
+- `USDZLoader` is no longer exported from `three/addons` again, as on `master`. rc.1 exported it.
+- This changelog.
+
+### 0.172.10001-rc.1
+
+The first release candidate of the r172 merge (#8), under the npm dist-tag `three-r172`. It also has `USDLoader` and
+`Loader.setPriority()` / `setCache()` from `master` (#10, #11), and it exports `USDZLoader` from `three/addons`.
 
 ## r168
 
