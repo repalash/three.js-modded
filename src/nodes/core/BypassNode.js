@@ -1,15 +1,58 @@
-import Node, { registerNode } from './Node.js';
+import Node from './Node.js';
 import { addMethodChaining, nodeProxy } from '../tsl/TSLCore.js';
 
+/** @module BypassNode **/
+
+/**
+ * The class generates the code of a given node but returns another node in the output.
+ * This can be used to call a method or node that does not return a value, i.e.
+ * type `void` on an input where returning a value is required. Example:
+ *
+ * ```js
+ * material.colorNode = myColor.bypass( runVoidFn() )
+ *```
+ *
+ * @augments Node
+ */
 class BypassNode extends Node {
 
-	constructor( returnNode, callNode ) {
+	static get type() {
+
+		return 'BypassNode';
+
+	}
+
+	/**
+	 * Constructs a new bypass node.
+	 *
+	 * @param {Node} outputNode - The output node.
+	 * @param {Node} callNode - The call node.
+	 */
+	constructor( outputNode, callNode ) {
 
 		super();
 
+		/**
+		 * This flag can be used for type testing.
+		 *
+		 * @type {Boolean}
+		 * @readonly
+		 * @default true
+		 */
 		this.isBypassNode = true;
 
-		this.outputNode = returnNode;
+		/**
+		 * The output node.
+		 *
+		 * @type {Node}
+		 */
+		this.outputNode = outputNode;
+
+		/**
+		 * The call node.
+		 *
+		 * @type {Node}
+		 */
 		this.callNode = callNode;
 
 	}
@@ -26,7 +69,7 @@ class BypassNode extends Node {
 
 		if ( snippet !== '' ) {
 
-			builder.addLineFlowCode( snippet );
+			builder.addLineFlowCode( snippet, this );
 
 		}
 
@@ -38,8 +81,14 @@ class BypassNode extends Node {
 
 export default BypassNode;
 
-BypassNode.type = /*@__PURE__*/ registerNode( 'Bypass', BypassNode );
-
+/**
+ * TSL function for creating a bypass node.
+ *
+ * @function
+ * @param {Node} outputNode - The output node.
+ * @param {Node} callNode - The call node.
+ * @returns {BypassNode}
+ */
 export const bypass = /*@__PURE__*/ nodeProxy( BypassNode );
 
 addMethodChaining( 'bypass', bypass );

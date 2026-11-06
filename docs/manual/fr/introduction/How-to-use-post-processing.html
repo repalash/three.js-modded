@@ -59,8 +59,7 @@
 
 		<p>
 			Notre composer est maintenant prêt, il est donc possible de configurer la chaîne d'effets de post-processing. Ces effets (passes) sont chargés de la création
-			de l'apparence visuelle finale de l'application. Ils sont traités dans l'ordre de leur ajout/insertion. In our example, the instance of `RenderPass`
-			is executed first, then the instance of `GlitchPass` and finally `OutputPass`. Le dernier effet activé de la chaîne est automatiquement rendu dans la scène. Le setup
+			de l'apparence visuelle finale de l'application. Ils sont traités dans l'ordre de leur ajout/insertion. Dans notre exemple, l'instance de `RenderPass` est exécutée en premier, puis l'instance de `GlitchPass` et enfin `OutputPass`. Le dernier effet activé de la chaîne est automatiquement rendu dans la scène. Le setup
 			des effets ressemble à ça:
 		</p>
 
@@ -77,7 +76,7 @@
 
 		<p>
 			`RenderPass` est normalement placé au début de la chaîne pour fournir la scène rendue en tant qu'entrée pour les prochaines étapes de post-processing. Dans notre cas,
-			`GlitchPass` va utiliser les données de l'image pour appliquer un effet de glitch.  `OutputPass` is usually the last pass in the chain which performs sRGB color space conversion and optional tone mapping.
+			`GlitchPass` va utiliser les données de l'image pour appliquer un effet de glitch.  `OutputPass` est généralement le dernier passage de la chaîne qui effectue la conversion de l'espace colorimétrique sRGB et le mappage tonal optionnel.
 			Regardez cet [link:https://threejs.org/examples/webgl_postprocessing_glitch exemple live] pour voir cela en action.
 		</p>
 
@@ -88,11 +87,11 @@
 			[link:https://github.com/mrdoob/three.js/tree/dev/examples/jsm/postprocessing postprocessing].
 		</p>
 
-		<h2>Effets Customisés</h2>
+		<h2>Effets Personnalisés</h2>
 
 		<p>
-			Parfois vous voulez écrire un shader de post-processing customisé et l'inclure dans les effets (passes) de post-processing. Dans ce scénario,
-			vous pouvez utiliser `ShaderPass`. Après avoir importé le fichier et votre shader customisé, vous pouvez utiliser le code suivant pour mettre en place l'effet (pass).
+			Parfois vous voulez écrire un shader de post-processing personnalisé et l'inclure dans les effets (passes) de post-processing. Dans ce scénario,
+			vous pouvez utiliser `ShaderPass`. Après avoir importé le fichier et votre shader personnalisé, vous pouvez utiliser le code suivant pour mettre en place l'effet (pass).
 		</p>
 
 		<code>
@@ -106,8 +105,8 @@
 		</code>
 
 		<p>
-			Ce repository fournit un fichier appelé [link:https://github.com/mrdoob/three.js/blob/master/examples/jsm/shaders/CopyShader.js CopyShader] qui est
-			une bonne base de code pour créer votre propose shader customisé. `CopyShader` copie simplement le contenu de l'image du buffer de l'[page:EffectComposer]
+			Ce dépôt fournit un fichier appelé [link:https://github.com/mrdoob/three.js/blob/master/examples/jsm/shaders/CopyShader.js CopyShader] qui est
+			une bonne base de code pour créer votre propose shader personnalisé. `CopyShader` copie simplement le contenu de l'image du buffer de l'[page:EffectComposer]
 			à son buffer d'écriture sans y appliquer aucun effet.
 		</p>
 

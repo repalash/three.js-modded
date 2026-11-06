@@ -41,6 +41,7 @@ class WebGLState {
 		this.currentStencilZPass = null;
 		this.currentStencilMask = null;
 		this.currentLineWidth = null;
+		this.currentClippingPlanes = 0;
 
 		this.currentBoundFramebuffers = {};
 		this.currentDrawbuffers = new WeakMap();
@@ -478,7 +479,7 @@ class WebGLState {
 
 	}
 
-	setMaterial( material, frontFaceCW ) {
+	setMaterial( material, frontFaceCW, hardwareClippingPlanes ) {
 
 		const { gl } = this;
 
@@ -512,9 +513,33 @@ class WebGLState {
 
 		this.setPolygonOffset( material.polygonOffset, material.polygonOffsetFactor, material.polygonOffsetUnits );
 
-		material.alphaToCoverage === true
+		material.alphaToCoverage === true && this.backend.renderer.samples > 1
 			? this.enable( gl.SAMPLE_ALPHA_TO_COVERAGE )
 			: this.disable( gl.SAMPLE_ALPHA_TO_COVERAGE );
+
+		if ( hardwareClippingPlanes > 0 ) {
+
+			if ( this.currentClippingPlanes !== hardwareClippingPlanes ) {
+
+				const CLIP_DISTANCE0_WEBGL = 0x3000;
+
+				for ( let i = 0; i < 8; i ++ ) {
+
+					if ( i < hardwareClippingPlanes ) {
+
+						this.enable( CLIP_DISTANCE0_WEBGL + i );
+
+					} else {
+
+						this.disable( CLIP_DISTANCE0_WEBGL + i );
+
+					}
+
+				}
+
+			}
+
+		}
 
 	}
 
@@ -649,7 +674,6 @@ class WebGLState {
 
 		}
 
-
 	}
 
 
@@ -711,9 +735,7 @@ class WebGLState {
 			boundTexture.type = webglType;
 			boundTexture.texture = webglTexture;
 
-
 		}
-
 
 	}
 

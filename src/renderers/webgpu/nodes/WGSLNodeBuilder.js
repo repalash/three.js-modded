@@ -11,12 +11,27 @@ import { NodeBuilder, CodeNode } from '../../../nodes/Nodes.js';
 import { getFormat } from '../utils/WebGPUTextureUtils.js';
 
 import WGSLNodeParser from './WGSLNodeParser.js';
-import { GPUBufferBindingType, GPUStorageTextureAccess } from '../utils/WebGPUConstants.js';
+import { NodeAccess } from '../../../nodes/core/constants.js';
 
-import { NoColorSpace, FloatType } from '../../../constants.js';
+import VarNode from '../../../nodes/core/VarNode.js';
+import ExpressionNode from '../../../nodes/code/ExpressionNode.js';
+
+import { NoColorSpace, FloatType, RepeatWrapping, ClampToEdgeWrapping, MirroredRepeatWrapping, NearestFilter } from '../../../constants.js';
 
 // GPUShaderStage is not defined in browsers not supporting WebGPU
-const GPUShaderStage = self.GPUShaderStage;
+const GPUShaderStage = ( typeof self !== 'undefined' ) ? self.GPUShaderStage : { VERTEX: 1, FRAGMENT: 2, COMPUTE: 4 };
+
+const accessNames = {
+	[ NodeAccess.READ_ONLY ]: 'read',
+	[ NodeAccess.WRITE_ONLY ]: 'write',
+	[ NodeAccess.READ_WRITE ]: 'read_write'
+};
+
+const wrapNames = {
+	[ RepeatWrapping ]: 'repeat',
+	[ ClampToEdgeWrapping ]: 'clamp',
+	[ MirroredRepeatWrapping ]: 'mirror'
+};
 
 const gpuShaderStageLib = {
 	'vertex': GPUShaderStage ? GPUShaderStage.VERTEX : 1,
@@ -57,20 +72,11 @@ const wgslTypeLib = {
 	bvec4: 'vec4<bool>',
 
 	mat2: 'mat2x2<f32>',
-	imat2: 'mat2x2<i32>',
-	umat2: 'mat2x2<u32>',
-	bmat2: 'mat2x2<bool>',
-
 	mat3: 'mat3x3<f32>',
-	imat3: 'mat3x3<i32>',
-	umat3: 'mat3x3<u32>',
-	bmat3: 'mat3x3<bool>',
-
-	mat4: 'mat4x4<f32>',
-	imat4: 'mat4x4<i32>',
-	umat4: 'mat4x4<u32>',
-	bmat4: 'mat4x4<bool>'
+	mat4: 'mat4x4<f32>'
 };
+
+const wgslCodeCache = {};
 
 const wgslPolyfill = {
 	tsl_xor: new CodeNode( 'fn tsl_xor( a : bool, b : bool ) -> bool { return ( a || b ) && !( a && b ); }' ),
@@ -82,19 +88,13 @@ const wgslPolyfill = {
 	equals_bvec2: new CodeNode( 'fn tsl_equals_bvec2( a : vec2f, b : vec2f ) -> vec2<bool> { return vec2<bool>( a.x == b.x, a.y == b.y ); }' ),
 	equals_bvec3: new CodeNode( 'fn tsl_equals_bvec3( a : vec3f, b : vec3f ) -> vec3<bool> { return vec3<bool>( a.x == b.x, a.y == b.y, a.z == b.z ); }' ),
 	equals_bvec4: new CodeNode( 'fn tsl_equals_bvec4( a : vec4f, b : vec4f ) -> vec4<bool> { return vec4<bool>( a.x == b.x, a.y == b.y, a.z == b.z, a.w == b.w ); }' ),
-	repeatWrapping: new CodeNode( `
-fn tsl_repeatWrapping( uv : vec2<f32>, dimension : vec2<u32> ) -> vec2<u32> {
+	repeatWrapping_float: new CodeNode( 'fn tsl_repeatWrapping_float( coord: f32 ) -> f32 { return fract( coord ); }' ),
+	mirrorWrapping_float: new CodeNode( 'fn tsl_mirrorWrapping_float( coord: f32 ) -> f32 { let mirrored = fract( coord * 0.5 ) * 2.0; return 1.0 - abs( 1.0 - mirrored ); }' ),
+	clampWrapping_float: new CodeNode( 'fn tsl_clampWrapping_float( coord: f32 ) -> f32 { return clamp( coord, 0.0, 1.0 ); }' ),
+	biquadraticTexture: new CodeNode( /* wgsl */`
+fn tsl_biquadraticTexture( map : texture_2d<f32>, coord : vec2f, iRes : vec2u, level : u32 ) -> vec4f {
 
-	let uvScaled = vec2<u32>( uv * vec2<f32>( dimension ) );
-
-	return ( ( uvScaled % dimension ) + dimension ) % dimension;
-
-}
-` ),
-	biquadraticTexture: new CodeNode( `
-fn tsl_biquadraticTexture( map : texture_2d<f32>, coord : vec2f, level : i32 ) -> vec4f {
-
-	let res = vec2f( textureDimensions( map, level ) );
+	let res = vec2f( iRes );
 
 	let uvScaled = coord * res;
 	let uvWrapping = ( ( uvScaled % res ) + res ) % res;
@@ -105,10 +105,10 @@ fn tsl_biquadraticTexture( map : texture_2d<f32>, coord : vec2f, level : i32 ) -
 	let iuv = floor( uv );
 	let f = fract( uv );
 
-	let rg1 = textureLoad( map, vec2i( iuv + vec2( 0.5, 0.5 ) ), level );
-	let rg2 = textureLoad( map, vec2i( iuv + vec2( 1.5, 0.5 ) ), level );
-	let rg3 = textureLoad( map, vec2i( iuv + vec2( 0.5, 1.5 ) ), level );
-	let rg4 = textureLoad( map, vec2i( iuv + vec2( 1.5, 1.5 ) ), level );
+	let rg1 = textureLoad( map, vec2u( iuv + vec2( 0.5, 0.5 ) ) % iRes, level );
+	let rg2 = textureLoad( map, vec2u( iuv + vec2( 1.5, 0.5 ) ) % iRes, level );
+	let rg3 = textureLoad( map, vec2u( iuv + vec2( 0.5, 1.5 ) ) % iRes, level );
+	let rg4 = textureLoad( map, vec2u( iuv + vec2( 1.5, 1.5 ) ) % iRes, level );
 
 	return mix( mix( rg1, rg2, f.x ), mix( rg3, rg4, f.x ), f.y );
 
@@ -133,7 +133,7 @@ const wgslMethods = {
 
 // WebGPU issue: does not support pow() with negative base on Windows
 
-if ( /Windows/g.test( navigator.userAgent ) ) {
+if ( typeof navigator !== 'undefined' && /Windows/g.test( navigator.userAgent ) ) {
 
 	wgslPolyfill.pow_float = new CodeNode( 'fn tsl_pow_float( a : f32, b : f32 ) -> f32 { return select( -pow( -a, b ), pow( a, b ), a > 0.0 ); }' );
 	wgslPolyfill.pow_vec2 = new CodeNode( 'fn tsl_pow_vec2( a : vec2f, b : vec2f ) -> vec2f { return vec2f( tsl_pow_float( a.x, b.x ), tsl_pow_float( a.y, b.y ) ); }', [ wgslPolyfill.pow_float ] );
@@ -144,6 +144,16 @@ if ( /Windows/g.test( navigator.userAgent ) ) {
 	wgslMethods.pow_vec2 = 'tsl_pow_vec2';
 	wgslMethods.pow_vec3 = 'tsl_pow_vec3';
 	wgslMethods.pow_vec4 = 'tsl_pow_vec4';
+
+}
+
+//
+
+let diagnostics = '';
+
+if ( ( typeof navigator !== 'undefined' && /Firefox|Deno/g.test( navigator.userAgent ) ) !== true ) {
+
+	diagnostics += 'diagnostic( off, derivative_uniformity );\n';
 
 }
 
@@ -160,6 +170,8 @@ class WGSLNodeBuilder extends NodeBuilder {
 		this.builtins = {};
 
 		this.directives = {};
+
+		this.scopedArrays = new Map();
 
 	}
 
@@ -189,7 +201,7 @@ class WGSLNodeBuilder extends NodeBuilder {
 
 		} else {
 
-			return this.generateTextureLod( texture, textureProperty, uvSnippet, '0' );
+			return this.generateTextureLod( texture, textureProperty, uvSnippet, depthSnippet, '0' );
 
 		}
 
@@ -211,7 +223,7 @@ class WGSLNodeBuilder extends NodeBuilder {
 
 	_generateTextureSampleLevel( texture, textureProperty, uvSnippet, levelSnippet, depthSnippet, shaderStage = this.shaderStage ) {
 
-		if ( shaderStage === 'fragment' && this.isUnfilterable( texture ) === false ) {
+		if ( ( shaderStage === 'fragment' || shaderStage === 'compute' ) && this.isUnfilterable( texture ) === false ) {
 
 			return `textureSampleLevel( ${ textureProperty }, ${ textureProperty }_sampler, ${ uvSnippet }, ${ levelSnippet } )`;
 
@@ -221,39 +233,185 @@ class WGSLNodeBuilder extends NodeBuilder {
 
 		} else {
 
-			return this.generateTextureLod( texture, textureProperty, uvSnippet, levelSnippet );
+			return this.generateTextureLod( texture, textureProperty, uvSnippet, depthSnippet, levelSnippet );
 
 		}
 
 	}
 
-	generateFilteredTexture( texture, textureProperty, uvSnippet, levelSnippet = '0' ) {
+	generateWrapFunction( texture ) {
 
-		this._include( 'biquadraticTexture' );
+		const functionName = `tsl_coord_${ wrapNames[ texture.wrapS ] }S_${ wrapNames[ texture.wrapT ] }_${texture.isData3DTexture ? '3d' : '2d'}T`;
 
-		return `tsl_biquadraticTexture( ${ textureProperty }, ${ uvSnippet }, i32( ${ levelSnippet } ) )`;
+		let nodeCode = wgslCodeCache[ functionName ];
+
+		if ( nodeCode === undefined ) {
+
+			const includes = [];
+
+			// For 3D textures, use vec3f; for texture arrays, keep vec2f since array index is separate
+			const coordType = texture.isData3DTexture ? 'vec3f' : 'vec2f';
+			let code = `fn ${functionName}( coord : ${coordType} ) -> ${coordType} {\n\n\treturn ${coordType}(\n`;
+
+			const addWrapSnippet = ( wrap, axis ) => {
+
+				if ( wrap === RepeatWrapping ) {
+
+					includes.push( wgslPolyfill.repeatWrapping_float );
+
+					code += `\t\ttsl_repeatWrapping_float( coord.${ axis } )`;
+
+				} else if ( wrap === ClampToEdgeWrapping ) {
+
+					includes.push( wgslPolyfill.clampWrapping_float );
+
+					code += `\t\ttsl_clampWrapping_float( coord.${ axis } )`;
+
+				} else if ( wrap === MirroredRepeatWrapping ) {
+
+					includes.push( wgslPolyfill.mirrorWrapping_float );
+
+					code += `\t\ttsl_mirrorWrapping_float( coord.${ axis } )`;
+
+				} else {
+
+					code += `\t\tcoord.${ axis }`;
+
+					console.warn( `WebGPURenderer: Unsupported texture wrap type "${ wrap }" for vertex shader.` );
+
+				}
+
+			};
+
+			addWrapSnippet( texture.wrapS, 'x' );
+
+			code += ',\n';
+
+			addWrapSnippet( texture.wrapT, 'y' );
+
+			if ( texture.isData3DTexture ) {
+
+				code += ',\n';
+				addWrapSnippet( texture.wrapR, 'z' );
+
+			}
+
+			code += '\n\t);\n\n}\n';
+
+			wgslCodeCache[ functionName ] = nodeCode = new CodeNode( code, includes );
+
+		}
+
+		nodeCode.build( this );
+
+		return functionName;
 
 	}
 
-	generateTextureLod( texture, textureProperty, uvSnippet, levelSnippet = '0' ) {
+	generateTextureDimension( texture, textureProperty, levelSnippet ) {
 
-		this._include( 'repeatWrapping' );
+		const textureData = this.getDataFromNode( texture, this.shaderStage, this.globalCache );
 
-		const dimension = texture.isMultisampleRenderTargetTexture === true ? `textureDimensions( ${ textureProperty } )` : `textureDimensions( ${ textureProperty }, 0 )`;
+		if ( textureData.dimensionsSnippet === undefined ) textureData.dimensionsSnippet = {};
 
-		return `textureLoad( ${ textureProperty }, tsl_repeatWrapping( ${ uvSnippet }, ${ dimension } ), i32( ${ levelSnippet } ) )`;
+		let textureDimensionNode = textureData.dimensionsSnippet[ levelSnippet ];
+
+		if ( textureData.dimensionsSnippet[ levelSnippet ] === undefined ) {
+
+			let textureDimensionsParams;
+			let dimensionType;
+
+			const { primarySamples } = this.renderer.backend.utils.getTextureSampleData( texture );
+			const isMultisampled = primarySamples > 1;
+
+			if ( texture.isData3DTexture ) {
+
+				dimensionType = 'vec3<u32>';
+
+			} else {
+
+				// Regular 2D textures, depth textures, etc.
+				dimensionType = 'vec2<u32>';
+
+			}
+
+			// Build parameters string based on texture type and multisampling
+			if ( isMultisampled || texture.isVideoTexture || texture.isStorageTexture ) {
+
+				textureDimensionsParams = textureProperty;
+
+			} else {
+
+				textureDimensionsParams = `${textureProperty}${levelSnippet ? `, u32( ${ levelSnippet } )` : ''}`;
+
+			}
+
+			textureDimensionNode = new VarNode( new ExpressionNode( `textureDimensions( ${ textureDimensionsParams } )`, dimensionType ) );
+
+			textureData.dimensionsSnippet[ levelSnippet ] = textureDimensionNode;
+
+			if ( texture.isDataArrayTexture || texture.isData3DTexture ) {
+
+				textureData.arrayLayerCount = new VarNode(
+					new ExpressionNode(
+						`textureNumLayers(${textureProperty})`,
+						'u32'
+					)
+				);
+
+			}
+
+			// For cube textures, we know it's always 6 faces
+			if ( texture.isTextureCube ) {
+
+				textureData.cubeFaceCount = new VarNode(
+					new ExpressionNode( '6u', 'u32' )
+				);
+
+			}
+
+		}
+
+		return textureDimensionNode.build( this );
+
+	}
+
+	generateFilteredTexture( texture, textureProperty, uvSnippet, levelSnippet = '0u' ) {
+
+		this._include( 'biquadraticTexture' );
+
+		const wrapFunction = this.generateWrapFunction( texture );
+		const textureDimension = this.generateTextureDimension( texture, textureProperty, levelSnippet );
+
+		return `tsl_biquadraticTexture( ${ textureProperty }, ${ wrapFunction }( ${ uvSnippet } ), ${ textureDimension }, u32( ${ levelSnippet } ) )`;
+
+	}
+
+	generateTextureLod( texture, textureProperty, uvSnippet, depthSnippet, levelSnippet = '0u' ) {
+
+		const wrapFunction = this.generateWrapFunction( texture );
+		const textureDimension = this.generateTextureDimension( texture, textureProperty, levelSnippet );
+
+		const vecType = texture.isData3DTexture ? 'vec3' : 'vec2';
+		const coordSnippet = `${vecType}<u32>(${wrapFunction}(${uvSnippet}) * ${vecType}<f32>(${textureDimension}))`;
+
+		return this.generateTextureLoad( texture, textureProperty, coordSnippet, depthSnippet, levelSnippet );
 
 	}
 
 	generateTextureLoad( texture, textureProperty, uvIndexSnippet, depthSnippet, levelSnippet = '0u' ) {
 
-		if ( depthSnippet ) {
+		if ( texture.isVideoTexture === true || texture.isStorageTexture === true ) {
 
-			return `textureLoad( ${ textureProperty }, ${ uvIndexSnippet }, ${ depthSnippet }, ${ levelSnippet } )`;
+			return `textureLoad( ${ textureProperty }, ${ uvIndexSnippet } )`;
+
+		} else if ( depthSnippet ) {
+
+			return `textureLoad( ${ textureProperty }, ${ uvIndexSnippet }, ${ depthSnippet }, u32( ${ levelSnippet } ) )`;
 
 		} else {
 
-			return `textureLoad( ${ textureProperty }, ${ uvIndexSnippet }, ${ levelSnippet } )`;
+			return `textureLoad( ${ textureProperty }, ${ uvIndexSnippet }, u32( ${ levelSnippet } ) )`;
 
 		}
 
@@ -265,9 +423,18 @@ class WGSLNodeBuilder extends NodeBuilder {
 
 	}
 
+	isSampleCompare( texture ) {
+
+		return texture.isDepthTexture === true && texture.compareFunction !== null;
+
+	}
+
 	isUnfilterable( texture ) {
 
-		return this.getComponentTypeFromTexture( texture ) !== 'float' || ( ! this.isAvailable( 'float32Filterable' ) && texture.isDataTexture === true && texture.type === FloatType ) || texture.isMultisampleRenderTargetTexture === true;
+		return this.getComponentTypeFromTexture( texture ) !== 'float' ||
+			( ! this.isAvailable( 'float32Filterable' ) && texture.isDataTexture === true && texture.type === FloatType ) ||
+			( this.isSampleCompare( texture ) === false && texture.minFilter === NearestFilter && texture.magFilter === NearestFilter ) ||
+			this.renderer.backend.utils.getTextureSampleData( texture ).primarySamples > 1;
 
 	}
 
@@ -281,7 +448,7 @@ class WGSLNodeBuilder extends NodeBuilder {
 
 		} else if ( this.isUnfilterable( texture ) ) {
 
-			snippet = this.generateTextureLod( texture, textureProperty, uvSnippet, '0', depthSnippet, shaderStage );
+			snippet = this.generateTextureLod( texture, textureProperty, uvSnippet, depthSnippet, '0', shaderStage );
 
 		} else {
 
@@ -373,7 +540,7 @@ class WGSLNodeBuilder extends NodeBuilder {
 
 				return name;
 
-			} else if ( type === 'buffer' || type === 'storageBuffer' ) {
+			} else if ( type === 'buffer' || type === 'storageBuffer' || type === 'indirectStorageBuffer' ) {
 
 				return `NodeBuffer_${ node.id }.${name}`;
 
@@ -417,46 +584,18 @@ class WGSLNodeBuilder extends NodeBuilder {
 
 	}
 
-	getStorageAccess( node ) {
+	getNodeAccess( node, shaderStage ) {
 
-		if ( node.isStorageTextureNode ) {
+		if ( shaderStage !== 'compute' )
+			return NodeAccess.READ_ONLY;
 
-			switch ( node.access ) {
+		return node.access;
 
-				case GPUStorageTextureAccess.ReadOnly:
+	}
 
-					return 'read';
+	getStorageAccess( node, shaderStage ) {
 
-				case GPUStorageTextureAccess.WriteOnly:
-
-					return 'write';
-
-				default:
-
-					return 'read_write';
-
-			}
-
-		} else {
-
-			switch ( node.access ) {
-
-				case GPUBufferBindingType.Storage:
-
-					return 'read_write';
-
-
-				case GPUBufferBindingType.ReadOnlyStorage:
-
-					return 'read';
-
-				default:
-
-					return 'write';
-
-			}
-
-		}
+		return accessNames[ this.getNodeAccess( node, shaderStage ) ];
 
 	}
 
@@ -478,24 +617,26 @@ class WGSLNodeBuilder extends NodeBuilder {
 
 				let texture = null;
 
+				const access = this.getNodeAccess( node, shaderStage );
+
 				if ( type === 'texture' || type === 'storageTexture' ) {
 
-					texture = new NodeSampledTexture( uniformNode.name, uniformNode.node, group, node.access ? node.access : null );
+					texture = new NodeSampledTexture( uniformNode.name, uniformNode.node, group, access );
 
 				} else if ( type === 'cubeTexture' ) {
 
-					texture = new NodeSampledCubeTexture( uniformNode.name, uniformNode.node, group, node.access ? node.access : null );
+					texture = new NodeSampledCubeTexture( uniformNode.name, uniformNode.node, group, access );
 
 				} else if ( type === 'texture3D' ) {
 
-					texture = new NodeSampledTexture3D( uniformNode.name, uniformNode.node, group, node.access ? node.access : null );
+					texture = new NodeSampledTexture3D( uniformNode.name, uniformNode.node, group, access );
 
 				}
 
 				texture.store = node.isStorageTextureNode === true;
 				texture.setVisibility( gpuShaderStageLib[ shaderStage ] );
 
-				if ( shaderStage === 'fragment' && this.isUnfilterable( node.value ) === false && texture.store === false ) {
+				if ( ( shaderStage === 'fragment' || shaderStage === 'compute' ) && this.isUnfilterable( node.value ) === false && texture.store === false ) {
 
 					const sampler = new NodeSampler( `${uniformNode.name}_sampler`, uniformNode.node, group );
 					sampler.setVisibility( gpuShaderStageLib[ shaderStage ] );
@@ -512,9 +653,10 @@ class WGSLNodeBuilder extends NodeBuilder {
 
 				}
 
-			} else if ( type === 'buffer' || type === 'storageBuffer' ) {
+			} else if ( type === 'buffer' || type === 'storageBuffer' || type === 'indirectStorageBuffer' ) {
 
-				const bufferClass = type === 'storageBuffer' ? NodeStorageBuffer : NodeUniformBuffer;
+				const bufferClass = type === 'buffer' ? NodeUniformBuffer : NodeStorageBuffer;
+
 				const buffer = new bufferClass( node, group );
 				buffer.setVisibility( gpuShaderStageLib[ shaderStage ] );
 
@@ -568,6 +710,12 @@ class WGSLNodeBuilder extends NodeBuilder {
 		}
 
 		return property;
+
+	}
+
+	hasBuiltin( name, shaderStage = this.shaderStage ) {
+
+		return ( this.builtins[ shaderStage ] !== undefined && this.builtins[ shaderStage ].has( name ) );
 
 	}
 
@@ -643,11 +791,19 @@ ${ flowData.code }
 
 	}
 
+	getInvocationSubgroupIndex() {
+
+		this.enableSubGroups();
+
+		return this.getBuiltin( 'subgroup_invocation_id', 'invocationSubgroupIndex', 'u32', 'attribute' );
+
+	}
+
 	getSubgroupIndex() {
 
 		this.enableSubGroups();
 
-		return this.getBuiltin( 'subgroup_invocation_id', 'subgroupIndex', 'u32', 'attribute' );
+		return this.getBuiltin( 'subgroup_id', 'subgroupIndex', 'u32', 'attribute' );
 
 	}
 
@@ -672,6 +828,12 @@ ${ flowData.code }
 	getFragDepth() {
 
 		return 'output.' + this.getBuiltin( 'frag_depth', 'depth', 'f32', 'output' );
+
+	}
+
+	getClipDistance() {
+
+		return 'varyings.hw_clip_distances';
 
 	}
 
@@ -737,6 +899,13 @@ ${ flowData.code }
 
 	}
 
+	enableHardwareClipping( planeCount ) {
+
+		this.enableClipDistances();
+		this.getBuiltin( 'clip_distances', 'hw_clip_distances', `array<f32, ${ planeCount } >`, 'vertex' );
+
+	}
+
 	getBuiltins( shaderStage ) {
 
 		const snippets = [];
@@ -756,6 +925,45 @@ ${ flowData.code }
 
 	}
 
+	getScopedArray( name, scope, bufferType, bufferCount ) {
+
+		if ( this.scopedArrays.has( name ) === false ) {
+
+			this.scopedArrays.set( name, {
+				name,
+				scope,
+				bufferType,
+				bufferCount
+			} );
+
+		}
+
+		return name;
+
+	}
+
+	getScopedArrays( shaderStage ) {
+
+		if ( shaderStage !== 'compute' ) {
+
+			return;
+
+		}
+
+		const snippets = [];
+
+		for ( const { name, scope, bufferType, bufferCount } of this.scopedArrays.values() ) {
+
+			const type = this.getType( bufferType );
+
+			snippets.push( `var<${scope}> ${name}: array< ${type}, ${bufferCount} >;` );
+
+		}
+
+		return snippets.join( '\n' );
+
+	}
+
 	getAttributes( shaderStage ) {
 
 		const snippets = [];
@@ -766,6 +974,13 @@ ${ flowData.code }
 			this.getBuiltin( 'workgroup_id', 'workgroupId', 'vec3<u32>', 'attribute' );
 			this.getBuiltin( 'local_invocation_id', 'localId', 'vec3<u32>', 'attribute' );
 			this.getBuiltin( 'num_workgroups', 'numWorkgroups', 'vec3<u32>', 'attribute' );
+
+			if ( this.renderer.hasFeature( 'subgroups' ) ) {
+
+				this.enableDirective( 'subgroups', shaderStage );
+				this.getBuiltin( 'subgroup_size', 'subgroupSize', 'u32', 'attribute' );
+
+			}
 
 		}
 
@@ -926,16 +1141,16 @@ ${ flowData.code }
 
 		for ( const uniform of uniforms ) {
 
-			const groundName = uniform.groupNode.name;
-			const uniformIndexes = this.bindingsIndexes[ groundName ];
+			const groupName = uniform.groupNode.name;
+			const uniformIndexes = this.bindingsIndexes[ groupName ];
 
 			if ( uniform.type === 'texture' || uniform.type === 'cubeTexture' || uniform.type === 'storageTexture' || uniform.type === 'texture3D' ) {
 
 				const texture = uniform.node.value;
 
-				if ( shaderStage === 'fragment' && this.isUnfilterable( texture ) === false && uniform.node.isStorageTextureNode !== true ) {
+				if ( ( shaderStage === 'fragment' || shaderStage === 'compute' ) && this.isUnfilterable( texture ) === false && uniform.node.isStorageTextureNode !== true ) {
 
-					if ( texture.isDepthTexture === true && texture.compareFunction !== null ) {
+					if ( this.isSampleCompare( texture ) ) {
 
 						bindingSnippets.push( `@binding( ${ uniformIndexes.binding ++ } ) @group( ${ uniformIndexes.group } ) var ${ uniform.name }_sampler : sampler_comparison;` );
 
@@ -951,7 +1166,9 @@ ${ flowData.code }
 
 				let multisampled = '';
 
-				if ( texture.isMultisampleRenderTargetTexture === true ) {
+				const { primarySamples } = this.renderer.backend.utils.getTextureSampleData( texture );
+
+				if ( primarySamples > 1 ) {
 
 					multisampled = '_multisampled';
 
@@ -980,7 +1197,7 @@ ${ flowData.code }
 				} else if ( uniform.node.isStorageTextureNode === true ) {
 
 					const format = getFormat( texture );
-					const access = this.getStorageAccess( uniform.node );
+					const access = this.getStorageAccess( uniform.node, shaderStage );
 
 					textureType = `texture_storage_2d<${ format }, ${ access }>`;
 
@@ -994,15 +1211,16 @@ ${ flowData.code }
 
 				bindingSnippets.push( `@binding( ${ uniformIndexes.binding ++ } ) @group( ${ uniformIndexes.group } ) var ${ uniform.name } : ${ textureType };` );
 
-			} else if ( uniform.type === 'buffer' || uniform.type === 'storageBuffer' ) {
+			} else if ( uniform.type === 'buffer' || uniform.type === 'storageBuffer' || uniform.type === 'indirectStorageBuffer' ) {
 
 				const bufferNode = uniform.node;
 				const bufferType = this.getType( bufferNode.bufferType );
 				const bufferCount = bufferNode.bufferCount;
 
-				const bufferCountSnippet = bufferCount > 0 ? ', ' + bufferCount : '';
-				const bufferSnippet = `\t${ uniform.name } : array< ${ bufferType }${ bufferCountSnippet } >\n`;
-				const bufferAccessMode = bufferNode.isStorageBufferNode ? `storage, ${ this.getStorageAccess( bufferNode ) }` : 'uniform';
+				const bufferCountSnippet = bufferCount > 0 && uniform.type === 'buffer' ? ', ' + bufferCount : '';
+				const bufferTypeSnippet = bufferNode.isAtomic ? `atomic<${bufferType}>` : `${bufferType}`;
+				const bufferSnippet = `\t${ uniform.name } : array< ${ bufferTypeSnippet }${ bufferCountSnippet } >\n`;
+				const bufferAccessMode = bufferNode.isStorageBufferNode ? `storage, ${ this.getStorageAccess( bufferNode, shaderStage ) }` : 'uniform';
 
 				bufferSnippets.push( this._getWGSLStructBinding( 'NodeBuffer_' + bufferNode.id, bufferSnippet, bufferAccessMode, uniformIndexes.binding ++, uniformIndexes.group ) );
 
@@ -1043,6 +1261,8 @@ ${ flowData.code }
 
 		const shadersData = this.material !== null ? { fragment: {}, vertex: {} } : { compute: {} };
 
+		this.sortBindingGroups();
+
 		for ( const shaderStage in shadersData ) {
 
 			const stageData = shadersData[ shaderStage ];
@@ -1053,6 +1273,7 @@ ${ flowData.code }
 			stageData.vars = this.getVars( shaderStage );
 			stageData.codes = this.getCodes( shaderStage );
 			stageData.directives = this.getDirectives( shaderStage );
+			stageData.scopedArrays = this.getScopedArrays( shaderStage );
 
 			//
 
@@ -1172,6 +1393,10 @@ ${ flowData.code }
 
 				result = this.renderer.hasFeature( 'float32-filterable' );
 
+			} else if ( name === 'clipDistance' ) {
+
+				result = this.renderer.hasFeature( 'clip-distances' );
+
 			}
 
 			supports[ name ] = result;
@@ -1244,8 +1469,8 @@ fn main( ${shaderData.attributes} ) -> VaryingsStruct {
 	_getWGSLFragmentCode( shaderData ) {
 
 		return `${ this.getSignature() }
-
-diagnostic( off, derivative_uniformity );
+// global
+${ diagnostics }
 
 // uniforms
 ${shaderData.uniforms}
@@ -1278,6 +1503,9 @@ ${shaderData.directives}
 
 // system
 var<private> instanceIndex : u32;
+
+// locals
+${shaderData.scopedArrays}
 
 // uniforms
 ${shaderData.uniforms}
