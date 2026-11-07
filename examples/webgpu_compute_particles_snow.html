@@ -15,7 +15,8 @@
 			{
 				"imports": {
 					"three": "../build/three.webgpu.js",
-					"three/tsl": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+					"three/tsl": "../build/three.tsl.js",
 					"three/addons/": "./jsm/",
 					"stats-gl": "https://cdn.jsdelivr.net/npm/stats-gl@2.2.8/dist/main.js"
 				}
@@ -25,7 +26,8 @@
 		<script type="module">
 
 			import * as THREE from 'three';
-			import { Fn, texture, vec3, pass, color, uint, viewportUV, positionWorld, positionLocal, timerLocal, vec2, hash, gaussianBlur, instanceIndex, storage, If } from 'three/tsl';
+			import { Fn, texture, vec3, pass, color, uint, screenUV, instancedArray, positionWorld, positionLocal, time, vec2, hash, instanceIndex, If } from 'three/tsl';
+			import { gaussianBlur } from 'three/addons/tsl/display/GaussianBlurNode.js';
 
 			import { TeapotGeometry } from 'three/addons/geometries/TeapotGeometry.js';
 
@@ -84,6 +86,7 @@
 				collisionPosRT.texture.type = THREE.HalfFloatType;
 				collisionPosRT.texture.magFilter = THREE.NearestFilter;
 				collisionPosRT.texture.minFilter = THREE.NearestFilter;
+				collisionPosRT.texture.generateMipmaps = false;
 
 				collisionPosMaterial = new THREE.MeshBasicNodeMaterial();
 				collisionPosMaterial.fog = false;
@@ -92,16 +95,12 @@
 
 				//
 
-				const createBuffer = ( type = 'vec3' ) => storage( new THREE.StorageInstancedBufferAttribute( maxParticleCount, type === 'vec4' ? 4 : 3 ), type, maxParticleCount );
-
-				const positionBuffer = createBuffer();
-				const scaleBuffer = createBuffer();
-				const staticPositionBuffer = createBuffer();
-				const dataBuffer = createBuffer( 'vec4' );
+				const positionBuffer = instancedArray( maxParticleCount, 'vec3' );
+				const scaleBuffer = instancedArray( maxParticleCount, 'vec3' );
+				const staticPositionBuffer = instancedArray( maxParticleCount, 'vec3' );
+				const dataBuffer = instancedArray( maxParticleCount, 'vec4' );
 
 				// compute
-
-				const timer = timerLocal();
 
 				const randUint = () => uint( Math.random() * 0xFFFFFF );
 
@@ -152,8 +151,8 @@
 
 					If( position.y.greaterThan( rippleFloorArea ), () => {
 
-						position.x = particleData.x.add( timer.mul( random.mul( random ) ).mul( speed ).sin().mul( 3 ) );
-						position.z = particleData.z.add( timer.mul( random ).mul( speed ).cos().mul( random.mul( 10 ) ) );
+						position.x = particleData.x.add( time.mul( random.mul( random ) ).mul( speed ).sin().mul( 3 ) );
+						position.z = particleData.z.add( time.mul( random ).mul( speed ).cos().mul( random.mul( 10 ) ) );
 
 						position.y = position.y.add( velocity );
 
@@ -261,7 +260,7 @@
 
 				//
 
-				scene.backgroundNode = viewportUV.distance( .5 ).mul( 2 ).mix( color( 0x0f4140 ), color( 0x060a0d ) );
+				scene.backgroundNode = screenUV.distance( .5 ).mul( 2 ).mix( color( 0x0f4140 ), color( 0x060a0d ) );
 
 				//
 
@@ -295,7 +294,7 @@
 
 				const scenePass = pass( scene, camera );
 				const scenePassColor = scenePass.getTextureNode();
-				const vignet = viewportUV.distance( .5 ).mul( 1.35 ).clamp().oneMinus();
+				const vignette = screenUV.distance( .5 ).mul( 1.35 ).clamp().oneMinus();
 
 				const teapotTreePass = pass( teapotTree, camera ).getTextureNode();
 				const teapotTreePassBlurred = gaussianBlur( teapotTreePass, vec2( 1 ), 3 );
@@ -309,7 +308,7 @@
 
 				let totalPass = scenePass;
 				totalPass = totalPass.add( scenePassColorBlurred.mul( .1 ) );
-				totalPass = totalPass.mul( vignet );
+				totalPass = totalPass.mul( vignette );
 				totalPass = totalPass.add( teapotTreePass.mul( 10 ).add( teapotTreePassBlurred ) );
 
 				postProcessing = new THREE.PostProcessing( renderer );
@@ -356,7 +355,7 @@
 				renderer.setRenderTarget( null );
 
 				await postProcessing.renderAsync();
-			
+
 				stats.update();
 
 			}

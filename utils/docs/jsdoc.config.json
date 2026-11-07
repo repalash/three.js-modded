@@ -1,0 +1,20 @@
+{
+    "opts": {
+            "destination": "docs_new",
+            "encoding": "utf8",
+            "package": "package.json",
+            "recurse": true,
+            "template": "node_modules/clean-jsdoc-theme"
+    },
+    "plugins": [ "plugins/markdown" ],
+    "source": {
+        "include": [
+            "examples/jsm/tsl",
+            "src/loaders/nodes", 
+            "src/materials/nodes", 
+            "src/nodes", 
+            "src/renderers/common", 
+            "src/renderers/webgpu" 
+        ]
+    }
+}

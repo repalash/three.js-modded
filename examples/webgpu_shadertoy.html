@@ -16,7 +16,8 @@
 			{
 				"imports": {
 					"three": "../build/three.webgpu.js",
-					"three/tsl": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+					"three/tsl": "../build/three.tsl.js",
 					"three/addons/": "./jsm/"
 				}
 			}
@@ -168,7 +169,7 @@
 
 		<script type="module">
 
-			import * as THREE from 'three';
+			import * as THREE from 'three/webgpu';
 			import * as TSL from 'three/tsl';
 
 			import Transpiler from 'three/addons/transpiler/Transpiler.js';
@@ -258,7 +259,7 @@
 				const geometry = new THREE.PlaneGeometry( 2, 2 );
 
 				const material = new THREE.MeshBasicNodeMaterial();
-				material.colorNode = TSL.oscSine( TSL.timerLocal( .3 ) ).mix( shaderToy1Node, shaderToy2Node );
+				material.colorNode = TSL.oscSine( TSL.time.mul( .3 ) ).mix( shaderToy1Node, shaderToy2Node );
 
 				const quad = new THREE.Mesh( geometry, material );
 				scene.add( quad );

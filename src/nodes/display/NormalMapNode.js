@@ -1,9 +1,7 @@
-import { registerNode } from '../core/Node.js';
 import TempNode from '../core/TempNode.js';
 import { add } from '../math/OperatorNode.js';
 
-import { modelNormalMatrix } from '../accessors/ModelNode.js';
-import { normalView } from '../accessors/Normal.js';
+import { normalView, transformNormalToView } from '../accessors/Normal.js';
 import { positionView } from '../accessors/Position.js';
 import { TBNViewMatrix } from '../accessors/AccessorsUtils.js';
 import { uv } from '../accessors/UV.js';
@@ -11,6 +9,8 @@ import { faceDirection } from './FrontFacingNode.js';
 import { Fn, nodeProxy, vec3 } from '../tsl/TSLBase.js';
 
 import { TangentSpaceNormalMap, ObjectSpaceNormalMap } from '../../constants.js';
+
+/** @module NormalMapNode **/
 
 // Normal Mapping Without Precomputed Tangents
 // http://www.thetenthplanet.de/archives/1180
@@ -39,15 +39,54 @@ const perturbNormal2Arb = /*@__PURE__*/ Fn( ( inputs ) => {
 
 } );
 
+/**
+ * This class can be used for applying normals maps to materials.
+ *
+ * ```js
+ * material.normalNode = normalMap( texture( normalTex ) );
+ * ```
+ *
+ * @augments TempNode
+ */
 class NormalMapNode extends TempNode {
 
+	static get type() {
+
+		return 'NormalMapNode';
+
+	}
+
+	/**
+	 * Constructs a new normal map node.
+	 *
+	 * @param {Node} node - Represents the normal map data.
+	 * @param {Node?} [scaleNode=null] - Controls the intensity of the effect.
+	 */
 	constructor( node, scaleNode = null ) {
 
 		super( 'vec3' );
 
+		/**
+		 * Represents the normal map data.
+		 *
+		 * @type {Node}
+		 */
 		this.node = node;
+
+		/**
+		 * Controls the intensity of the effect.
+		 *
+		 * @type {Node?}
+		 * @default null
+		 */
 		this.scaleNode = scaleNode;
 
+		/**
+		 * The normal map type.
+		 *
+		 * @type {(TangentSpaceNormalMap|ObjectSpaceNormalMap)}
+		 * @default TangentSpaceNormalMap
+		 */
 		this.normalMapType = TangentSpaceNormalMap;
 
 	}
@@ -68,7 +107,7 @@ class NormalMapNode extends TempNode {
 
 		if ( normalMapType === ObjectSpaceNormalMap ) {
 
-			outputNode = modelNormalMatrix.mul( normalMap ).normalize();
+			outputNode = transformNormalToView( normalMap );
 
 		} else if ( normalMapType === TangentSpaceNormalMap ) {
 
@@ -99,6 +138,12 @@ class NormalMapNode extends TempNode {
 
 export default NormalMapNode;
 
-NormalMapNode.type = /*@__PURE__*/ registerNode( 'NormalMap', NormalMapNode );
-
+/**
+ * TSL function for creating a normal map node.
+ *
+ * @function
+ * @param {Node} node - Represents the normal map data.
+ * @param {Node?} [scaleNode=null] - Controls the intensity of the effect.
+ * @returns {NormalMapNode}
+ */
 export const normalMap = /*@__PURE__*/ nodeProxy( NormalMapNode );
