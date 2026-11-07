@@ -16,7 +16,8 @@
 			{
 				"imports": {
 					"three": "../build/three.webgpu.js",
-					"three/tsl": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+					"three/tsl": "../build/three.tsl.js",
 					"three/addons/": "./jsm/"
 				}
 			}
@@ -25,7 +26,8 @@
 		<script type="module">
 
 			import * as THREE from 'three';
-			import { pass, texture, motionBlur, uniform, output, mrt, mix, velocity, uv, viewportUV } from 'three/tsl';
+			import { pass, texture, uniform, output, mrt, mix, velocity, uv, screenUV } from 'three/tsl';
+			import { motionBlur } from 'three/addons/tsl/display/MotionBlur.js';
 
 			import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -155,6 +157,7 @@
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.setAnimationLoop( animate );
+				renderer.shadowMap.enabled = true;
 				document.body.appendChild( renderer.domElement );
 
 				stats = new Stats();
@@ -188,10 +191,10 @@
 
 				const mBlur = motionBlur( beauty, vel );
 
-				const vignet = viewportUV.distance( .5 ).remap( .6, 1 ).mul( 2 ).clamp().oneMinus();
+				const vignette = screenUV.distance( .5 ).remap( .6, 1 ).mul( 2 ).clamp().oneMinus();
 
 				postProcessing = new THREE.PostProcessing( renderer );
-				postProcessing.outputNode = mix( mBlur, vel, showVelocity ).mul( vignet );
+				postProcessing.outputNode = mix( mBlur, vel, showVelocity ).mul( vignette );
 
 				//
 

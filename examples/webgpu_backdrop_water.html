@@ -16,7 +16,8 @@
 			{
 				"imports": {
 					"three": "../build/three.webgpu.js",
-					"three/tsl": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+					"three/tsl": "../build/three.tsl.js",
 					"three/addons/": "./jsm/"
 				}
 			}
@@ -25,7 +26,8 @@
 		<script type="module">
 
 			import * as THREE from 'three';
-			import { color, vec2, pass, linearDepth, normalWorld, gaussianBlur, triplanarTexture, texture, objectPosition, viewportUV, viewportLinearDepth, viewportDepthTexture, viewportSharedTexture, mx_worley_noise_float, positionWorld, timerLocal } from 'three/tsl';
+			import { color, vec2, pass, linearDepth, normalWorld, triplanarTexture, texture, objectPosition, screenUV, viewportLinearDepth, viewportDepthTexture, viewportSharedTexture, mx_worley_noise_float, positionWorld, time } from 'three/tsl';
+			import { gaussianBlur } from 'three/addons/tsl/display/GaussianBlurNode.js';
 
 			import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -134,7 +136,7 @@
 
 				// water
 
-				const timer = timerLocal( .8 );
+				const timer = time.mul( .8 );
 				const floorUV = positionWorld.xzy;
 
 				const waterLayer0 = mx_worley_noise_float( floorUV.mul( 4 ).add( timer ) );
@@ -148,14 +150,14 @@
 				const depthWater = viewportLinearDepth.sub( depth );
 				const depthEffect = depthWater.remapClamp( - .002, .04 );
 
-				const refractionUV = viewportUV.add( vec2( 0, waterIntensity.mul( .1 ) ) );
+				const refractionUV = screenUV.add( vec2( 0, waterIntensity.mul( .1 ) ) );
 
 				// linearDepth( viewportDepthTexture( uv ) ) return the linear depth of the scene
 				const depthTestForRefraction = linearDepth( viewportDepthTexture( refractionUV ) ).sub( depth );
 
 				const depthRefraction = depthTestForRefraction.remapClamp( 0, .1 );
 
-				const finalUV = depthTestForRefraction.lessThan( 0 ).select( viewportUV, refractionUV );
+				const finalUV = depthTestForRefraction.lessThan( 0 ).select( screenUV, refractionUV );
 
 				const viewportTexture = viewportSharedTexture( finalUV );
 
@@ -189,7 +191,7 @@
 
 				// renderer
 
-				renderer = new THREE.WebGPURenderer( /*{ antialias: true }*/ );
+				renderer = new THREE.WebGPURenderer();
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.setAnimationLoop( animate );
@@ -221,15 +223,15 @@
 				const scenePassColor = scenePass.getTextureNode();
 				const scenePassDepth = scenePass.getLinearDepthNode().remapClamp( .3, .5 );
 
-				const waterMask = objectPosition( camera ).y.greaterThan( 0 );
+				const waterMask = objectPosition( camera ).y.greaterThan( screenUV.y.sub( .5 ).mul( camera.near ) );
 
 				const scenePassColorBlurred = gaussianBlur( scenePassColor );
 				scenePassColorBlurred.directionNode = waterMask.select( scenePassDepth, scenePass.getLinearDepthNode().mul( 5 ) );
 
-				const vignet = viewportUV.distance( .5 ).mul( 1.35 ).clamp().oneMinus();
+				const vignette = screenUV.distance( .5 ).mul( 1.35 ).clamp().oneMinus();
 
 				postProcessing = new THREE.PostProcessing( renderer );
-				postProcessing.outputNode = waterMask.select( scenePassColorBlurred, scenePassColorBlurred.mul( color( 0x74ccf4 ) ).mul( vignet ) );
+				postProcessing.outputNode = waterMask.select( scenePassColorBlurred, scenePassColorBlurred.mul( color( 0x74ccf4 ) ).mul( vignette ) );
 
 				//
 
