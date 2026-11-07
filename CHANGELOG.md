@@ -18,7 +18,7 @@ For each three.js revision, this file has:
 ## Unreleased
 
 - **Breaking** `USDZLoader` is no longer exported from `three/addons` (`examples/jsm/Addons.js`), as in three.js r179.
-  Use `USDLoader`, which loads `.usdz`, `.usda` and `.usdc` files:
+  Use `USDLoader`, which loads `.usdz`, `.usd`, `.usda` and `.usdc` files:
   `import { USDLoader } from 'three/addons/loaders/USDLoader.js'` (or from `three/addons`).
   `three/addons/loaders/USDZLoader.js` is still there as a deprecated subclass of `USDLoader`.
 - `USDLoader` from three.js r187, with USDC (binary) support: `.usdz`, `.usd`, `.usda` and `.usdc` files. The editor
@@ -34,10 +34,13 @@ For each three.js revision, this file has:
 - Parts of `render()` can be switched off in `renderer.userData`: `backgroundRender`, `shadowMapRender`, `sceneRender`,
   `opaqueRender` and `transparentRender` (`false` skips that part).
 - Transmission:
+  - `userData.transmissionRenderTarget`, when set, is the render target that transmissive materials sample, in place of
+    the one of the built-in transmission pass.
   - With `userData.transmissionRender` set (to anything), or `userData.renderTransmissionPass === false`, the built-in
-    transmission pass is skipped. Transmissive objects are still drawn, and sample `userData.transmissionRenderTarget`
-    when it is set (else a 1×1 target); `transmissionRender === false` leaves them out.
-  - `userData.blurTransmissionTarget` generates the mipmaps of `userData.transmissionRenderTarget` before they are drawn.
+    transmission pass is skipped (except for an `ArrayCamera`). Transmissive objects are still drawn;
+    `transmissionRender === false` leaves them out.
+  - In that case, `userData.blurTransmissionTarget` generates the mipmaps of `userData.transmissionRenderTarget` before
+    the transmissive objects are drawn.
 - **Breaking** Transparent objects are drawn before transmissive ones: the order is opaque, transparent, transmissive
   (three.js: opaque, transmissive, transparent), so they can blend differently where they overlap.
 - `onContextLost( event )`, `onContextRestore()` and `onContextCreationError( event )` callbacks.
@@ -75,15 +78,17 @@ For each three.js revision, this file has:
 - GLSL functions `LinearToLinear`, `LinearTosRGB`, `sRGBToLinear`, `RGBM16ToLinear` and `LinearToRGBM16`.
 - `MeshPhysicalMaterial.reflectivity` can go up to 2.5 (for an IOR up to infinity), in place of 1.
 - `Material.allowOverride` (default `true`), see `scene.overrideMaterial` above. `copy()` and `toJSON()` do not carry it.
-- `Material.copy()` copies `userData` by value, except textures, objects, materials and geometries, which are kept by
-  reference, functions and keys that start with `__`. A value with a `clone()` method is cloned.
+- `Material.copy()` copies `userData` by value: textures, objects, materials, geometries and values with
+  `userDataSkipClone` are kept by reference, functions and keys that start with `__` are skipped, and a value with a
+  `clone()` method is cloned.
 - `Material.setValues()` sets a vector or color property from an array. It does not warn about keys that are not
   properties of the material.
 - The JSON of a material has `metadata.version` 4.6001.
 
 **Background**
-- `scene.background = 'environment'` shows `scene.environment`. A cube or PMREM environment also takes
-  `scene.environmentIntensity` and `scene.environmentRotation`; an equirectangular one does not.
+- `scene.background = 'environment'` shows `scene.environment`. A PMREM environment, or a cube one without
+  `backgroundBlurriness`, also takes `scene.environmentIntensity` and `scene.environmentRotation`; an equirectangular
+  one does not.
 - For a 2D background texture: `scene.backgroundColor` multiplies it, or is the background when there is no texture, and
   `texture.userData.flipX` and `flipY` flip it.
 - `WebGLBackground.getPlaneMesh()`, `getBoxMesh()` and `getBoxMesh2()`.
@@ -98,8 +103,7 @@ For each three.js revision, this file has:
   `__`, functions, `appliedMaterials` and `uuid`.
 - `Source.toJSON()` uses `image.url`, when it is set, for an image that is not an image element, canvas or bitmap and
   has no data. It warns when the data of a large texture cannot be serialized.
-- Render targets apply changed texture parameters (for example `generateMipmaps`) when `texture.needsUpdate` is set,
-  and generate the mipmaps of the textures of a `WebGLMultipleRenderTargets`.
+- Render targets apply changed texture parameters (for example `generateMipmaps`) when `texture.needsUpdate` is set.
 
 **Core**
 - `Object3D` dispatches `beforeRender` and `afterRender` events from `onBeforeRender()` and `onAfterRender()`.
@@ -141,7 +145,7 @@ For each three.js revision, this file has:
     - sampler `extras`: `uuid` and `colorSpace` of the texture;
     - image `extras`: `flipY`, `uuid` (of the source), `uri`, `t_uuid` and `t_colorSpace` (of the texture);
     - material `extras.uuid` as the material's uuid;
-    - mesh `extras.isGeometryUserData`: the mesh's extras and extensions go to `geometry.userData`;
+    - mesh `extras.isGeometryUserData`: the mesh's `extras` and the primitive's extensions go to `geometry.userData`;
     - animation `extras` as `AnimationClip.userData`;
     - `extras.sheenFactor` as `sheen`, for a material with `KHR_materials_sheen`.
   - `KHR_texture_transform` does not clone a texture whose uuid came from the `extras`.
@@ -149,6 +153,7 @@ For each three.js revision, this file has:
     (`loadImageSource( sourceIndex, loader, preferUri, skipCache )`).
   - `texture.userData.rootPath` and `__sourceBlob`.
   - When `ImageBitmapLoader` fails (for example on an SVG), it loads the image again with `TextureLoader`.
+  - For a mesh with several primitives, the mesh's extensions also go to the `userData` of each primitive's mesh.
   - A material with the `WEBGI_material_extras` extension is not cloned for vertex colors or flat shading.
   - An invalid texture or image index warns instead of throwing.
 - `GLTFExporter`
@@ -166,7 +171,7 @@ For each three.js revision, this file has:
   - **Breaking** `autoPushTarget` and `autoPullTarget` (both `true` by default) move the target when zooming past
     `minDistance` or `maxDistance`, instead of stopping there.
   - `clampMin` and `clampMax` limit the position and the target.
-  - `maxZoomSpeed` limits the damped zoom.
+  - `maxZoomSpeed` limits the zoom of the wheel, `zoomIn()` and `zoomOut()`.
   - `dollyZoom` also changes the `zoom` of a perspective camera (0.1 to 20) when dollying.
   - `throttleUpdate` limits the updates per second. It is disabled for now.
   - `minDistance` is `0.00001`.
@@ -174,21 +179,21 @@ For each three.js revision, this file has:
     - The mouse wheel on a perspective camera, without `zoomToCursor`, zooms by its `deltaY` (in lines, pages or pixels
       by `event.deltaMode`), damped when `enableDamping` is on.
     - Otherwise each wheel or drag step zooms by `0.95 ^ zoomSpeed`, whatever its size.
-    - With `enableDamping` on, a perspective camera without `zoomToCursor` does not dolly with the middle mouse
-      button.
+    - With `enableDamping` on, a perspective camera without `zoomToCursor` does not dolly with a mouse drag (the
+      middle button by default).
     - Touch dolly is 6 times as fast.
   - New methods: `zoomIn( delta )`, `zoomOut( delta )`, `rotateUp( angle )`, `rotateLeft( angle )` and `stopDamping()`.
   - An update with nothing to apply leaves the camera position exactly as it is. While damping, every update
     dispatches `change`.
-  - A pointer move without buttons ends the drag. The middle-button dolly uses the pointer's `clientY` (three.js
-    r168 passes `clientX` twice).
+  - A pointer move without buttons ends the drag. With `zoomToCursor`, a dolly drag zooms to the pointer's `clientY`
+    (three.js r168 passes `clientX` twice).
 - `EXRExporter`: `options.textureIndex` for render targets with several textures, and `flipY` of a `DataTexture`.
   The last, partial ZIP block is written correctly, and blocks that do not compress are stored as they are.
 - `Rhino3dmLoader` (3DM)
   - An instance reference whose definition has one object becomes a clone of that object, with its own material,
     layer visibility and attributes. With several objects it stays a group, with a warning.
-  - It reuses the materials it already made, keeps `userData.strings` and the geometry names, clears `warnings` after
-    each load, and turns off mipmaps for its textures.
+  - It keeps `userData.strings` and the geometry names, clears `warnings` after each load, and turns off mipmaps for
+    its TextDot textures.
 - `DRACOLoader`, `KTX2Loader` and `Rhino3dmLoader` keep their worker code as a string, so it still works after the
   app is minified (`KTX2Loader.BasisWorker` is a string).
 - **Breaking** `KTX2Loader._createTexture()` is `createTexture()`.
