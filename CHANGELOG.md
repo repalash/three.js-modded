@@ -14,15 +14,57 @@ For each three.js revision, this file has:
   [Migration Guide](https://github.com/mrdoob/three.js/wiki/Migration-Guide).
 - One section per release, newest first. **Breaking** marks a change that can need a change in an app.
 
-## Unreleased
+## r177
 
-- **Breaking** `USDZLoader` is no longer exported from `three/addons` (`examples/jsm/Addons.js`), as in three.js r179.
+### Changes over three.js r177
+
+All the [changes over three.js r168](#changes-over-threejs-r168), except those that three.js r177 has itself:
+`Material.allowOverride`, `LightShadow.copy()` of `normalBias`, `textureIndex` in `readRenderTargetPixels()` and
+`readRenderTargetPixelsAsync()`, and `KTX2Loader` setting `crossOrigin` on its file loader. And:
+- `USDLoader` from three.js r187, with USDC (binary) support. The editor opens `.usd`, `.usda` and `.usdc` files with
+  it.
+- `Loader.setPriority( 'high' | 'low' | 'auto' )` and `Loader.setCache( RequestCache )` from three.js r187. They set
+  the `priority` and `cache` of the `fetch()` requests of a loader, and the core loaders pass them to the loaders they
+  use.
+- `ColorManagement`: `RGBM16ColorSpace` is a registered color space, linear sRGB for color management. With
+  `NoColorSpace` as the output color space, the canvas stays sRGB: the app encodes the final colors itself, for example
+  in a screen pass.
+- `GLTFExporter`: the `writeMesh`, `writeNode`, `beforeParse` and `afterParse` hooks of a plugin can return a promise,
+  and the writer waits for it.
+- `ImageLoader`: a failing cache lookup calls `onError` instead of leaving the load pending.
+
+### Upgrading from r172
+
+From three-modded:
+- **Breaking** (also in 0.172.10001-rc.2) `USDZLoader` is no longer exported from `three/addons`, as in three.js r179.
   Use `USDLoader`, which loads `.usdz`, `.usda` and `.usdc` files:
   `import { USDLoader } from 'three/addons/loaders/USDLoader.js'` (or from `three/addons`).
   `three/addons/loaders/USDZLoader.js` is still there as a deprecated subclass of `USDLoader`.
-- `USDLoader` from three.js r187, with USDC (binary) support. The editor opens `.usd`, `.usda` and `.usdc` files with it.
-- `Loader.setPriority( 'high' | 'low' | 'auto' )` and `Loader.setCache( RequestCache )` from three.js r187. They set
-  the `priority` and `cache` of the `fetch()` requests of a loader, and the core loaders pass them to the loaders they use.
+- **Breaking** `ImageUtils.getDataURL( image, forcePng )` is three.js r177's `getDataURL( image, type = 'image/png' )`,
+  which no longer switches to JPEG for images over 2048 pixels. Pass a MIME type, or nothing for PNG, in place of
+  `forcePng`.
+- The JSON of objects, materials, textures and geometries has `metadata.version` 4.7 (three.js r177), in place of
+  4.6001 for materials. Files saved with 4.6 or lower are still read as before.
+
+From three.js r173–r177, the changes most likely to need a change in an app (all of them are in the
+[Migration Guide](https://github.com/mrdoob/three.js/wiki/Migration-Guide)):
+- r173: `MeshGouraudMaterial` is deprecated (use `MeshLambertMaterial`). TSL `varying()` and `vertexStage()` are
+  `toVarying()` and `toVertexStage()`.
+- r174: **Breaking** `Timer` no longer listens to page visibility by itself: call `timer.connect( document )`.
+  `RenderTarget.clone()` clones its textures instead of sharing them.
+- r175: **Breaking** `Controls.connect()` needs a DOM element. `ParametricGeometries` is `ParametricFunctions`. The
+  constructors of `LUTImageLoader`, `SMAAPass` and `HalftonePass` changed. `AnimationClip.parseAnimation()` is
+  deprecated.
+- r176: **Breaking** the `length` parameter of `CapsuleGeometry` is `height`. `GLTFLoader` no longer detects WebP and
+  AVIF support. `LottieLoader` is deprecated.
+- r177: **Breaking** `ColorManagement.fromWorkingColorSpace()` and `toWorkingColorSpace()` are
+  `workingToColorSpace()` and `colorSpaceToWorking()`. `GLTFExporter` writes parent nodes before their children.
+  `PeppersGhostEffect` is removed.
+
+### 0.177.10001-rc.1
+
+The first release candidate of the r177 merge, under the npm dist-tag `three-r177`. It also has `USDLoader` and
+`Loader.setPriority()` / `setCache()` from `master` (#10, #11).
 
 ## r168
 
