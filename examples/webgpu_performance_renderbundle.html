@@ -29,9 +29,10 @@
 		{
 			"imports": {
 				"three": "../build/three.webgpu.js",
-					"three/tsl": "../build/three.webgpu.js",
+				"three/webgpu": "../build/three.webgpu.js",
+				"three/tsl": "../build/three.tsl.js",
 				"three/addons/": "./jsm/",
-				"stats-gl": "https://cdn.jsdelivr.net/npm/stats-gl@2.2.7/dist/main.js"
+				"stats-gl": "https://cdn.jsdelivr.net/npm/stats-gl@3.6.0/dist/main.js"
 			}
 		}
 	</script>
@@ -68,6 +69,7 @@
 			renderBundle: true,
 			count: MAX_GEOMETRY_COUNT,
 			opacity: 1,
+			dynamic: false
 		};
 
 
@@ -125,9 +127,6 @@
 
 		}
 
-
-
-
 		function cleanup() {
 
 			if ( group ) {
@@ -154,8 +153,7 @@
 
 		function initRegularMesh( count ) {
 
-			group = new THREE.Group();
-			group.static = api.renderBundle;
+			group = api.renderBundle ? new THREE.BundleGroup() : new THREE.Group();
 
 			for ( let i = 0; i < count; i ++ ) {
 
@@ -231,9 +229,10 @@
 
 			stats = new Stats( {
 				precision: 3,
-				horizontal: false
+				horizontal: false,
+				trackGPU: true,
 			} );
-			// stats.init( renderer );
+			stats.init( renderer );
 			document.body.appendChild( stats.dom );
 			stats.dom.style.position = 'absolute';
 
@@ -251,6 +250,13 @@
 				init( ! api.webgpu );
 
 			} );
+
+			gui.add( api, 'dynamic' ).onChange( () => {
+
+				group.static = ! group.static;
+
+			} );
+
 
 			// listeners
 
@@ -283,6 +289,8 @@
 				if ( renderTimeAverages.length > 60 ) renderTimeAverages.shift();
 		
 				const average = renderTimeAverages.reduce( ( a, b ) => a + b, 0 ) / renderTimeAverages.length;
+
+				renderer.resolveTimestampsAsync();
 				stats.update();
 
 				document.getElementById( 'backend' ).innerText = `Average Render Time ${api.renderBundle ? '(Bundle)' : ''}: ` + average.toFixed( 2 ) + 'ms';
@@ -292,10 +300,7 @@
 			function animateMeshes() {
 
 				const count = api.count / ( api.webgpu ? 1 : 10 );
-				const countDynamic = api.dynamic / ( api.webgpu ? 1 : 10 );
-
-				const loopNum = Math.min( count, countDynamic );
-
+				const loopNum = api.dynamic ? count : 0;
 
 				for ( let i = 0; i < loopNum; i ++ ) {
 
@@ -312,7 +317,8 @@
 
 			}
 
-}
+		}
+
 	</script>
 
 </body>
