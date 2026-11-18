@@ -52,6 +52,8 @@ class Rhino3dmLoader extends Loader {
 		this.materials = [];
 		this.warnings = [];
 
+		this.loadUserDataStrings = true;
+
 	}
 
 	setLibraryPath( path ) {
@@ -129,7 +131,7 @@ class Rhino3dmLoader extends Loader {
 
 					worker._callbacks[ taskID ] = { resolve, reject };
 
-					worker.postMessage( { type: 'decode', id: taskID, buffer }, [ buffer ] );
+					worker.postMessage( { type: 'decode', id: taskID, buffer, loadUserDataStrings: this.loadUserDataStrings }, [ buffer ] );
 
 					// this.debug();
 
@@ -1064,7 +1066,7 @@ function Rhino3dmWorker() {
 
 					try {
 
-						const data = decodeObjects( rhino, buffer );
+						const data = decodeObjects( rhino, buffer, message.loadUserDataStrings !== false );
 						self.postMessage( { type: 'decode', id: message.id, data } );
 
 					} catch ( error ) {
@@ -1081,7 +1083,7 @@ function Rhino3dmWorker() {
 
 	};
 
-	function decodeObjects( rhino, buffer ) {
+	function decodeObjects( rhino, buffer, loadStrings ) {
 
 		const arr = new Uint8Array( buffer );
 		const doc = rhino.File3dm.fromByteArray( arr );
@@ -1258,11 +1260,15 @@ function Rhino3dmWorker() {
 		// Note: doc.strings().documentUserTextCount() counts any doc.strings defined in a section
 		// console.log( \`Document User Text Count: \$\{doc.strings().documentUserTextCount()\}\` );
 
-		const strings_count = doc.strings().count;
+		if ( loadStrings ) {
 
-		for ( let i = 0; i < strings_count; i ++ ) {
+			const strings_count = doc.strings().count;
 
-			strings.push( doc.strings().get( i ) );
+			for ( let i = 0; i < strings_count; i ++ ) {
+
+				strings.push( doc.strings().get( i ) );
+
+			}
 
 		}
 
