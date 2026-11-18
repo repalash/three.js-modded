@@ -25,6 +25,9 @@ For each three.js revision, this file has:
   opens them with it.
 - `Loader.setPriority( 'high' | 'low' | 'auto' )` and `Loader.setCache( RequestCache )` from three.js r187. They set
   the `priority` and `cache` of the `fetch()` requests of a loader, and the core loaders pass them to the loaders they use.
+- `Rhino3dmLoader.loadUserDataStrings` (default `true`). With `false`, the worker does not read the document strings
+  of the file, and `userData.strings` is empty. rhino3dm reads them in O(n²) time: a 36 MB file with 31,927 strings took
+  about 70 s to load.
 
 ## r168
 
