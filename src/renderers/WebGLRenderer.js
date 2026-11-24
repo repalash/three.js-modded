@@ -112,8 +112,10 @@ class WebGLRenderer {
 
 		// three-modded: with KHR_parallel_shader_compile, a draw whose program is still compiling is skipped instead of
 		// waiting for the compile, so the shaders of a new scene compile in parallel without blocking the main thread.
-		// Only draws of top-level renders are skipped: a render nested in another (such as a PMREM generation) waits as
-		// before. skippedDraws counts the skipped draws, so an app can tell a frame that was not complete.
+		// Only draws of top-level renders are skipped: a render nested in another (such as a PMREM generated during a
+		// render) waits as before. Turn it on only around the frame's own render calls: a top-level one-off render (
+		// PMREMGenerator.fromEquirectangular / fromScene / fromCubemap, CubeCamera.update) would skip draws and keep the
+		// incomplete result. skippedDraws counts the skipped draws, so an app can tell a frame that was not complete.
 		this.skipCompilingPrograms = false;
 		this.skippedDraws = 0;
 
