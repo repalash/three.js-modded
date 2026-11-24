@@ -25,6 +25,14 @@ For each three.js revision, this file has:
   opens them with it.
 - `Loader.setPriority( 'high' | 'low' | 'auto' )` and `Loader.setCache( RequestCache )` from three.js r187. They set
   the `priority` and `cache` of the `fetch()` requests of a loader, and the core loaders pass them to the loaders they use.
+- `WebGLRenderer.skipCompilingPrograms` (default `false`) and `WebGLRenderer.skippedDraws`. With
+  `KHR_parallel_shader_compile`, a draw whose shader program is still compiling is skipped instead of waiting for the
+  compile, so the shaders of a new scene compile in parallel without blocking the main thread; `skippedDraws` counts
+  the skipped draws, so an app can tell a frame that was not complete. Only draws of top-level renders are skipped: a
+  render nested in another, such as a PMREM generated during a render, waits as before. Turn it on only around the
+  frame's own render calls: a one-off render at the top level (`PMREMGenerator.fromEquirectangular`, `fromScene`,
+  `fromCubemap`, `CubeCamera.update`) would skip draws and keep the incomplete result. Measured in WebGi's mini-viewer (Chrome,
+  D3D11): from a ring's model loaded to the ring fully drawn in 492–497 ms instead of 1259–1294 ms.
 
 ## r168
 

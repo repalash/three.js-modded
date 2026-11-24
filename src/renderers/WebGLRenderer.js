@@ -110,6 +110,15 @@ class WebGLRenderer {
 
 		this.domElement = canvas;
 
+		// three-modded: with KHR_parallel_shader_compile, a draw whose program is still compiling is skipped instead of
+		// waiting for the compile, so the shaders of a new scene compile in parallel without blocking the main thread.
+		// Only draws of top-level renders are skipped: a render nested in another (such as a PMREM generated during a
+		// render) waits as before. Turn it on only around the frame's own render calls: a top-level one-off render (
+		// PMREMGenerator.fromEquirectangular / fromScene / fromCubemap, CubeCamera.update) would skip draws and keep the
+		// incomplete result. skippedDraws counts the skipped draws, so an app can tell a frame that was not complete.
+		this.skipCompilingPrograms = false;
+		this.skippedDraws = 0;
+
 		// Debug configuration container
 		this.debug = {
 
@@ -778,6 +787,8 @@ class WebGLRenderer {
 			const frontFaceCW = ( object.isMesh && object.matrixWorld.determinant() < 0 );
 
 			const program = setProgram( camera, scene, geometry, material, object );
+
+			if ( program === null ) return;
 
 			state.setMaterial( material, frontFaceCW );
 
@@ -1894,6 +1905,29 @@ class WebGLRenderer {
 
 		}
 
+		// For skipCompilingPrograms. Each readiness query is a round trip to the GPU process, which stalls while it
+		// compiles, so once a program of a render call is still compiling, the other new programs of that call are taken
+		// as compiling too, without a query.
+		const _linkedPrograms = new WeakSet();
+		let _compilingInRender = - 1;
+
+		function isProgramCompiling( program ) {
+
+			if ( _linkedPrograms.has( program ) ) return false;
+			if ( _compilingInRender === info.render.frame ) return true;
+
+			if ( program.isReady() ) {
+
+				_linkedPrograms.add( program );
+				return false;
+
+			}
+
+			_compilingInRender = info.render.frame;
+			return true;
+
+		}
+
 		function setProgram( camera, scene, geometry, material, object ) {
 
 			if ( scene.isScene !== true ) scene = _emptyScene; // scene could be a Mesh, Line, Points, ...
@@ -2065,6 +2099,13 @@ class WebGLRenderer {
 			if ( needsProgramChange === true ) {
 
 				program = getProgram( material, scene, object );
+
+			}
+
+			if ( _this.skipCompilingPrograms === true && renderStateStack.length <= 1 && isProgramCompiling( program ) ) {
+
+				_this.skippedDraws ++;
+				return null;
 
 			}
 
