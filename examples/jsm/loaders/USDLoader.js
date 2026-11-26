@@ -1,6 +1,7 @@
 import {
 	FileLoader,
-	Loader
+	Loader,
+	LoaderUtils
 } from 'three';
 
 import { unzipSync } from '../libs/fflate.module.js';
@@ -49,7 +50,11 @@ class USDLoader extends Loader {
 
 		const scope = this;
 
+		const path = ( scope.path === '' ) ? LoaderUtils.extractUrlBase( url ) : scope.path;
+
 		const loader = new FileLoader( scope.manager );
+		loader.setPriority( scope.priority );
+		loader.setCache( scope.cache );
 		loader.setPath( scope.path );
 		loader.setResponseType( 'arraybuffer' );
 		loader.setRequestHeader( scope.requestHeader );
@@ -58,7 +63,7 @@ class USDLoader extends Loader {
 
 			try {
 
-				onLoad( scope.parse( text ) );
+				scope.parse( text, path, onLoad, onError );
 
 			} catch ( e ) {
 
@@ -83,10 +88,17 @@ class USDLoader extends Loader {
 	/**
 	 * Parses the given USDZ data and returns the resulting group.
 	 *
+	 * The returned group is created synchronously, but any referenced textures
+	 * are loaded asynchronously. Provide `onLoad` to be notified once all
+	 * textures have finished loading.
+	 *
 	 * @param {ArrayBuffer|string} buffer - The raw USDZ data as an array buffer.
+	 * @param {string} [path=''] - The URL base path.
+	 * @param {function(Group)} [onLoad] - Executed once the group and all of its textures are ready.
+	 * @param {onErrorCallback} [onError] - Executed when errors occur.
 	 * @return {Group} The parsed asset as a group.
 	 */
-	parse( buffer ) {
+	parse( buffer, path = '', onLoad, onError ) {
 
 		const usda = new USDAParser();
 		const usdc = new USDCParser();
@@ -217,13 +229,30 @@ class USDLoader extends Loader {
 
 		const scope = this;
 
+		const finalize = ( composer, group ) => {
+
+			if ( onLoad ) {
+
+				Promise.all( composer.texturePromises )
+					.then( () => onLoad( group ) )
+					.catch( ( err ) => onError ? onError( err ) : console.error( err ) );
+
+			}
+
+			return group;
+
+		};
+
 		// USDA (standalone)
 
 		if ( typeof buffer === 'string' ) {
 
 			const composer = new USDComposer( scope.manager );
+			composer.imageLoader.setCrossOrigin( scope.crossOrigin );
+			composer.imageLoader.setPriority( scope.priority );
+			composer.imageLoader.setCache( scope.cache );
 			const data = usda.parseData( buffer );
-			return composer.compose( data, {} );
+			return finalize( composer, composer.compose( data, {}, {}, path ) );
 
 		}
 
@@ -232,8 +261,11 @@ class USDLoader extends Loader {
 		if ( isCrateFile( buffer ) ) {
 
 			const composer = new USDComposer( scope.manager );
+			composer.imageLoader.setCrossOrigin( scope.crossOrigin );
+			composer.imageLoader.setPriority( scope.priority );
+			composer.imageLoader.setCache( scope.cache );
 			const data = usdc.parseData( toArrayBuffer( buffer ) );
-			return composer.compose( data, {} );
+			return finalize( composer, composer.compose( data, {}, {}, path ) );
 
 		}
 
@@ -249,28 +281,34 @@ class USDLoader extends Loader {
 
 			if ( ! file ) {
 
-				throw new Error( 'USDLoader: Invalid USDZ package. The first ZIP entry must be a USD layer (.usd/.usda/.usdc).' );
+				throw new Error( 'THREE.USDLoader: Invalid USDZ package. The first ZIP entry must be a USD layer (.usd/.usda/.usdc).' );
 
 			}
 
 			const composer = new USDComposer( scope.manager );
+			composer.imageLoader.setCrossOrigin( scope.crossOrigin );
+			composer.imageLoader.setPriority( scope.priority );
+			composer.imageLoader.setCache( scope.cache );
 			const data = assets[ filename ];
 			if ( ! data ) {
 
-				throw new Error( 'USDLoader: Failed to parse root layer "' + filename + '".' );
+				throw new Error( 'THREE.USDLoader: Failed to parse root layer "' + filename + '".' );
 
 			}
 
-			return composer.compose( data, assets, {}, basePath );
+			return finalize( composer, composer.compose( data, assets, {}, basePath ) );
 
 		}
 
 		// USDA (standalone, as ArrayBuffer)
 
 		const composer = new USDComposer( scope.manager );
+		composer.imageLoader.setCrossOrigin( scope.crossOrigin );
+		composer.imageLoader.setPriority( scope.priority );
+		composer.imageLoader.setCache( scope.cache );
 		const text = textDecoder.decode( bytes );
 		const data = usda.parseData( text );
-		return composer.compose( data, {} );
+		return finalize( composer, composer.compose( data, {}, {}, path ) );
 
 	}
 

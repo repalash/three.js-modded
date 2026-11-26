@@ -552,7 +552,7 @@ class USDCParser {
 		const magic = reader.readString( 8 );
 		if ( magic !== 'PXR-USDC' ) {
 
-			throw new Error( 'Not a valid USDC file' );
+			throw new Error( 'THREE.USDCParser: Not a valid USDC file.' );
 
 		}
 
@@ -656,10 +656,7 @@ class USDCParser {
 		const reader = this.reader;
 		reader.seek( section.start );
 
-		// Strings section has an 8-byte count prefix, but string indices stored
-		// elsewhere in the file are relative to the section start (not the data).
-		// So we read the entire section as uint32 values to maintain correct indexing.
-		const numStrings = Math.floor( section.size / 4 );
+		const numStrings = reader.readUint64();
 		this.strings = [];
 
 		for ( let i = 0; i < numStrings; i ++ ) {
@@ -1092,6 +1089,19 @@ class USDCParser {
 
 		// Seek to payload offset and read value
 		const offset = valueRep.payload;
+		if ( offset === 0 && isArray ) {
+
+			// Spec 16.3.9.3: Array payload 0 is an explicit empty-array sentinel.
+			return [];
+
+		}
+
+		if ( offset < 0 || offset >= this.buffer.byteLength ) {
+
+			throw new RangeError( 'USDCParser: Invalid payload offset ' + offset + ' for type ' + type + '.' );
+
+		}
+
 		const savedOffset = this.reader.tell();
 		this.reader.seek( offset );
 
@@ -1566,6 +1576,19 @@ class USDCParser {
 		} else {
 
 			size = reader.readUint64();
+
+		}
+
+		if ( ! Number.isSafeInteger( size ) || size < 0 ) {
+
+			throw new RangeError( 'USDCParser: Invalid array size ' + size + ' for type ' + type + '.' );
+
+		}
+
+		if ( size > 0x7FFFFFFF ) {
+
+			// Crate stores counts as uint64, but JS typed arrays cannot represent all such sizes.
+			throw new RangeError( 'USDCParser: Array size ' + size + ' exceeds implementation limits.' );
 
 		}
 

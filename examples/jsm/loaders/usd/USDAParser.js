@@ -2,6 +2,15 @@
 const DEF_MATCH_REGEX = /^def\s+(?:(\w+)\s+)?"?([^"]+)"?$/;
 const VARIANT_STRING_REGEX = /^string\s+(\w+)$/;
 const ATTR_MATCH_REGEX = /^(?:uniform\s+)?(\w+(?:\[\])?)\s+(.+)$/;
+// Preserve metadata blocks without changing the legacy parseText value shape.
+const VALUE_METADATA = Symbol( 'valueMetadata' );
+
+// Spec types (must match USDCParser/USDComposer)
+const SpecType = {
+	Attribute: 1,
+	Prim: 6,
+	Relationship: 8
+};
 
 class USDAParser {
 
@@ -48,10 +57,12 @@ class USDAParser {
 
 					// see #28631
 
-					const values = rhs.slice( 0, - 1 );
+					const values = rhs.slice( 0, - 1 ).trim();
 					target[ lhs ] = values;
 
 					const meta = {};
+					if ( target[ VALUE_METADATA ] === undefined ) target[ VALUE_METADATA ] = {};
+					target[ VALUE_METADATA ][ lhs ] = meta;
 					stack.push( meta );
 
 					target = meta;
@@ -70,13 +81,15 @@ class USDAParser {
 				const value = line.slice( colonIdx + 1 ).trim();
 
 				// Only process if key looks like a number (timeSamples frame)
-				if ( /^[\d.]+$/.test( key ) ) {
+				if ( /^-?[\d.]+$/.test( key ) ) {
 
 					target[ key ] = value;
 
 				}
 
 			} else if ( line.endsWith( '{' ) ) {
+
+				string = line.slice( 0, - 1 ).trim() || string;
 
 				const group = target[ string ] || {};
 				stack.push( group );
@@ -222,39 +235,42 @@ class USDAParser {
 
 	_stripBlockComments( text ) {
 
-		// Iteratively remove /* ... */ comments without regex backtracking
+		// Iteratively remove /* ... */ comments without regex backtracking.
+		// Strings are copied as is since they may contain /* (e.g. path expressions)
+		const tokens = /\/\*|"""|'''|["']/g;
+
 		let result = '';
 		let i = 0;
 
 		while ( i < text.length ) {
 
-			// Check for block comment start
-			if ( text[ i ] === '/' && i + 1 < text.length && text[ i + 1 ] === '*' ) {
+			tokens.lastIndex = i;
+			const match = tokens.exec( text );
 
-				// Find the closing */
-				let j = i + 2;
+			if ( match === null ) {
 
-				while ( j < text.length ) {
+				result += text.slice( i );
+				break;
 
-					if ( text[ j ] === '*' && j + 1 < text.length && text[ j + 1 ] === '/' ) {
+			}
 
-						// Found closing, skip past it
-						j += 2;
-						break;
+			const start = match.index;
+			const token = match[ 0 ];
 
-					}
+			if ( token === '/*' ) {
 
-					j ++;
-
-				}
+				result += text.slice( i, start );
 
 				// Move past the comment (or to end if unclosed)
-				i = j;
+				const end = text.indexOf( '*/', start + 2 );
+				i = ( end === - 1 ) ? text.length : end + 2;
 
 			} else {
 
-				result += text[ i ];
-				i ++;
+				const end = this._findStringEnd( text, start, token );
+
+				result += text.slice( i, end );
+				i = end;
 
 			}
 
@@ -264,57 +280,63 @@ class USDAParser {
 
 	}
 
+	_findStringEnd( text, start, quote ) {
+
+		if ( quote.length === 3 ) {
+
+			const end = text.indexOf( quote, start + 3 );
+			return ( end === - 1 ) ? text.length : end + 3;
+
+		}
+
+		// Single-line string with escapes, ends at the line end if unclosed
+		for ( let i = start + 1; i < text.length; i ++ ) {
+
+			const ch = text[ i ];
+
+			if ( ch === '\\' ) i ++;
+			else if ( ch === quote ) return i + 1;
+			else if ( ch === '\n' ) return i;
+
+		}
+
+		return text.length;
+
+	}
+
 	_collapseTripleQuotedStrings( text ) {
+
+		const tripleQuote = /'''|"""/g;
 
 		let result = '';
 		let i = 0;
 
 		while ( i < text.length ) {
 
-			if ( i + 2 < text.length ) {
+			tripleQuote.lastIndex = i;
+			const match = tripleQuote.exec( text );
 
-				const triple = text.slice( i, i + 3 );
+			if ( match === null ) {
 
-				if ( triple === '\'\'\'' || triple === '"""' ) {
-
-					const quoteChar = triple;
-					result += quoteChar;
-					i += 3;
-
-					while ( i < text.length ) {
-
-						if ( i + 2 < text.length && text.slice( i, i + 3 ) === quoteChar ) {
-
-							result += quoteChar;
-							i += 3;
-							break;
-
-						} else {
-
-							if ( text[ i ] === '\n' ) {
-
-								result += '\\n';
-
-							} else if ( text[ i ] !== '\r' ) {
-
-								result += text[ i ];
-
-							}
-
-							i ++;
-
-						}
-
-					}
-
-					continue;
-
-				}
+				result += text.slice( i );
+				break;
 
 			}
 
-			result += text[ i ];
-			i ++;
+			const start = match.index;
+			const quoteChar = match[ 0 ];
+
+			result += text.slice( i, start );
+
+			const end = text.indexOf( quoteChar, start + 3 );
+			const content = text.slice( start + 3, ( end === - 1 ) ? text.length : end );
+
+			result += quoteChar + content.replace( /\r/g, '' ).replace( /\n/g, '\\n' );
+
+			if ( end === - 1 ) break;
+
+			result += quoteChar;
+			i = end + 3;
 
 		}
 
@@ -429,13 +451,6 @@ class USDAParser {
 		const root = this.parseText( text );
 		const specsByPath = {};
 
-		// Spec types (must match USDCParser/USDComposer)
-		const SpecType = {
-			Attribute: 1,
-			Prim: 6,
-			Relationship: 8
-		};
-
 		// Parse root metadata
 		const rootFields = {};
 		if ( '#usda 1.0' in root ) {
@@ -451,6 +466,24 @@ class USDAParser {
 			if ( header.defaultPrim ) {
 
 				rootFields.defaultPrim = header.defaultPrim.replace( /"/g, '' );
+
+			}
+
+			if ( header.metersPerUnit !== undefined ) {
+
+				rootFields.metersPerUnit = parseFloat( header.metersPerUnit );
+
+			}
+
+			if ( header.framesPerSecond !== undefined ) {
+
+				rootFields.framesPerSecond = parseFloat( header.framesPerSecond );
+
+			}
+
+			if ( header.timeCodesPerSecond !== undefined ) {
+
+				rootFields.timeCodesPerSecond = parseFloat( header.timeCodesPerSecond );
 
 			}
 
@@ -506,7 +539,42 @@ class USDAParser {
 
 		walkTree( root, '/' );
 
+		// Fallback: infer elementSize for primvars:skel:jointIndices/jointWeights
+		// when not explicitly declared in the USDA text
+		this._inferSkelElementSize( specsByPath );
+
 		return { specsByPath };
+
+	}
+
+	_inferSkelElementSize( specsByPath ) {
+
+		// For each mesh prim with primvars:skel:jointIndices/jointWeights but no
+		// elementSize, infer it from the data: elementSize = array.length / numVertices.
+		for ( const path in specsByPath ) {
+
+			const spec = specsByPath[ path ];
+			if ( spec.specType !== SpecType.Prim || spec.fields.typeName !== 'Mesh' ) continue;
+
+			const pointsSpec = specsByPath[ path + '.points' ];
+			if ( ! pointsSpec || ! pointsSpec.fields.default ) continue;
+
+			const numVertices = pointsSpec.fields.default.length / 3;
+			if ( numVertices === 0 ) continue;
+
+			this._inferElementSize( specsByPath[ path + '.primvars:skel:jointIndices' ], numVertices );
+			this._inferElementSize( specsByPath[ path + '.primvars:skel:jointWeights' ], numVertices );
+
+		}
+
+	}
+
+	_inferElementSize( attrSpec, numVertices ) {
+
+		if ( ! attrSpec || attrSpec.fields.elementSize !== undefined || ! attrSpec.fields.default ) return;
+
+		const len = attrSpec.fields.default.length;
+		if ( len > 0 && len % numVertices === 0 ) attrSpec.fields.elementSize = len / numVertices;
 
 	}
 
@@ -566,9 +634,18 @@ class USDAParser {
 				const relName = key.slice( 4 );
 				const relPath = path + '.' + relName;
 				const target = data[ key ].replace( /[<>]/g, '' );
+				const metadata = data[ VALUE_METADATA ]?.[ key ];
+				const fields = { targetPaths: [ target ] };
+
+				if ( metadata?.bindMaterialAs !== undefined ) {
+
+					fields.bindMaterialAs = this._parseString( String( metadata.bindMaterialAs ).trim() );
+
+				}
+
 				specsByPath[ relPath ] = {
 					specType: SpecType.Relationship,
-					fields: { targetPaths: [ target ] }
+					fields
 				};
 				continue;
 
@@ -657,12 +734,23 @@ class USDAParser {
 					// Parse value based on type
 					const parsedValue = this._parseAttributeValue( valueType, rawValue );
 
-					// Store as attribute spec
+					// Store as attribute spec, preserving any existing fields
+					// (e.g. connectionPaths set by an earlier `.connect` form)
 					const attrPath = path + '.' + attrName;
-					specsByPath[ attrPath ] = {
-						specType: SpecType.Attribute,
-						fields: { default: parsedValue, typeName: valueType }
-					};
+
+					if ( specsByPath[ attrPath ] ) {
+
+						specsByPath[ attrPath ].fields.default = parsedValue;
+						specsByPath[ attrPath ].fields.typeName = valueType;
+
+					} else {
+
+						specsByPath[ attrPath ] = {
+							specType: SpecType.Attribute,
+							fields: { default: parsedValue, typeName: valueType }
+						};
+
+					}
 
 				}
 
@@ -681,6 +769,8 @@ class USDAParser {
 		// Array types
 		if ( valueType.endsWith( '[]' ) ) {
 
+			let result;
+
 			// Parse JSON-like arrays
 			try {
 
@@ -691,19 +781,13 @@ class USDAParser {
 				const parsed = JSON.parse( cleaned );
 
 				// Flatten nested arrays for types like point3f[]
-				if ( Array.isArray( parsed ) && Array.isArray( parsed[ 0 ] ) ) {
-
-					return parsed.flat();
-
-				}
-
-				return parsed;
+				result = Array.isArray( parsed ) && Array.isArray( parsed[ 0 ] ) ? parsed.flat() : parsed;
 
 			} catch ( e ) {
 
 				// Try simple array parsing
 				const cleaned = str.replace( /[\[\]]/g, '' );
-				return cleaned.split( ',' ).map( s => {
+				result = cleaned.split( ',' ).map( s => {
 
 					const trimmed = s.trim();
 					const num = parseFloat( trimmed );
@@ -712,6 +796,23 @@ class USDAParser {
 				} );
 
 			}
+
+			//reorder (w, x, y, z) to (x, y, z, w)
+			if ( valueType.startsWith( 'quat' ) ) {
+
+				for ( let i = 0; i < result.length; i += 4 ) {
+
+					const w = result[ i ];
+					result[ i ] = result[ i + 1 ];
+					result[ i + 1 ] = result[ i + 2 ];
+					result[ i + 2 ] = result[ i + 3 ];
+					result[ i + 3 ] = w;
+
+				}
+
+			}
+
+			return result;
 
 		}
 
