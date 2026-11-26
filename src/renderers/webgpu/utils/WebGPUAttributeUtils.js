@@ -108,6 +108,7 @@ class WebGPUAttributeUtils {
 		const buffer = backend.get( bufferAttribute ).buffer;
 
 		const array = bufferAttribute.array;
+		const isTypedArray = this._isTypedArray( array );
 		const updateRanges = bufferAttribute.updateRanges;
 
 		if ( updateRanges.length === 0 ) {
@@ -123,15 +124,21 @@ class WebGPUAttributeUtils {
 
 		} else {
 
+			const byteOffsetFactor = isTypedArray ? 1 : array.BYTES_PER_ELEMENT;
+
 			for ( let i = 0, l = updateRanges.length; i < l; i ++ ) {
 
 				const range = updateRanges[ i ];
+
+				const dataOffset = range.start * byteOffsetFactor;
+				const size = range.count * byteOffsetFactor;
+
 				device.queue.writeBuffer(
 					buffer,
 					0,
 					array,
-					range.start * array.BYTES_PER_ELEMENT,
-					range.count * array.BYTES_PER_ELEMENT
+					dataOffset,
+					size
 				);
 
 			}
@@ -220,28 +227,18 @@ class WebGPUAttributeUtils {
 		const device = backend.device;
 
 		const data = backend.get( this._getBufferAttribute( attribute ) );
-
 		const bufferGPU = data.buffer;
 		const size = bufferGPU.size;
 
-		let readBufferGPU = data.readBuffer;
-		let needsUnmap = true;
+		const readBufferGPU = device.createBuffer( {
+			label: `${ attribute.name }_readback`,
+			size,
+			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+		} );
 
-		if ( readBufferGPU === undefined ) {
-
-			readBufferGPU = device.createBuffer( {
-				label: attribute.name,
-				size,
-				usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
-			} );
-
-			needsUnmap = false;
-
-			data.readBuffer = readBufferGPU;
-
-		}
-
-		const cmdEncoder = device.createCommandEncoder( {} );
+		const cmdEncoder = device.createCommandEncoder( {
+			label: `readback_encoder_${ attribute.name }`
+		} );
 
 		cmdEncoder.copyBufferToBuffer(
 			bufferGPU,
@@ -251,8 +248,6 @@ class WebGPUAttributeUtils {
 			size
 		);
 
-		if ( needsUnmap ) readBufferGPU.unmap();
-
 		const gpuCommands = cmdEncoder.finish();
 		device.queue.submit( [ gpuCommands ] );
 
@@ -260,7 +255,11 @@ class WebGPUAttributeUtils {
 
 		const arrayBuffer = readBufferGPU.getMappedRange();
 
-		return arrayBuffer;
+		const dstBuffer = new attribute.array.constructor( arrayBuffer.slice( 0 ) );
+
+		readBufferGPU.unmap();
+
+		return dstBuffer.buffer;
 
 	}
 
@@ -272,7 +271,7 @@ class WebGPUAttributeUtils {
 
 		let format;
 
-		if ( itemSize == 1 ) {
+		if ( itemSize === 1 ) {
 
 			format = typeArraysToVertexFormatPrefixForItemSize1.get( ArrayType );
 
@@ -306,6 +305,12 @@ class WebGPUAttributeUtils {
 		}
 
 		return format;
+
+	}
+
+	_isTypedArray( array ) {
+
+		return ArrayBuffer.isView( array ) && ! ( array instanceof DataView );
 
 	}
 

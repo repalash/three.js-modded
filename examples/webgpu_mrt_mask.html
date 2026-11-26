@@ -17,7 +17,8 @@
 			{
 				"imports": {
 					"three": "../build/three.webgpu.js",
-					"three/tsl": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+					"three/tsl": "../build/three.tsl.js",
 					"three/addons/": "./jsm/"
 				}
 			}
@@ -26,7 +27,8 @@
 		<script type="module">
 
 			import * as THREE from 'three';
-			import { color, viewportUV, mrt, output, gaussianBlur, pass, vec4 } from 'three/tsl';
+			import { color, screenUV, mrt, output, pass, vec4 } from 'three/tsl';
+			import { gaussianBlur } from 'three/addons/tsl/display/GaussianBlurNode.js';
 
 			import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -45,7 +47,7 @@
 				camera.position.set( 1, 2, 3 );
 
 				scene = new THREE.Scene();
-				scene.backgroundNode = viewportUV.y.mix( color( 0x66bbff ), color( 0x4466ff ) ).mul( .05 );
+				scene.backgroundNode = screenUV.y.mix( color( 0x66bbff ), color( 0x4466ff ) ).mul( .05 );
 				camera.lookAt( 0, 1, 0 );
 
 				clock = new THREE.Clock();

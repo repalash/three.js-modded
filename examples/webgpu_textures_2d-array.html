@@ -19,7 +19,8 @@
 			{
 				"imports": {
 					"three": "../build/three.webgpu.js",
-					"three/tsl": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+					"three/tsl": "../build/three.tsl.js",
 					"three/addons/": "./jsm/"
 				}
 			}
@@ -28,7 +29,7 @@
 		<script type="module">
 
 			import * as THREE from 'three';
-			import { texture, uv, oscTriangle, timerLocal } from 'three/tsl';
+			import { texture, uv, time, oscTriangle } from 'three/tsl';
 
 			import Stats from 'three/addons/libs/stats.module.js';
 			import { unzipSync } from 'three/addons/libs/fflate.module.js';
@@ -66,7 +67,7 @@
 						let coord = uv();
 						coord = coord.setY( coord.y.oneMinus() ); // flip y
 
-						let oscLayers = oscTriangle( timerLocal( .5 ) ); // [ /\/ ] triangle osc animation
+						let oscLayers = oscTriangle( time.mul( .5 ) ); // [ /\/ ] triangle osc animation
 						oscLayers = oscLayers.add( 1 ).mul( .5 ); // convert osc range of [ -1, 1 ] to [ 0, 1 ]
 						oscLayers = oscLayers.mul( map.image.depth ); // scale osc range to texture depth
 
