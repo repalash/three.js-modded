@@ -26917,6 +26917,8 @@ class Loader {
 		this.path = '';
 		this.resourcePath = '';
 		this.requestHeader = {};
+		this.priority = 'auto';
+		this.cache = 'default';
 
 	}
 
@@ -26967,6 +26969,20 @@ class Loader {
 	setRequestHeader( requestHeader ) {
 
 		this.requestHeader = requestHeader;
+		return this;
+
+	}
+
+	setPriority( value ) {
+
+		this.priority = value;
+		return this;
+
+	}
+
+	setCache( value ) {
+
+		this.cache = value;
 		return this;
 
 	}
@@ -27060,6 +27076,8 @@ class FileLoader extends Loader {
 		const req = new Request( url, {
 			headers: new Headers( this.requestHeader ),
 			credentials: this.withCredentials ? 'include' : 'same-origin',
+			priority: this.priority,
+			cache: this.cache,
 			// An abort controller could be added within a future PR
 		} );
 
@@ -27282,6 +27300,8 @@ class AnimationLoader extends Loader {
 		const scope = this;
 
 		const loader = new FileLoader( this.manager );
+		loader.setPriority( this.priority );
+		loader.setCache( this.cache );
 		loader.setPath( this.path );
 		loader.setRequestHeader( this.requestHeader );
 		loader.setWithCredentials( this.withCredentials );
@@ -27352,6 +27372,8 @@ class CompressedTextureLoader extends Loader {
 		const texture = new CompressedTexture();
 
 		const loader = new FileLoader( this.manager );
+		loader.setPriority( this.priority );
+		loader.setCache( this.cache );
 		loader.setPath( this.path );
 		loader.setResponseType( 'arraybuffer' );
 		loader.setRequestHeader( this.requestHeader );
@@ -27549,6 +27571,8 @@ class ImageLoader extends Loader {
 			}
 
 			const fileLoader = new FileLoader( this.manager );
+			fileLoader.setPriority( this.priority );
+			fileLoader.setCache( this.cache );
 			fileLoader.useCache = false;
 			fileLoader.setPath( this.path );
 			fileLoader.setCrossOrigin( this.crossOrigin );
@@ -27600,6 +27624,8 @@ class CubeTextureLoader extends Loader {
 		texture.colorSpace = SRGBColorSpace;
 
 		const loader = new ImageLoader( this.manager );
+		loader.setPriority( this.priority );
+		loader.setCache( this.cache );
 		loader.setCrossOrigin( this.crossOrigin );
 		loader.setPath( this.path );
 
@@ -27658,6 +27684,8 @@ class DataTextureLoader extends Loader {
 		const texture = new DataTexture();
 
 		const loader = new FileLoader( this.manager );
+		loader.setPriority( this.priority );
+		loader.setCache( this.cache );
 		loader.setResponseType( 'arraybuffer' );
 		loader.setRequestHeader( this.requestHeader );
 		loader.setPath( this.path );
@@ -27776,6 +27804,8 @@ class TextureLoader extends Loader {
 		const texture = new Texture();
 
 		const loader = new ImageLoader( this.manager );
+		loader.setPriority( this.priority );
+		loader.setCache( this.cache );
 		loader.setCrossOrigin( this.crossOrigin );
 		loader.setPath( this.path );
 
@@ -28846,6 +28876,8 @@ class MaterialLoader extends Loader {
 		const scope = this;
 
 		const loader = new FileLoader( scope.manager );
+		loader.setPriority( scope.priority );
+		loader.setCache( scope.cache );
 		loader.setPath( scope.path );
 		loader.setRequestHeader( scope.requestHeader );
 		loader.setWithCredentials( scope.withCredentials );
@@ -29320,6 +29352,8 @@ class BufferGeometryLoader extends Loader {
 		const scope = this;
 
 		const loader = new FileLoader( scope.manager );
+		loader.setPriority( scope.priority );
+		loader.setCache( scope.cache );
 		loader.setPath( scope.path );
 		loader.setRequestHeader( scope.requestHeader );
 		loader.setWithCredentials( scope.withCredentials );
@@ -29527,6 +29561,8 @@ class ObjectLoader extends Loader {
 		this.resourcePath = this.resourcePath || path;
 
 		const loader = new FileLoader( this.manager );
+		loader.setPriority( this.priority );
+		loader.setCache( this.cache );
 		loader.setPath( this.path );
 		loader.setRequestHeader( this.requestHeader );
 		loader.setWithCredentials( this.withCredentials );
@@ -29573,6 +29609,8 @@ class ObjectLoader extends Loader {
 		this.resourcePath = this.resourcePath || path;
 
 		const loader = new FileLoader( this.manager );
+		loader.setPriority( this.priority );
+		loader.setCache( this.cache );
 		loader.setPath( this.path );
 		loader.setRequestHeader( this.requestHeader );
 		loader.setWithCredentials( this.withCredentials );
@@ -29873,6 +29911,8 @@ class ObjectLoader extends Loader {
 			const manager = new LoadingManager( onLoad );
 
 			loader = new ImageLoader( manager );
+			loader.setPriority( this.priority );
+			loader.setCache( this.cache );
 			loader.setCrossOrigin( this.crossOrigin );
 
 			for ( let i = 0, il = json.length; i < il; i ++ ) {
@@ -29971,6 +30011,8 @@ class ObjectLoader extends Loader {
 		if ( json !== undefined && json.length > 0 ) {
 
 			loader = new ImageLoader( this.manager );
+			loader.setPriority( this.priority );
+			loader.setCache( this.cache );
 			loader.setCrossOrigin( this.crossOrigin );
 
 			for ( let i = 0, il = json.length; i < il; i ++ ) {
@@ -30717,6 +30759,8 @@ class ImageBitmapLoader extends Loader {
 		const fetchOptions = {};
 		fetchOptions.credentials = ( this.crossOrigin === 'anonymous' ) ? 'same-origin' : 'include';
 		fetchOptions.headers = this.requestHeader;
+		fetchOptions.priority = this.priority;
+		fetchOptions.cache = this.cache;
 
 		const promise = fetch( url, fetchOptions ).then( function ( res ) {
 
@@ -30793,6 +30837,8 @@ class AudioLoader extends Loader {
 		const scope = this;
 
 		const loader = new FileLoader( this.manager );
+		loader.setPriority( this.priority );
+		loader.setCache( this.cache );
 		loader.setResponseType( 'arraybuffer' );
 		loader.setPath( this.path );
 		loader.setRequestHeader( this.requestHeader );
