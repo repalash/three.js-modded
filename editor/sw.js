@@ -52,6 +52,7 @@ const assets = [
 	'../examples/jsm/loaders/USDLoader.js',
 	'../examples/jsm/loaders/usd/USDAParser.js',
 	'../examples/jsm/loaders/usd/USDCParser.js',
+	'../examples/jsm/loaders/usd/USDComposer.js',
 	'../examples/jsm/loaders/VOXLoader.js',
 	'../examples/jsm/loaders/VRMLLoader.js',
 	'../examples/jsm/loaders/VTKLoader.js',
