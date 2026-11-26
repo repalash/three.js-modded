@@ -17,7 +17,8 @@
 			{
 				"imports": {
 					"three": "../build/three.webgpu.js",
-					"three/tsl": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+					"three/tsl": "../build/three.tsl.js",
 					"three/addons/": "./jsm/"
 				}
 			}
@@ -25,10 +26,10 @@
 
 		<script type="module">
 
-			import * as THREE from 'three';
-			import { output, transformedNormalView, pass, step, diffuseColor, emissive, directionToColor, viewportUV, mix, mrt, Fn } from 'three/tsl';
+			import * as THREE from 'three/webgpu';
+			import { output, normalView, pass, step, diffuseColor, emissive, directionToColor, screenUV, mix, mrt, Fn } from 'three/tsl';
 
-			import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+			import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 
 			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 			import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -50,7 +51,7 @@
 
 				scene = new THREE.Scene();
 
-				new RGBELoader()
+				new HDRLoader()
 					.setPath( 'textures/equirectangular/' )
 					.load( 'royal_esplanade_1k.hdr', function ( texture ) {
 
@@ -84,7 +85,7 @@
 				const scenePass = pass( scene, camera, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter } );
 				scenePass.setMRT( mrt( {
 					output: output,
-					normal: directionToColor( transformedNormalView ),
+					normal: directionToColor( normalView ),
 					diffuse: diffuseColor,
 					emissive: emissive
 				} ) );
@@ -108,10 +109,10 @@
 					const diffuse = scenePass.getTextureNode( 'diffuse' );
 					const emissive = scenePass.getTextureNode( 'emissive' );
 
-					const out = mix( output.renderOutput(), output, step( 0.2, viewportUV.x ) );
-					const nor = mix( out, normal, step( 0.4, viewportUV.x ) );
-					const emi = mix( nor, emissive, step( 0.6, viewportUV.x ) );
-					const dif = mix( emi, diffuse, step( 0.8, viewportUV.x ) );
+					const out = mix( output.renderOutput(), output, step( 0.2, screenUV.x ) );
+					const nor = mix( out, normal, step( 0.4, screenUV.x ) );
+					const emi = mix( nor, emissive, step( 0.6, screenUV.x ) );
+					const dif = mix( emi, diffuse, step( 0.8, screenUV.x ) );
 
 					return dif;
 

@@ -1,9 +1,10 @@
 import { WebGLUniforms } from './WebGLUniforms.js';
 import { WebGLShader } from './WebGLShader.js';
 import { ShaderChunk } from '../shaders/ShaderChunk.js';
-import { NoToneMapping, AddOperation, MixOperation, MultiplyOperation, CubeRefractionMapping, CubeUVReflectionMapping, CubeReflectionMapping, PCFSoftShadowMap, PCFShadowMap, VSMShadowMap, AgXToneMapping, ACESFilmicToneMapping, NeutralToneMapping, CineonToneMapping, CustomToneMapping, ReinhardToneMapping, LinearToneMapping, GLSL3, LinearSRGBColorSpace, SRGBColorSpace, LinearDisplayP3ColorSpace, DisplayP3ColorSpace, P3Primaries, Rec709Primaries, RGBM16ColorSpace, NoColorSpace } from '../../constants.js';
+import { NoToneMapping, AddOperation, MixOperation, MultiplyOperation, CubeRefractionMapping, CubeUVReflectionMapping, CubeReflectionMapping, PCFSoftShadowMap, PCFShadowMap, VSMShadowMap, AgXToneMapping, ACESFilmicToneMapping, NeutralToneMapping, CineonToneMapping, CustomToneMapping, ReinhardToneMapping, LinearToneMapping, GLSL3, LinearTransfer, SRGBTransfer, NoColorSpace, RGBM16ColorSpace, LinearSRGBColorSpace, SRGBColorSpace } from '../../constants.js';
 import { ColorManagement } from '../../math/ColorManagement.js';
 import { Vector3 } from '../../math/Vector3.js';
+import { Matrix3 } from '../../math/Matrix3.js';
 
 // From https://www.khronos.org/registry/webgl/extensions/KHR_parallel_shader_compile/
 const COMPLETION_STATUS_KHR = 0x91B1;
@@ -29,45 +30,30 @@ function handleSource( string, errorLine ) {
 
 }
 
+const _m0 = /*@__PURE__*/ new Matrix3();
+
 function getEncodingComponents( colorSpace ) {
 
-	const workingPrimaries = ColorManagement.getPrimaries( ColorManagement.workingColorSpace );
-	const encodingPrimaries = colorSpace === NoColorSpace || colorSpace === RGBM16ColorSpace ? null : ColorManagement.getPrimaries( colorSpace );
+	// three-modded: a NoColorSpace output is written as is (used for intermediate render targets), and RGBM16 output is
+	// encoded by LinearToRGBM16 (its ColorManagement definition is linear sRGB, so no gamut mapping is needed).
+	if ( colorSpace === NoColorSpace ) return [ 'mat3( 1.0 )', 'LinearTransferOETF' ];
+	if ( colorSpace === RGBM16ColorSpace ) return [ 'mat3( 1.0 )', 'LinearToRGBM16' ];
 
-	let gamutMapping;
+	ColorManagement._getMatrix( _m0, ColorManagement.workingColorSpace, colorSpace );
 
-	if ( workingPrimaries === encodingPrimaries || ! encodingPrimaries ) {
+	const encodingMatrix = `mat3( ${ _m0.elements.map( ( v ) => v.toFixed( 4 ) ) } )`;
 
-		gamutMapping = '';
+	switch ( ColorManagement.getTransfer( colorSpace ) ) {
 
-	} else if ( workingPrimaries === P3Primaries && encodingPrimaries === Rec709Primaries ) {
+		case LinearTransfer:
+			return [ encodingMatrix, 'LinearTransferOETF' ];
 
-		gamutMapping = 'LinearDisplayP3ToLinearSRGB';
-
-	} else if ( workingPrimaries === Rec709Primaries && encodingPrimaries === P3Primaries ) {
-
-		gamutMapping = 'LinearSRGBToLinearDisplayP3';
-
-	}
-
-	switch ( colorSpace ) {
-
-		case NoColorSpace:
-			return [ '', '' ];
-		case LinearSRGBColorSpace:
-		case LinearDisplayP3ColorSpace:
-			return [ gamutMapping, 'LinearTransferOETF' ];
-
-		case SRGBColorSpace:
-		case DisplayP3ColorSpace:
-			return [ gamutMapping, 'sRGBTransferOETF' ];
-
-		case RGBM16ColorSpace:
-			return [ '', 'LinearToRGBM16' ];
+		case SRGBTransfer:
+			return [ encodingMatrix, 'sRGBTransferOETF' ];
 
 		default:
-			console.warn( 'THREE.WebGLProgram: Unsupported color space:', colorSpace );
-			return [ gamutMapping, 'LinearTransferOETF' ];
+			console.warn( 'THREE.WebGLProgram: Unsupported color space: ', colorSpace );
+			return [ encodingMatrix, 'LinearTransferOETF' ];
 
 	}
 
@@ -76,7 +62,9 @@ function getEncodingComponents( colorSpace ) {
 function getShaderErrors( gl, shader, type ) {
 
 	const status = gl.getShaderParameter( shader, gl.COMPILE_STATUS );
-	const errors = gl.getShaderInfoLog( shader ).trim();
+
+	const shaderInfoLog = gl.getShaderInfoLog( shader ) || '';
+	const errors = shaderInfoLog.trim();
 
 	if ( status && errors === '' ) return '';
 
@@ -126,7 +114,16 @@ function getTexelDecodingFunction( functionName, colorSpace ) {
 function getTexelEncodingFunction( functionName, colorSpace ) {
 
 	const components = getEncodingComponents( colorSpace );
-	return `vec4 ${functionName}( vec4 value ) { return ${components[ 0 ]}( ${components[ 1 ]}( value ) ); }`;
+
+	return [
+
+		`vec4 ${functionName}( vec4 value ) {`,
+
+		`	return ${components[ 1 ]}( vec4( value.rgb * ${components[ 0 ]}, value.a ) );`,
+
+		'}',
+
+	].join( '\n' );
 
 }
 
@@ -687,7 +684,8 @@ function WebGLProgram( renderer, cacheKey, parameters, bindingStates ) {
 
 			parameters.numLightProbes > 0 ? '#define USE_LIGHT_PROBES' : '',
 
-			parameters.logarithmicDepthBuffer ? '#define USE_LOGDEPTHBUF' : '',
+			parameters.logarithmicDepthBuffer ? '#define USE_LOGARITHMIC_DEPTH_BUFFER' : '',
+			parameters.reversedDepthBuffer ? '#define USE_REVERSED_DEPTH_BUFFER' : '',
 
 			'uniform mat4 modelMatrix;',
 			'uniform mat4 modelViewMatrix;',
@@ -854,8 +852,10 @@ function WebGLProgram( renderer, cacheKey, parameters, bindingStates ) {
 			parameters.numLightProbes > 0 ? '#define USE_LIGHT_PROBES' : '',
 
 			parameters.decodeVideoTexture ? '#define DECODE_VIDEO_TEXTURE' : '',
+			parameters.decodeVideoTextureEmissive ? '#define DECODE_VIDEO_TEXTURE_EMISSIVE' : '',
 
-			parameters.logarithmicDepthBuffer ? '#define USE_LOGDEPTHBUF' : '',
+			parameters.logarithmicDepthBuffer ? '#define USE_LOGARITHMIC_DEPTH_BUFFER' : '',
+			parameters.reversedDepthBuffer ? '#define USE_REVERSED_DEPTH_BUFFER' : '',
 
 			'uniform mat4 viewMatrix;',
 			'uniform vec3 cameraPosition;',
@@ -957,9 +957,13 @@ function WebGLProgram( renderer, cacheKey, parameters, bindingStates ) {
 		// check for link errors
 		if ( renderer.debug.checkShaderErrors ) {
 
-			const programLog = gl.getProgramInfoLog( program ).trim();
-			const vertexLog = gl.getShaderInfoLog( glVertexShader ).trim();
-			const fragmentLog = gl.getShaderInfoLog( glFragmentShader ).trim();
+			const programInfoLog = gl.getProgramInfoLog( program ) || '';
+			const vertexShaderInfoLog = gl.getShaderInfoLog( glVertexShader ) || '';
+			const fragmentShaderInfoLog = gl.getShaderInfoLog( glFragmentShader ) || '';
+
+			const programLog = programInfoLog.trim();
+			const vertexLog = vertexShaderInfoLog.trim();
+			const fragmentLog = fragmentShaderInfoLog.trim();
 
 			let runnable = true;
 			let haveDiagnostics = true;
