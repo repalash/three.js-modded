@@ -16,7 +16,8 @@
 			{
 				"imports": {
 					"three": "../build/three.webgpu.js",
-					"three/tsl": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+					"three/tsl": "../build/three.tsl.js",
 					"three/addons/": "./jsm/"
 				}
 			}
@@ -25,7 +26,7 @@
 		<script type="module">
 
 			import * as THREE from 'three';
-			import { color, mix, normalWorld, output, Fn, uniform, vec4, rotate, viewportCoordinate, viewportResolution } from 'three/tsl';
+			import { color, mix, normalWorld, output, Fn, uniform, vec4, rotate, screenCoordinate, screenSize } from 'three/tsl';
 
 			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -133,7 +134,7 @@
 
 					// grid pattern
 
-					let gridUv = viewportCoordinate.xy.div( viewportResolution.yy ).mul( count );
+					let gridUv = screenCoordinate.xy.div( screenSize.yy ).mul( count );
 					gridUv = rotate( gridUv, Math.PI * 0.25 ).mod( 1 );
 
 					// orientation strength
@@ -151,7 +152,7 @@
 						.mul( mix( mixLow, mixHigh, orientationStrength ) );
 
 					return vec4( color, mask );
-			
+
 				} );
 
 				const halftones = Fn( ( [ input ] ) => {
@@ -201,7 +202,7 @@
 
 						const model = gltf.scene;
 						model.position.y = - 2;
-						model.scale.setScalar( 2.5, 2.5, 2.5 );
+						model.scale.setScalar( 2.5 );
 						model.traverse( ( child ) => {
 
 							if ( child.isMesh )
@@ -210,7 +211,7 @@
 						} );
 
 						scene.add( model );
-			
+
 					}
 				);
 
@@ -242,7 +243,7 @@
 			}
 
 			async function animate() {
-			
+
 				controls.update();
 
 				const time = clock.getElapsedTime();

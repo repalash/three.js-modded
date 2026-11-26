@@ -113,7 +113,7 @@ export const GPUTextureFormat = {
 	// Packed 32-bit formats
 	RGB9E5UFloat: 'rgb9e5ufloat',
 	RGB10A2Unorm: 'rgb10a2unorm',
-	RG11B10uFloat: 'rgb10a2unorm',
+	RG11B10UFloat: 'rgb10a2unorm',
 
 	// 64-bit formats
 
@@ -227,7 +227,7 @@ export const GPUBlendFactor = {
 	SrcAlpha: 'src-alpha',
 	OneMinusSrcAlpha: 'one-minus-src-alpha',
 	Dst: 'dst',
-	OneMinusDstColor: 'one-minus-dst',
+	OneMinusDst: 'one-minus-dst',
 	DstAlpha: 'dst-alpha',
 	OneMinusDstAlpha: 'one-minus-dst-alpha',
 	SrcAlphaSaturated: 'src-alpha-saturated',

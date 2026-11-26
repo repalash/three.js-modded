@@ -18,7 +18,8 @@
 			{
 				"imports": {
 					"three": "../build/three.webgpu.js",
-					"three/tsl": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+					"three/tsl": "../build/three.tsl.js",
 					"three/addons/": "./jsm/"
 				}
 			}
@@ -27,7 +28,7 @@
 		<script type="module">
 
 			import * as THREE from 'three';
-			import { PI2, oneMinus, spherizeUV, sin, step, texture, timerLocal, Fn, uv, vec2, vec3, vec4, mix, billboarding } from 'three/tsl';
+			import { PI2, oneMinus, spherizeUV, sin, step, texture, time, Fn, uv, vec2, vec3, vec4, mix, billboarding } from 'three/tsl';
 
 			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
@@ -92,11 +93,9 @@
 
 				// flame 1 material
 
-				const flame1Material = new THREE.SpriteNodeMaterial( { transparent: true, side: THREE.DoubleSide } );
+				const flame1Material = new THREE.SpriteNodeMaterial( { side: THREE.DoubleSide } );
 
 				flame1Material.colorNode = Fn( () => {
-
-					const time = timerLocal();
 
 					// main UV
 					const mainUv = uv().toVar();
@@ -130,11 +129,9 @@
 
 				// flame 2 material
 
-				const flame2Material = new THREE.SpriteNodeMaterial( { transparent: true, side: THREE.DoubleSide } );
+				const flame2Material = new THREE.SpriteNodeMaterial( { side: THREE.DoubleSide } );
 
 				flame2Material.colorNode = Fn( () => {
-
-					const time = timerLocal();
 
 					// main UV
 					const mainUv = uv().toVar();
