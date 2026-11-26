@@ -622,6 +622,9 @@ function Loader( editor ) {
 
 			}
 
+			case 'usd':
+			case 'usda':
+			case 'usdc':
 			case 'usdz':
 
 			{
@@ -630,12 +633,15 @@ function Loader( editor ) {
 
 					const contents = event.target.result;
 
-					const { USDZLoader } = await import( 'three/addons/loaders/USDZLoader.js' );
+					const { USDLoader } = await import( 'three/addons/loaders/USDLoader.js' );
 
-					const group = new USDZLoader().parse( contents );
-					group.name = filename;
+					const loader = new USDLoader( manager );
+					loader.parse( contents, '', function ( group ) {
 
-					editor.execute( new AddObjectCommand( editor, group ) );
+						group.name = filename;
+						editor.execute( new AddObjectCommand( editor, group ) );
+
+					} );
 
 				}, false );
 				reader.readAsArrayBuffer( file );

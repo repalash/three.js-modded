@@ -11,6 +11,8 @@ class Loader {
 		this.path = '';
 		this.resourcePath = '';
 		this.requestHeader = {};
+		this.priority = 'auto';
+		this.cache = 'default';
 
 	}
 
@@ -61,6 +63,20 @@ class Loader {
 	setRequestHeader( requestHeader ) {
 
 		this.requestHeader = requestHeader;
+		return this;
+
+	}
+
+	setPriority( value ) {
+
+		this.priority = value;
+		return this;
+
+	}
+
+	setCache( value ) {
+
+		this.cache = value;
 		return this;
 
 	}
