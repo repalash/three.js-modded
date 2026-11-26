@@ -9,7 +9,6 @@ import { NoColorSpace, ByteType, ShortType, RGBAIntegerFormat, RGBIntegerFormat,
 import { DataTexture } from '../../../textures/DataTexture.js';
 
 const glslMethods = {
-	atan2: 'atan',
 	textureDimensions: 'textureSize',
 	equals: 'equal'
 };
@@ -55,14 +54,13 @@ class GLSLNodeBuilder extends NodeBuilder {
 		this.uniformGroups = {};
 		this.transforms = [];
 		this.extensions = {};
-
-		this.instanceBindGroups = false;
+		this.builtins = { vertex: [], fragment: [], compute: [] };
 
 		this.useComparisonMethod = true;
 
 	}
 
-	needsColorSpaceToLinearSRGB( texture ) {
+	needsToWorkingColorSpace( texture ) {
 
 		return texture.isVideoTexture === true && texture.colorSpace !== NoColorSpace;
 
@@ -124,7 +122,6 @@ ${ flowData.code }
 			const isInteger = attribute.array.constructor.name.toLowerCase().includes( 'int' );
 
 			let format = isInteger ? RedIntegerFormat : RedFormat;
-
 
 			if ( itemSize === 2 ) {
 
@@ -203,7 +200,6 @@ ${ flowData.code }
 
 		}
 
-
 		const nodeUniform = this.getUniformFromNode( attribute.pboNode, 'texture', this.shaderStage, this.context.label );
 		const textureName = this.getPropertyName( nodeUniform );
 
@@ -234,7 +230,7 @@ ${ flowData.code }
 
 				this.getVarFromNode( node, propertySizeName, 'uint' );
 
-				this.addLineFlowCode( `${ propertySizeName } = uint( textureSize( ${ textureName }, 0 ).x )` );
+				this.addLineFlowCode( `${ propertySizeName } = uint( textureSize( ${ textureName }, 0 ).x )`, storageArrayElementNode );
 
 				bufferNodeData.propertySizeName = propertySizeName;
 
@@ -264,7 +260,7 @@ ${ flowData.code }
 
 			}
 
-			this.addLineFlowCode( `${ propertyName } = ${prefix}(${ snippet })${channel}` );
+			this.addLineFlowCode( `${ propertyName } = ${prefix}(${ snippet })${channel}`, storageArrayElementNode );
 
 			elementNodeData.propertyName = propertyName;
 
@@ -573,7 +569,7 @@ ${ flowData.code }
 			for ( const varying of varyings ) {
 
 				if ( shaderStage === 'compute' ) varying.needsInterpolation = true;
-				const type = varying.type;
+				const type = this.getType( varying.type );
 				const flat = type.includes( 'int' ) || type.includes( 'uv' ) || type.includes( 'iv' ) ? 'flat ' : '';
 
 				snippet += `${flat}${varying.needsInterpolation ? 'out' : '/*out*/'} ${type} ${varying.name};\n`;
@@ -586,7 +582,7 @@ ${ flowData.code }
 
 				if ( varying.needsInterpolation ) {
 
-					const type = varying.type;
+					const type = this.getType( varying.type );
 					const flat = type.includes( 'int' ) || type.includes( 'uv' ) || type.includes( 'iv' ) ? 'flat ' : '';
 
 					snippet += `${flat}in ${type} ${varying.name};\n`;
@@ -594,6 +590,12 @@ ${ flowData.code }
 				}
 
 			}
+
+		}
+
+		for ( const builtin of this.builtins[ shaderStage ] ) {
+
+			snippet += `${builtin};\n`;
 
 		}
 
@@ -703,24 +705,42 @@ ${ flowData.code }
 
 	}
 
+	getClipDistance() {
+
+		return 'gl_ClipDistance';
+
+	}
+
 	isAvailable( name ) {
 
 		let result = supports[ name ];
 
 		if ( result === undefined ) {
 
-			if ( name === 'float32Filterable' ) {
+			let extensionName;
+
+			result = false;
+
+			switch ( name ) {
+
+				case 'float32Filterable':
+					extensionName = 'OES_texture_float_linear';
+					break;
+
+				case 'clipDistance':
+					extensionName = 'WEBGL_clip_cull_distance';
+					break;
+
+			}
+
+			if ( extensionName !== undefined ) {
 
 				const extensions = this.renderer.backend.extensions;
 
-				if ( extensions.has( 'OES_texture_float_linear' ) ) {
+				if ( extensions.has( extensionName ) ) {
 
-					extensions.get( 'OES_texture_float_linear' );
+					extensions.get( extensionName );
 					result = true;
-
-				} else {
-
-					result = false;
 
 				}
 
@@ -737,6 +757,14 @@ ${ flowData.code }
 	isFlipY() {
 
 		return true;
+
+	}
+
+	enableHardwareClipping( planeCount ) {
+
+		this.enableExtension( 'GL_ANGLE_clip_cull_distance', 'require' );
+
+		this.builtins[ 'vertex' ].push( `out float gl_ClipDistance[ ${ planeCount } ]` );
 
 	}
 
@@ -853,6 +881,8 @@ void main() {
 	buildCode() {
 
 		const shadersData = this.material !== null ? { fragment: {}, vertex: {} } : { compute: {} };
+
+		this.sortBindingGroups();
 
 		for ( const shaderStage in shadersData ) {
 
