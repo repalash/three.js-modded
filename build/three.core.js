@@ -7314,7 +7314,7 @@ class Texture extends EventDispatcher {
 
 		} else { // @deprecated, r152
 
-			warnOnce( 'THREE.Texture: Property .encoding has been replaced by .colorSpace.' );
+			warnOnce( 'Texture: Property .encoding has been replaced by .colorSpace.' );
 			this.colorSpace = colorSpace === sRGBEncoding ? SRGBColorSpace : NoColorSpace;
 
 		}
@@ -7782,14 +7782,14 @@ class Texture extends EventDispatcher {
 	// todo repalash remove later
 	get encoding() { // @deprecated, r152
 
-		warnOnce( 'THREE.Texture: Property .encoding has been replaced by .colorSpace.' );
+		warnOnce( 'Texture: Property .encoding has been replaced by .colorSpace.' );
 		return this.colorSpace === SRGBColorSpace ? sRGBEncoding : LinearEncoding;
 
 	}
 
 	set encoding( encoding ) { // @deprecated, r152
 
-		warnOnce( 'THREE.Texture: Property .encoding has been replaced by .colorSpace.' );
+		warnOnce( 'Texture: Property .encoding has been replaced by .colorSpace.' );
 		this.colorSpace = encoding === sRGBEncoding ? SRGBColorSpace : NoColorSpace;
 
 	}

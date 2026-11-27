@@ -32,28 +32,36 @@ export default QUnit.module( 'Textures', () => {
 
 		} );
 
-		QUnit.test( 'Instancing with ImageData', ( assert ) => {
+		QUnit.module( 'Instancing with ImageData', ( hooks ) => {
 
-			// Node has no ImageData: a minimal global, as a polyfill would add, stands in for the browser's
-			const hadImageData = 'ImageData' in globalThis;
-			const ImageDataBefore = globalThis.ImageData;
-			if ( ! hadImageData ) {
+			// ImageData is a browser global; in Node a minimal stand-in is used (as AudioContext.tests.js mocks window.AudioContext)
+			if ( typeof ImageData === 'undefined' ) {
 
-				globalThis.ImageData = class ImageData {
+				hooks.before( function () {
 
-					constructor( width, height ) {
+					globalThis.ImageData = class ImageData {
 
-						this.width = width;
-						this.height = height;
-						this.data = new Uint8ClampedArray( width * height * 4 );
+						constructor( width, height ) {
 
-					}
+							this.width = width;
+							this.height = height;
+							this.data = new Uint8ClampedArray( width * height * 4 );
 
-				};
+						}
+
+					};
+
+				} );
+
+				hooks.after( function () {
+
+					delete globalThis.ImageData;
+
+				} );
 
 			}
 
-			try {
+			QUnit.test( 'marks the texture for upload', ( assert ) => {
 
 				const image = new ImageData( 1, 1 );
 				const texture = new Texture( image );
@@ -61,12 +69,7 @@ export default QUnit.module( 'Textures', () => {
 				assert.strictEqual( texture.version, 1, 'ImageData textures are marked for upload.' );
 				assert.strictEqual( texture.source.version, 1, 'The image source is marked for upload.' );
 
-			} finally {
-
-				if ( ! hadImageData ) delete globalThis.ImageData;
-				else globalThis.ImageData = ImageDataBefore;
-
-			}
+			} );
 
 		} );
 
