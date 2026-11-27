@@ -1,5 +1,3 @@
-/* global QUnit */
-
 import { Texture } from '../../../../src/textures/Texture.js';
 
 import { EventDispatcher } from '../../../../src/core/EventDispatcher.js';
@@ -34,194 +32,44 @@ export default QUnit.module( 'Textures', () => {
 
 		} );
 
-		QUnit.test( 'Instancing with ImageData -webonly', ( assert ) => {
+		QUnit.module( 'Instancing with ImageData', ( hooks ) => {
 
-			const image = new ImageData( 1, 1 );
-			const texture = new Texture( image );
-			assert.strictEqual( texture.image, image, 'The ImageData is retained.' );
-			assert.strictEqual( texture.version, 1, 'ImageData textures are marked for upload.' );
-			assert.strictEqual( texture.source.version, 1, 'The image source is marked for upload.' );
+			// ImageData is a browser global; in Node a minimal stand-in is used (as AudioContext.tests.js mocks window.AudioContext)
+			if ( typeof ImageData === 'undefined' ) {
 
-		} );
+				hooks.before( function () {
 
-		// PROPERTIES
-		QUnit.todo( 'image', ( assert ) => {
+					globalThis.ImageData = class ImageData {
 
-			assert.ok( false, 'everything\'s gonna be alright' );
+						constructor( width, height ) {
 
-		} );
+							this.width = width;
+							this.height = height;
+							this.data = new Uint8ClampedArray( width * height * 4 );
 
-		QUnit.todo( 'id', ( assert ) => {
+						}
 
-			assert.ok( false, 'everything\'s gonna be alright' );
+					};
 
-		} );
+				} );
 
-		QUnit.todo( 'uuid', ( assert ) => {
+				hooks.after( function () {
 
-			assert.ok( false, 'everything\'s gonna be alright' );
+					delete globalThis.ImageData;
 
-		} );
+				} );
 
-		QUnit.todo( 'name', ( assert ) => {
+			}
 
-			assert.ok( false, 'everything\'s gonna be alright' );
+			QUnit.test( 'marks the texture for upload', ( assert ) => {
 
-		} );
+				const image = new ImageData( 1, 1 );
+				const texture = new Texture( image );
+				assert.strictEqual( texture.image, image, 'The ImageData is retained.' );
+				assert.strictEqual( texture.version, 1, 'ImageData textures are marked for upload.' );
+				assert.strictEqual( texture.source.version, 1, 'The image source is marked for upload.' );
 
-		QUnit.todo( 'source', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'mipmaps', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'mapping', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'wrapS', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'wrapT', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'magFilter', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'minFilter', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'anisotropy', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'format', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'internalFormat', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'type', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'offset', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'repeat', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'center', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'rotation', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'matrixAutoUpdate', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'matrix', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'generateMipmaps', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'premultiplyAlpha', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'flipY', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'unpackAlignment', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'colorSpace', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'userData', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'version', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'onUpdate', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'needsPMREMUpdate', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
+			} );
 
 		} );
 
@@ -236,42 +84,12 @@ export default QUnit.module( 'Textures', () => {
 
 		} );
 
-		QUnit.todo( 'updateMatrix', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'clone', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'copy', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'toJSON', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
 		QUnit.test( 'dispose', ( assert ) => {
 
 			assert.expect( 0 );
 
 			const object = new Texture();
 			object.dispose();
-
-		} );
-
-		QUnit.todo( 'transformUv', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
 
 		} );
 

@@ -41,22 +41,27 @@ const assets = [
 	'../examples/jsm/loaders/FBXLoader.js',
 	'../examples/jsm/loaders/GLTFLoader.js',
 	'../examples/jsm/loaders/KMZLoader.js',
-	'../examples/jsm/loaders/KTX2Loader.js',
 	'../examples/jsm/loaders/MD2Loader.js',
 	'../examples/jsm/loaders/OBJLoader.js',
 	'../examples/jsm/loaders/MTLLoader.js',
 	'../examples/jsm/loaders/PCDLoader.js',
 	'../examples/jsm/loaders/PLYLoader.js',
-	'../examples/jsm/loaders/RGBELoader.js',
 	'../examples/jsm/loaders/STLLoader.js',
 	'../examples/jsm/loaders/SVGLoader.js',
-	'../examples/jsm/loaders/TGALoader.js',
 	'../examples/jsm/loaders/TDSLoader.js',
 	'../examples/jsm/loaders/USDLoader.js',
+	'../examples/jsm/loaders/usd/USDAParser.js',
+	'../examples/jsm/loaders/usd/USDCParser.js',
+	'../examples/jsm/loaders/usd/USDComposer.js',
 	'../examples/jsm/loaders/VOXLoader.js',
 	'../examples/jsm/loaders/VRMLLoader.js',
 	'../examples/jsm/loaders/VTKLoader.js',
 	'../examples/jsm/loaders/XYZLoader.js',
+
+	'../examples/jsm/loaders/EXRLoader.js',
+	'../examples/jsm/loaders/KTX2Loader.js',
+	'../examples/jsm/loaders/HDRLoader.js',
+	'../examples/jsm/loaders/TGALoader.js',
 
 	'../examples/jsm/curves/NURBSCurve.js',
 	'../examples/jsm/curves/NURBSUtils.js',
@@ -235,7 +240,7 @@ self.addEventListener( 'install', async function () {
 
 			await cache.add( asset );
 
-		} catch {
+		} catch ( error ) {
 
 			console.warn( '[SW] Couldn\'t cache:', asset );
 
@@ -280,7 +285,7 @@ async function networkFirst( request ) {
 
 		return response;
 
-	} catch {
+	} catch ( error ) {
 
 		const cachedResponse = await caches.match( request );
 

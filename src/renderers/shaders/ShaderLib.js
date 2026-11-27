@@ -272,7 +272,7 @@ const ShaderLib = {
 
 	},
 
-	distanceRGBA: {
+	distance: {
 
 		uniforms: /*@__PURE__*/ mergeUniforms( [
 			UniformsLib.common,
@@ -284,8 +284,8 @@ const ShaderLib = {
 			}
 		] ),
 
-		vertexShader: ShaderChunk.distanceRGBA_vert,
-		fragmentShader: ShaderChunk.distanceRGBA_frag
+		vertexShader: ShaderChunk.distance_vert,
+		fragmentShader: ShaderChunk.distance_frag
 
 	},
 

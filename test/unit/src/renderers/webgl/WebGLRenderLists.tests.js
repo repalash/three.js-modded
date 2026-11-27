@@ -1,5 +1,3 @@
-/* global QUnit */
-
 import { WebGLRenderLists, WebGLRenderList } from '../../../../../src/renderers/webgl/WebGLRenderLists.js';
 import { Scene } from '../../../../../src/scenes/Scene.js';
 
@@ -40,12 +38,12 @@ export default QUnit.module( 'Renderers', () => {
 				list.push( {}, {}, { transparent: false }, 0, 0, {} );
 
 				assert.ok( list.transparent.length === 1, 'Transparent list is length 1 after adding transparent item.' );
-				assert.ok( list.opaque.length === 1, 'Opaque list list is length 1 after adding opaque item.' );
+				assert.ok( list.opaque.length === 1, 'Opaque list is length 1 after adding opaque item.' );
 
 				list.init();
 
 				assert.ok( list.transparent.length === 0, 'Transparent list is length 0 after calling init.' );
-				assert.ok( list.opaque.length === 0, 'Opaque list list is length 0 after calling init.' );
+				assert.ok( list.opaque.length === 0, 'Opaque list is length 0 after calling init.' );
 
 			} );
 
@@ -70,7 +68,7 @@ export default QUnit.module( 'Renderers', () => {
 
 				list.push( objA, geoA, matA, 0, 0.5, {} );
 				assert.ok( list.transparent.length === 1, 'Transparent list is length 1 after adding transparent item.' );
-				assert.ok( list.opaque.length === 0, 'Opaque list list is length 0 after adding transparent item.' );
+				assert.ok( list.opaque.length === 0, 'Opaque list is length 0 after adding transparent item.' );
 				assert.deepEqual(
 					list.transparent[ 0 ],
 					{
@@ -88,7 +86,7 @@ export default QUnit.module( 'Renderers', () => {
 
 				list.push( objB, geoB, matB, 1, 1.5, {} );
 				assert.ok( list.transparent.length === 2, 'Transparent list is length 2 after adding second transparent item.' );
-				assert.ok( list.opaque.length === 0, 'Opaque list list is length 0 after adding second transparent item.' );
+				assert.ok( list.opaque.length === 0, 'Opaque list is length 0 after adding second transparent item.' );
 				assert.deepEqual(
 					list.transparent[ 1 ],
 					{
@@ -106,7 +104,7 @@ export default QUnit.module( 'Renderers', () => {
 
 				list.push( objC, geoC, matC, 2, 2.5, {} );
 				assert.ok( list.transparent.length === 2, 'Transparent list is length 2 after adding first opaque item.' );
-				assert.ok( list.opaque.length === 1, 'Opaque list list is length 1 after adding first opaque item.' );
+				assert.ok( list.opaque.length === 1, 'Opaque list is length 1 after adding first opaque item.' );
 				assert.deepEqual(
 					list.opaque[ 0 ],
 					{
@@ -124,7 +122,7 @@ export default QUnit.module( 'Renderers', () => {
 
 				list.push( objD, geoD, matD, 3, 3.5, {} );
 				assert.ok( list.transparent.length === 2, 'Transparent list is length 2 after adding second opaque item.' );
-				assert.ok( list.opaque.length === 2, 'Opaque list list is length 2 after adding second opaque item.' );
+				assert.ok( list.opaque.length === 2, 'Opaque list is length 2 after adding second opaque item.' );
 				assert.deepEqual(
 					list.opaque[ 1 ],
 					{
@@ -164,7 +162,7 @@ export default QUnit.module( 'Renderers', () => {
 
 				list.unshift( objA, geoA, matA, 0, 0.5, {} );
 				assert.ok( list.transparent.length === 1, 'Transparent list is length 1 after adding transparent item.' );
-				assert.ok( list.opaque.length === 0, 'Opaque list list is length 0 after adding transparent item.' );
+				assert.ok( list.opaque.length === 0, 'Opaque list is length 0 after adding transparent item.' );
 				assert.deepEqual(
 					list.transparent[ 0 ],
 					{
@@ -182,7 +180,7 @@ export default QUnit.module( 'Renderers', () => {
 
 				list.unshift( objB, geoB, matB, 1, 1.5, {} );
 				assert.ok( list.transparent.length === 2, 'Transparent list is length 2 after adding second transparent item.' );
-				assert.ok( list.opaque.length === 0, 'Opaque list list is length 0 after adding second transparent item.' );
+				assert.ok( list.opaque.length === 0, 'Opaque list is length 0 after adding second transparent item.' );
 				assert.deepEqual(
 					list.transparent[ 0 ],
 					{
@@ -200,7 +198,7 @@ export default QUnit.module( 'Renderers', () => {
 
 				list.unshift( objC, geoC, matC, 2, 2.5, {} );
 				assert.ok( list.transparent.length === 2, 'Transparent list is length 2 after adding first opaque item.' );
-				assert.ok( list.opaque.length === 1, 'Opaque list list is length 1 after adding first opaque item.' );
+				assert.ok( list.opaque.length === 1, 'Opaque list is length 1 after adding first opaque item.' );
 				assert.deepEqual(
 					list.opaque[ 0 ],
 					{
@@ -218,7 +216,7 @@ export default QUnit.module( 'Renderers', () => {
 
 				list.unshift( objD, geoD, matD, 3, 3.5, {} );
 				assert.ok( list.transparent.length === 2, 'Transparent list is length 2 after adding second opaque item.' );
-				assert.ok( list.opaque.length === 2, 'Opaque list list is length 2 after adding second opaque item.' );
+				assert.ok( list.opaque.length === 2, 'Opaque list is length 2 after adding second opaque item.' );
 				assert.deepEqual(
 					list.opaque[ 0 ],
 					{
