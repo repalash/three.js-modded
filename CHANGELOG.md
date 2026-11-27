@@ -15,16 +15,194 @@ For each three.js revision, this file has:
   [Migration Guide](https://github.com/mrdoob/three.js/wiki/Migration-Guide).
 - One section per release, newest first. **Breaking** marks a change that can need a change in an app.
 
-## Unreleased
+## r183
 
-- **Breaking** `USDZLoader` is no longer exported from `three/addons` (`examples/jsm/Addons.js`), as in three.js r179.
-  Use `USDLoader`, which loads `.usdz`, `.usd`, `.usda` and `.usdc` files:
-  `import { USDLoader } from 'three/addons/loaders/USDLoader.js'` (or from `three/addons`).
-  `three/addons/loaders/USDZLoader.js` is still there as a deprecated subclass of `USDLoader`.
+### Changes over three.js r183
+
+All the [changes over three.js r168](#changes-over-threejs-r168), except those that three.js r183 has itself:
+`Material.allowOverride` and its use with `scene.overrideMaterial`, `LightShadow.copy()` of `normalBias`,
+`textureIndex` in `readRenderTargetPixels()` and `readRenderTargetPixelsAsync()`, a PNG from `ImageUtils.getDataURL()`
+for images over 2048 pixels, `AnimationClip.userData` and glTF animation `extras`, and `OrbitControls.rotateUp( angle )`
+and `rotateLeft( angle )` (three.js r183 has them as public methods, #32810). And:
 - `USDLoader` from three.js r187, with USDC (binary) support: `.usdz`, `.usd`, `.usda` and `.usdc` files. The editor
   opens them with it.
 - `Loader.setPriority( 'high' | 'low' | 'auto' )` and `Loader.setCache( RequestCache )` from three.js r187. They set
-  the `priority` and `cache` of the `fetch()` requests of a loader, and the core loaders pass them to the loaders they use.
+  the `priority` and `cache` of the `fetch()` requests of a loader, and the core loaders pass them to the loaders they
+  use.
+- `ColorManagement`: `RGBM16ColorSpace` is a registered color space, linear sRGB for color management. With
+  `NoColorSpace` as the output color space, the canvas stays sRGB: the app encodes the final colors itself, for example
+  in a screen pass.
+- `GLTFExporter`: the `writeMesh`, `writeNode`, `beforeParse` and `afterParse` hooks of a plugin can return a promise,
+  and the writer waits for it, also for the container node of an object with a `pivot`.
+- `ImageLoader`: a failing cache lookup calls `onError` instead of leaving the load pending.
+- `renderer.environments` gives access to the renderer's `WebGLEnvironments` (three.js r183), in place of
+  `renderer.cubemaps` and `renderer.cubeuvmaps`.
+
+### Upgrading from r182
+
+From three-modded:
+- **Breaking** `renderer.cubemaps` and `renderer.cubeuvmaps` are removed: three.js r183 has one `WebGLEnvironments`
+  module for both (#32792), which three-modded exposes as `renderer.environments`. `renderer.environments.get( texture,
+  usePMREM )` returns what `cubeuvmaps.get( texture )` (`usePMREM` true) or `cubemaps.get( texture )` (false) returned.
+- `OrbitControls.rotateUp( angle )` and `rotateLeft( angle )` are three.js r183's, which call `update()` after the
+  rotation. three-modded's did not.
+- `material.userData.envMapSlotKey` and `material.userData.separateEnvMapIntensity` also apply to
+  `MeshLambertMaterial` and `MeshPhongMaterial`, which use the scene environment since three.js r183 (below).
+- `GLTFLoader` creates `KHR_materials_dispersion` materials with `GLTFLoader.ObjectConstructors.MeshPhysicalMaterial`,
+  like the other material extensions.
+- `FileLoader` keeps three-modded's cache with plain url keys. three.js r183 does not cache blob urls (#32989): it
+  finds them after its key prefixes (`file:`, `image:`), so a plain `blob:` url key is not recognized, and
+  three-modded's `Cache.get( url, type )` and `Cache.add( url, data, type )` still cache it, as on r182.
+- `USDLoader` is still the r187 one (USDC support, `parse()` with a callback); three.js r183 has its own rewrite of
+  `USDLoader` (`USDComposer`, #32740), with a `parse()` that returns the group.
+- The shadow fixes of three-modded r182 (#32593, #32590) are three.js r183's.
+
+From three.js r183, the changes most likely to need a change in an app (the
+[Migration Guide](https://github.com/mrdoob/three.js/wiki/Migration-Guide) has some of them):
+- **Breaking** `MeshLambertMaterial` and `MeshPhongMaterial` are lit by `scene.environment` (image-based lighting,
+  #32791, #32795), as `MeshStandardMaterial` is, scaled by `scene.environmentIntensity`. A scene with an environment
+  looks different (brighter) with these materials. A cube `envMap` of their own still uses `combine` and `reflectivity`
+  (a PMREM one is scaled by their new `envMapIntensity`).
+- **Breaking** A camera's view matrix ignores the scale of its world matrix (#32805), as glTF requires: a camera inside
+  a scaled object renders as if unscaled.
+- Meshes without a `normal` attribute are drawn with flat shading by the lit materials (Lambert, Phong, Standard and
+  Physical), unless they have a normal map (#32831). `WebGLRenderer.clear()` does nothing when no buffer bit is set
+  (#33010).
+- The transmission render target has at least 4 samples (#33063).
+- `RoomEnvironment` is placed differently, so a PMREM of it lights a scene differently (#32646). `Sky` and `SkyMesh`
+  have no legacy gamma correction (#32677).
+- `Clock` is deprecated: use `Timer` (#32798).
+- Removed after deprecation: `MeshGouraudMaterial`, the r171 `copyTextureToTexture()` signature with a single mipmap
+  level (#32569, #32572), `MeshPostProcessingMaterial` (#32579) and `GodRaysShader` (#32801).
+- New: `Object3D.pivot` (rotation and scale about a point, #32745, exported and loaded by `GLTFExporter` and
+  `GLTFLoader` through a container node, #32769, #32774), `Object3D.static` (#32679), `MaterialBlending`,
+  `InterpolateBezier` and `OrbitControls.pan()`, `dollyIn()`, `dollyOut()` (#32810).
+- `GLTFLoader` supports `KHR_meshopt_compression` (#32163). `KTX2Loader` reads BC3 textures as DXT5 (#32772).
+- `WebGPURenderer`: `PostProcessing` is `RenderPipeline`, the blend of `SSRNode` changed, its shadows changed, and
+  `WebGLCubeRenderTarget` is not supported with it (use `CubeRenderTarget`, #32871).
+
+### 0.183.10001-rc.1
+
+The first release candidate of the r183 merge, under the npm dist-tag `three-r183`.
+
+## r182
+
+### Changes over three.js r182
+
+All the [changes over three.js r168](#changes-over-threejs-r168), except those that three.js r182 has itself:
+`Material.allowOverride` and its use with `scene.overrideMaterial` (three.js r182 also copies it in `copy()` and writes
+it in `toJSON()`), `LightShadow.copy()` of `normalBias`, `textureIndex` in `readRenderTargetPixels()` and
+`readRenderTargetPixelsAsync()`, a PNG from `ImageUtils.getDataURL()` for images over 2048 pixels (three.js r177 has
+`getDataURL( image, type = 'image/png' )`), `AnimationClip.userData` (serialized with the clip) and glTF animation
+`extras` in `GLTFLoader` and `GLTFExporter`. And:
+- `USDLoader` from three.js r187, with USDC (binary) support: `.usdz`, `.usd`, `.usda` and `.usdc` files. The editor
+  opens them with it.
+- `Loader.setPriority( 'high' | 'low' | 'auto' )` and `Loader.setCache( RequestCache )` from three.js r187. They set
+  the `priority` and `cache` of the `fetch()` requests of a loader, and the core loaders pass them to the loaders they
+  use.
+- `ColorManagement`: `RGBM16ColorSpace` is a registered color space, linear sRGB for color management. With
+  `NoColorSpace` as the output color space, the canvas stays sRGB: the app encodes the final colors itself, for example
+  in a screen pass.
+- `GLTFExporter`: the `writeMesh`, `writeNode`, `beforeParse` and `afterParse` hooks of a plugin can return a promise,
+  and the writer waits for it.
+- `ImageLoader`: a failing cache lookup calls `onError` instead of leaving the load pending.
+- Two fixes of three.js r182's new shadow maps, from three.js r183: `PCFSoftShadowMap` warns and uses `PCFShadowMap`
+  (#32593; in three.js r182 it gives basic, hard shadows without the warning), and the shadow map samplers are no longer
+  also in the lights uniforms, which uploaded them a second time (#32590).
+
+### Upgrading from r177
+
+From three-modded:
+- `USDLoader` is still the r187 one (USDC support, `parse()` with a callback); three.js r182 has the r179 `USDLoader`.
+- `FileLoader` keeps three-modded's cache with plain url keys; three.js r178 prefixes its keys with `file:`.
+  `ImageLoader` and `ImageBitmapLoader` store the image and the image bitmap under r178's keys (`image:` and
+  `image-bitmap:` before the url), and only the downloaded blob under the plain url, which `FileLoader` shares.
+  **Breaking** On r177 the loaded image or image bitmap was under the plain url: `Cache.get( url )` now returns the blob
+  (or what `FileLoader` loaded), not the image. Use `Cache.get( 'image:' + url )`.
+- `UniformsLib.lights` has no `directionalShadowMap`, `spotShadowMap` or `pointShadowMap` (the r183 fix #32590): the
+  renderer sets these samplers itself for each material with `lights: true`.
+- With the `outputBufferType` and `setEffects()` of three.js r182, `WebGLRenderer` draws the final image to the canvas
+  with another `render()` call, so the `renderer.userData` flags (`sceneRender`, `opaqueRender`, ...) also apply to
+  it. When the first effect is a `RenderPass`, it renders the scene, and `render()` does not.
+
+From three.js r178–r182, the changes most likely to need a change in an app (the
+[Migration Guide](https://github.com/mrdoob/three.js/wiki/Migration-Guide) has most of them):
+- r178: **Breaking** `MultiplyBlending` and `SubtractiveBlending` need `material.premultipliedAlpha = true`, otherwise
+  they log an error and set no blend function. `flatShading` is ignored with `wireframe`.
+- r179: `Timer` is in the core. `USDZLoader` is deprecated (use `USDLoader`). The `reverseDepthBuffer` parameter of
+  `WebGLRenderer` is `reversedDepthBuffer`.
+- r180: `RGBELoader` is renamed `HDRLoader` (the old name warns) and `RGBMLoader` is removed. The shader defines
+  `USE_LOGDEPTHBUF` and `USE_REVERSEDEPTHBUF` are `USE_LOGARITHMIC_DEPTH_BUFFER` and `USE_REVERSED_DEPTH_BUFFER`.
+- r181: Physical materials look different: the indirect specular light uses a DFG lookup table, rough materials keep
+  more energy (they are brighter), and PMREM reflections changed. The async methods of `WebGPURenderer`
+  (`renderAsync()`, `hasFeatureAsync()`, ...) and `KTX2Loader.detectSupportAsync()` are deprecated: call
+  `await renderer.init()`, then the sync ones. Log messages go through `log()`, `warn()` and `error()`, which add the
+  `THREE.` prefix and can be redirected with `setConsoleFunction()`.
+- r182: **Breaking** `WebGLRenderer` shadow maps are depth textures (a cube depth texture for point lights), sampled
+  with a hardware comparison for `PCFShadowMap`: shaders that read packed depth from `shadow.map.texture` need a change.
+  `PCFSoftShadowMap` is deprecated, and `PCFShadowMap` is soft (three-modded has the r183 fix that makes
+  `PCFSoftShadowMap` use it, #32593). The `onLoad()` result of `VOXLoader.load()` is an object with `chunks` and a
+  `scene` (used as an array, it still works and warns), and `VOXMesh` and `VOXData3DTexture` are deprecated (use
+  `buildMesh()` and `buildData3DTexture()`). The `colorBufferType` of `WebGPURenderer` is `outputBufferType`, and
+  `getColorBufferType()` is `getOutputBufferType()`. `Material.copy()` copies `allowOverride`. `ShaderLib.distanceRGBA`
+  and `ShaderChunk.distanceRGBA_vert` / `distanceRGBA_frag` are `distance`, `distance_vert` and `distance_frag`
+  (#32303). `WebGLRenderer.capabilities.vertexTextures` is removed (#32455).
+
+### 0.182.10001-rc.1
+
+The first release candidate of the r182 merge, under the npm dist-tag `three-r182`.
+
+## r177
+
+### Changes over three.js r177
+
+All the [changes over three.js r168](#changes-over-threejs-r168), except those that three.js r177 has itself:
+`Material.allowOverride`, `LightShadow.copy()` of `normalBias`, and `textureIndex` in `readRenderTargetPixels()` and
+`readRenderTargetPixelsAsync()`. And:
+- `USDLoader` from three.js r187, with USDC (binary) support: `.usdz`, `.usd`, `.usda` and `.usdc` files. The editor
+  opens them with it.
+- `Loader.setPriority( 'high' | 'low' | 'auto' )` and `Loader.setCache( RequestCache )` from three.js r187. They set
+  the `priority` and `cache` of the `fetch()` requests of a loader, and the core loaders pass them to the loaders they
+  use.
+- `ColorManagement`: `RGBM16ColorSpace` is a registered color space, linear sRGB for color management. With
+  `NoColorSpace` as the output color space, the canvas stays sRGB: the app encodes the final colors itself, for example
+  in a screen pass.
+- `GLTFExporter`: the `writeMesh`, `writeNode`, `beforeParse` and `afterParse` hooks of a plugin can return a promise,
+  and the writer waits for it.
+- `ImageLoader`: a failing cache lookup calls `onError` instead of leaving the load pending.
+
+### Upgrading from r172
+
+From three-modded:
+- **Breaking** (also in 0.172.10001-rc.2) `USDZLoader` is no longer exported from `three/addons`, as in three.js r179.
+  Use `USDLoader`, which loads `.usdz`, `.usd`, `.usda` and `.usdc` files:
+  `import { USDLoader } from 'three/addons/loaders/USDLoader.js'` (or from `three/addons`).
+  `three/addons/loaders/USDZLoader.js` is still there as a deprecated subclass of `USDLoader`.
+- **Breaking** `ImageUtils.getDataURL( image, forcePng )` is three.js r177's `getDataURL( image, type = 'image/png' )`,
+  which no longer switches to JPEG for images over 2048 pixels. Pass a MIME type, or nothing for PNG, in place of
+  `forcePng`.
+- The JSON of objects, materials, textures and geometries has `metadata.version` 4.7 (three.js r177), in place of
+  4.6001 for materials. Files saved with 4.6 or lower are still read as before.
+
+From three.js r173–r177, the changes most likely to need a change in an app (all of them are in the
+[Migration Guide](https://github.com/mrdoob/three.js/wiki/Migration-Guide)):
+- r173: `MeshGouraudMaterial` is deprecated (use `MeshLambertMaterial`). TSL `varying()` and `vertexStage()` are
+  `toVarying()` and `toVertexStage()`.
+- r174: **Breaking** `Timer` no longer listens to page visibility by itself: call `timer.connect( document )`.
+  `RenderTarget.clone()` clones its textures instead of sharing them.
+- r175: **Breaking** `Controls.connect()` needs a DOM element. `ParametricGeometries` is `ParametricFunctions`. The
+  constructors of `LUTImageLoader`, `SMAAPass` and `HalftonePass` changed. `AnimationClip.parseAnimation()` is
+  deprecated.
+- r176: **Breaking** the `length` parameter of `CapsuleGeometry` is `height`. `GLTFLoader` no longer detects WebP and
+  AVIF support. `LottieLoader` is deprecated.
+- r177: **Breaking** `ColorManagement.fromWorkingColorSpace()` and `toWorkingColorSpace()` are
+  `workingToColorSpace()` and `colorSpaceToWorking()`. `GLTFExporter` writes parent nodes before their children.
+  `PeppersGhostEffect` is removed.
+
+### 0.177.10001-rc.1
+
+The first release candidate of the r177 merge, under the npm dist-tag `three-r177`. It also has `USDLoader` and
+`Loader.setPriority()` / `setCache()` from `master` (#10, #11).
 
 ## r168
 
