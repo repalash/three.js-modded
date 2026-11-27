@@ -44,14 +44,19 @@ it in `toJSON()`), `LightShadow.copy()` of `normalBias`, `textureIndex` in `read
 
 From three-modded:
 - `USDLoader` is still the r187 one (USDC support, `parse()` with a callback); three.js r182 has the r179 `USDLoader`.
-- `FileLoader` and `ImageLoader` keep three-modded's cache with plain url keys. three.js r178 prefixes the keys of its
-  own `Cache` entries per loader (`file:`, `image:`, `image-bitmap:`).
+- `FileLoader` keeps three-modded's cache with plain url keys; three.js r178 prefixes its keys with `file:`.
+  `ImageLoader` and `ImageBitmapLoader` store the image and the image bitmap under r178's keys (`image:` and
+  `image-bitmap:` before the url), and only the downloaded blob under the plain url, which `FileLoader` shares.
+  **Breaking** On r177 the loaded image or image bitmap was under the plain url: `Cache.get( url )` now returns the blob
+  (or what `FileLoader` loaded), not the image. Use `Cache.get( 'image:' + url )`.
+- `UniformsLib.lights` has no `directionalShadowMap`, `spotShadowMap` or `pointShadowMap` (the r183 fix #32590): the
+  renderer sets these samplers itself for each material with `lights: true`.
 - With the `outputBufferType` and `setEffects()` of three.js r182, `WebGLRenderer` draws the final image to the canvas
   with another `render()` call, so the `renderer.userData` flags (`sceneRender`, `opaqueRender`, ...) also apply to
   it. When the first effect is a `RenderPass`, it renders the scene, and `render()` does not.
 
-From three.js r178–r182, the changes most likely to need a change in an app (all of them are in the
-[Migration Guide](https://github.com/mrdoob/three.js/wiki/Migration-Guide)):
+From three.js r178–r182, the changes most likely to need a change in an app (the
+[Migration Guide](https://github.com/mrdoob/three.js/wiki/Migration-Guide) has most of them):
 - r178: **Breaking** `MultiplyBlending` and `SubtractiveBlending` need `material.premultipliedAlpha = true`, otherwise
   they log an error and set no blend function. `flatShading` is ignored with `wireframe`.
 - r179: `Timer` is in the core. `USDZLoader` is deprecated (use `USDLoader`). The `reverseDepthBuffer` parameter of
@@ -68,8 +73,10 @@ From three.js r178–r182, the changes most likely to need a change in an app (a
   `PCFSoftShadowMap` is deprecated, and `PCFShadowMap` is soft (three-modded has the r183 fix that makes
   `PCFSoftShadowMap` use it, #32593). The `onLoad()` result of `VOXLoader.load()` is an object with `chunks` and a
   `scene` (used as an array, it still works and warns), and `VOXMesh` and `VOXData3DTexture` are deprecated (use
-  `buildMesh()` and `buildData3DTexture()`). The `colorBufferType` of `WebGPURenderer` is `outputBufferType`.
-  `Material.copy()` copies `allowOverride`.
+  `buildMesh()` and `buildData3DTexture()`). The `colorBufferType` of `WebGPURenderer` is `outputBufferType`, and
+  `getColorBufferType()` is `getOutputBufferType()`. `Material.copy()` copies `allowOverride`. `ShaderLib.distanceRGBA`
+  and `ShaderChunk.distanceRGBA_vert` / `distanceRGBA_frag` are `distance`, `distance_vert` and `distance_frag`
+  (#32303). `WebGLRenderer.capabilities.vertexTextures` is removed (#32455).
 
 ### 0.182.10001-rc.1
 
