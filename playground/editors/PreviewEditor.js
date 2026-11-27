@@ -2,7 +2,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { ViewHelper } from 'three/addons/helpers/ViewHelper.js';
 import { Element, LabelElement, SelectInput } from 'flow';
 import { BaseNodeEditor } from '../BaseNodeEditor.js';
-import { MeshBasicNodeMaterial, vec4 } from 'three/tsl';
+import { MeshBasicNodeMaterial } from 'three/webgpu';
+import { vec4 } from 'three/tsl';
 import { PerspectiveCamera, Scene, Mesh, DoubleSide, SphereGeometry, BoxGeometry, PlaneGeometry, TorusKnotGeometry, WebGPURenderer } from 'three';
 import { setInputAestheticsFromType } from '../DataTypeLib.js';
 
@@ -160,8 +161,10 @@ export class PreviewEditor extends BaseNodeEditor {
 
 		}
 
-		await renderer.clearAsync();
-		await renderer.renderAsync( scene, camera );
+		if ( renderer.hasInitialized() === false ) await renderer.init();
+
+		renderer.clear();
+		renderer.render( scene, camera );
 
 		viewHelper.render( renderer );
 
