@@ -59,18 +59,48 @@ import { BufferGeometryLoader } from './BufferGeometryLoader.js';
 import { Loader } from './Loader.js';
 import { FileLoader } from './FileLoader.js';
 import * as Geometries from '../geometries/Geometries.js';
-import { getTypedArray } from '../utils.js';
+import { getTypedArray, error, warn } from '../utils.js';
 import { Box3 } from '../math/Box3.js';
 import { Sphere } from '../math/Sphere.js';
+import { SphericalHarmonics3 } from '../math/SphericalHarmonics3.js';
 
+/**
+ * A loader for loading a JSON resource in the [JSON Object/Scene format](https://github.com/mrdoob/three.js/wiki/JSON-Object-Scene-format-4).
+ * The files are internally loaded via {@link FileLoader}.
+ *
+ * ```js
+ * const loader = new THREE.ObjectLoader();
+ * const obj = await loader.loadAsync( 'models/json/example.json' );
+ * scene.add( obj );
+ *
+ * // Alternatively, to parse a previously loaded JSON structure
+ * const object = await loader.parseAsync( a_json_object );
+ * scene.add( object );
+ * ```
+ *
+ * @augments Loader
+ */
 class ObjectLoader extends Loader {
 
+	/**
+	 * Constructs a new object loader.
+	 *
+	 * @param {LoadingManager} [manager] - The loading manager.
+	 */
 	constructor( manager ) {
 
 		super( manager );
 
 	}
 
+	/**
+	 * Starts loading from the given URL and pass the loaded 3D object to the `onLoad()` callback.
+	 *
+	 * @param {string} url - The path/URL of the file to be loaded. This can also be a data URI.
+	 * @param {function(Object3D)} onLoad - Executed when the loading process has been finished.
+	 * @param {onProgressCallback} onProgress - Executed while the loading is in progress.
+	 * @param {onErrorCallback} onError - Executed when errors occur.
+	 */
 	load( url, onLoad, onProgress, onError ) {
 
 		const scope = this;
@@ -96,7 +126,7 @@ class ObjectLoader extends Loader {
 
 				if ( onError !== undefined ) onError( error );
 
-				console.error( 'THREE:ObjectLoader: Can\'t parse ' + url + '.', error.message );
+				error( 'ObjectLoader: Can\'t parse ' + url + '.', error.message );
 
 				return;
 
@@ -108,7 +138,7 @@ class ObjectLoader extends Loader {
 
 				if ( onError !== undefined ) onError( new Error( 'THREE.ObjectLoader: Can\'t load ' + url ) );
 
-				console.error( 'THREE.ObjectLoader: Can\'t load ' + url );
+				error( 'ObjectLoader: Can\'t load ' + url );
 				return;
 
 			}
@@ -119,6 +149,14 @@ class ObjectLoader extends Loader {
 
 	}
 
+	/**
+	 * Async version of {@link ObjectLoader#load}.
+	 *
+	 * @async
+	 * @param {string} url - The path/URL of the file to be loaded. This can also be a data URI.
+	 * @param {onProgressCallback} onProgress - Executed while the loading is in progress.
+	 * @return {Promise<Object3D>} A Promise that resolves with the loaded 3D object.
+	 */
 	async loadAsync( url, onProgress ) {
 
 		const scope = this;
@@ -149,6 +187,14 @@ class ObjectLoader extends Loader {
 
 	}
 
+	/**
+	 * Parses the given JSON. This is used internally by {@link ObjectLoader#load}
+	 * but can also be used directly to parse a previously loaded JSON structure.
+	 *
+	 * @param {Object} json - The serialized 3D object.
+	 * @param {onLoad} onLoad - Executed when all resources (e.g. textures) have been fully loaded.
+	 * @return {Object3D} The parsed 3D object.
+	 */
 	parse( json, onLoad ) {
 
 		const animations = this.parseAnimations( json.animations );
@@ -195,6 +241,12 @@ class ObjectLoader extends Loader {
 
 	}
 
+	/**
+	 * Async version of {@link ObjectLoader#parse}.
+	 *
+	 * @param {Object} json - The serialized 3D object.
+	 * @return {Promise<Object3D>} A Promise that resolves with the parsed 3D object.
+	 */
 	async parseAsync( json ) {
 
 		const animations = this.parseAnimations( json.animations );
@@ -215,6 +267,8 @@ class ObjectLoader extends Loader {
 		return object;
 
 	}
+
+	// internals
 
 	parseShapes( json ) {
 
@@ -296,7 +350,7 @@ class ObjectLoader extends Loader {
 
 						} else {
 
-							console.warn( `THREE.ObjectLoader: Unsupported geometry type "${ data.type }"` );
+							warn( `ObjectLoader: Unsupported geometry type "${ data.type }"` );
 
 						}
 
@@ -593,7 +647,7 @@ class ObjectLoader extends Loader {
 
 			if ( typeof value === 'number' ) return value;
 
-			console.warn( 'THREE.ObjectLoader.parseTexture: Constant should be in numeric form.', value );
+			warn( 'ObjectLoader.parseTexture: Constant should be in numeric form.', value );
 
 			return type[ value ];
 
@@ -609,13 +663,13 @@ class ObjectLoader extends Loader {
 
 				if ( data.image === undefined ) {
 
-					console.warn( 'THREE.ObjectLoader: No "image" specified for', data.uuid );
+					warn( 'ObjectLoader: No "image" specified for', data.uuid );
 
 				}
 
 				if ( images[ data.image ] === undefined ) {
 
-					console.warn( 'THREE.ObjectLoader: Undefined image', data.image );
+					warn( 'ObjectLoader: Undefined image', data.image );
 
 				}
 
@@ -708,7 +762,7 @@ class ObjectLoader extends Loader {
 
 			if ( geometries[ name ] === undefined ) {
 
-				console.warn( 'THREE.ObjectLoader: Undefined geometry', name );
+				warn( 'ObjectLoader: Undefined geometry', name );
 
 			}
 
@@ -730,7 +784,7 @@ class ObjectLoader extends Loader {
 
 					if ( materials[ uuid ] === undefined ) {
 
-						console.warn( 'THREE.ObjectLoader: Undefined material', uuid );
+						warn( 'ObjectLoader: Undefined material', uuid );
 
 					}
 
@@ -744,7 +798,7 @@ class ObjectLoader extends Loader {
 
 			if ( materials[ name ] === undefined ) {
 
-				console.warn( 'THREE.ObjectLoader: Undefined material', name );
+				warn( 'ObjectLoader: Undefined material', name );
 
 			}
 
@@ -756,7 +810,7 @@ class ObjectLoader extends Loader {
 
 			if ( textures[ uuid ] === undefined ) {
 
-				console.warn( 'THREE.ObjectLoader: Undefined texture', uuid );
+				warn( 'ObjectLoader: Undefined texture', uuid );
 
 			}
 
@@ -882,7 +936,8 @@ class ObjectLoader extends Loader {
 
 			case 'LightProbe':
 
-				object = new LightProbe().fromJSON( data );
+				const sh = new SphericalHarmonics3().fromArray( data.sh );
+				object = new LightProbe( sh, data.intensity );
 
 				break;
 
@@ -935,37 +990,65 @@ class ObjectLoader extends Loader {
 				object._drawRanges = data.drawRanges;
 				object._reservedRanges = data.reservedRanges;
 
-				object._visibility = data.visibility;
-				object._active = data.active;
-				object._bounds = data.bounds.map( bound => {
+				object._geometryInfo = data.geometryInfo.map( info => {
 
-					const box = new Box3();
-					box.min.fromArray( bound.boxMin );
-					box.max.fromArray( bound.boxMax );
+					let box = null;
+					let sphere = null;
+					if ( info.boundingBox !== undefined ) {
 
-					const sphere = new Sphere();
-					sphere.radius = bound.sphereRadius;
-					sphere.center.fromArray( bound.sphereCenter );
+						box = new Box3().fromJSON( info.boundingBox );
+
+					}
+
+					if ( info.boundingSphere !== undefined ) {
+
+						sphere = new Sphere().fromJSON( info.boundingSphere );
+
+					}
 
 					return {
-						boxInitialized: bound.boxInitialized,
-						box: box,
-
-						sphereInitialized: bound.sphereInitialized,
-						sphere: sphere
+						...info,
+						boundingBox: box,
+						boundingSphere: sphere
 					};
 
 				} );
+				object._instanceInfo = data.instanceInfo;
+
+				object._availableInstanceIds = data._availableInstanceIds;
+				object._availableGeometryIds = data._availableGeometryIds;
+
+				object._nextIndexStart = data.nextIndexStart;
+				object._nextVertexStart = data.nextVertexStart;
+				object._geometryCount = data.geometryCount;
 
 				object._maxInstanceCount = data.maxInstanceCount;
 				object._maxVertexCount = data.maxVertexCount;
 				object._maxIndexCount = data.maxIndexCount;
 
 				object._geometryInitialized = data.geometryInitialized;
-				object._geometryCount = data.geometryCount;
 
 				object._matricesTexture = getTexture( data.matricesTexture.uuid );
-				if ( data.colorsTexture !== undefined ) object._colorsTexture = getTexture( data.colorsTexture.uuid );
+
+				object._indirectTexture = getTexture( data.indirectTexture.uuid );
+
+				if ( data.colorsTexture !== undefined ) {
+
+					object._colorsTexture = getTexture( data.colorsTexture.uuid );
+
+				}
+
+				if ( data.boundingSphere !== undefined ) {
+
+					object.boundingSphere = new Sphere().fromJSON( data.boundingSphere );
+
+				}
+
+				if ( data.boundingBox !== undefined ) {
+
+					object.boundingBox = new Box3().fromJSON( data.boundingBox );
+
+				}
 
 				break;
 
@@ -1129,7 +1212,7 @@ class ObjectLoader extends Loader {
 
 				if ( skeleton === undefined ) {
 
-					console.warn( 'THREE.ObjectLoader: No skeleton found with UUID:', child.skeleton );
+					warn( 'ObjectLoader: No skeleton found with UUID:', child.skeleton );
 
 				} else {
 
