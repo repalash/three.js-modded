@@ -21,7 +21,8 @@
 		{
 			"imports": {
 				"three": "../build/three.webgpu.js",
-				"three/tsl": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+				"three/tsl": "../build/three.tsl.js",
 				"three/addons/": "./jsm/"
 			}
 		}
@@ -29,7 +30,7 @@
 
 	<script type="module">
 
-		import * as THREE from 'three';
+		import * as THREE from 'three/webgpu';
 
 		import Stats from 'three/addons/libs/stats.module.js';
 
@@ -38,7 +39,7 @@
 		import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 		import { radixSort } from 'three/addons/utils/SortUtils.js';
 
-		import { transformedNormalView, directionToColor, diffuseColor } from 'three/tsl';
+		import { normalView, directionToColor, diffuseColor } from 'three/tsl';
 
 		let camera, scene, renderer;
 		let controls, stats;
@@ -68,6 +69,15 @@
 			perObjectFrustumCulled: true,
 			opacity: 1,
 			useCustomSort: true,
+			randomizeGeometry: ()=>{
+
+				for ( let i = 0; i < api.count; i ++ ) {
+
+					mesh.setGeometryIdAt( i, Math.floor( Math.random() * geometries.length ) );
+		
+				}
+		
+			}
 		};
 
 
@@ -117,7 +127,7 @@
 			if ( ! material ) {
 
 				material = new THREE.MeshBasicNodeMaterial();
-				material.outputNode = diffuseColor.mul( directionToColor( transformedNormalView ).y.add( 0.5 ) );
+				material.outputNode = diffuseColor.mul( directionToColor( normalView ).y.add( 0.5 ) );
 		
 	}
 
@@ -186,8 +196,6 @@
 			scene.add( mesh );
 
 		}
-
-
 
 		function init( forceWebGL = false ) {
 
@@ -270,14 +278,12 @@
 			gui.add( api, 'sortObjects' );
 			gui.add( api, 'perObjectFrustumCulled' );
 			gui.add( api, 'useCustomSort' );
+			gui.add( api, 'randomizeGeometry' );
 
 
 			// listeners
 
 			window.addEventListener( 'resize', onWindowResize );
-
-
-
 
 			function onWindowResize() {
 

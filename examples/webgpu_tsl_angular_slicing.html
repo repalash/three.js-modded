@@ -18,7 +18,8 @@
 			{
 				"imports": {
 					"three": "../build/three.webgpu.js",
-					"three/tsl": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+					"three/tsl": "../build/three.tsl.js",
 					"three/addons/": "./jsm/"
 				}
 			}
@@ -26,12 +27,12 @@
 
 		<script type="module">
 
-			import * as THREE from 'three';
-			import { If, PI2, atan2, color, frontFacing, output, positionLocal, Fn, uniform, vec4 } from 'three/tsl';
+			import * as THREE from 'three/webgpu';
+			import { If, PI2, atan, color, frontFacing, output, positionLocal, Fn, uniform, vec4 } from 'three/tsl';
 
 			import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 			import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-			import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+			import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 
@@ -50,8 +51,8 @@
 
 				// environment
 
-				const rgbeLoader = new RGBELoader();
-				rgbeLoader.load( './textures/equirectangular/royal_esplanade_1k.hdr', ( environmentMap ) => {
+				const hdrLoader = new HDRLoader();
+				hdrLoader.load( './textures/equirectangular/royal_esplanade_1k.hdr', ( environmentMap ) => {
 
 					environmentMap.mapping = THREE.EquirectangularReflectionMapping;
 
@@ -65,7 +66,7 @@
 				const directionalLight = new THREE.DirectionalLight( '#ffffff', 4 );
 				directionalLight.position.set( 6.25, 3, 4 );
 				directionalLight.castShadow = true;
-				directionalLight.shadow.mapSize.set( 1024, 1024 );
+				directionalLight.shadow.mapSize.set( 2048, 2048 );
 				directionalLight.shadow.camera.near = 0.1;
 				directionalLight.shadow.camera.far = 30;
 				directionalLight.shadow.camera.top = 8;
@@ -79,7 +80,7 @@
 			
 				const inAngle = Fn( ( [ position, angleStart, angleArc ] ) => {
 
-					const angle = atan2( position.y, position.x ).sub( angleStart ).mod( PI2 ).toVar();
+					const angle = atan( position.y, position.x ).sub( angleStart ).mod( PI2 ).toVar();
 					return angle.greaterThan( 0 ).and( angle.lessThan( angleArc ) );
 
 				} );
@@ -136,7 +137,7 @@
 
 				// shadow
 
-				slicedMaterial.shadowNode = Fn( () => {
+				slicedMaterial.castShadowNode = Fn( () => {
 
 					// discard
 
@@ -194,6 +195,7 @@
 				renderer = new THREE.WebGPURenderer( { antialias: true } );
 				renderer.toneMapping = THREE.ACESFilmicToneMapping;
 				renderer.toneMappingExposure = 1;
+				renderer.shadowMap.enabled = true;
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.setAnimationLoop( animate );
