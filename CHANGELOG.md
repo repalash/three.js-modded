@@ -36,6 +36,9 @@ it in `toJSON()`), `LightShadow.copy()` of `normalBias`, `textureIndex` in `read
 - `GLTFExporter`: the `writeMesh`, `writeNode`, `beforeParse` and `afterParse` hooks of a plugin can return a promise,
   and the writer waits for it.
 - `ImageLoader`: a failing cache lookup calls `onError` instead of leaving the load pending.
+- Two fixes of three.js r182's new shadow maps, from three.js r183: `PCFSoftShadowMap` warns and uses `PCFShadowMap`
+  (#32593; in three.js r182 it gives basic, hard shadows without the warning), and the shadow map samplers are no longer
+  also in the lights uniforms, which uploaded them a second time (#32590).
 
 ### Upgrading from r177
 
@@ -60,13 +63,12 @@ From three.js r178–r182, the changes most likely to need a change in an app (a
   (`renderAsync()`, `hasFeatureAsync()`, ...) and `KTX2Loader.detectSupportAsync()` are deprecated: call
   `await renderer.init()`, then the sync ones.
 - r182: **Breaking** `WebGLRenderer` shadow maps are depth textures (a cube depth texture for point lights), sampled
-  with a hardware comparison for `PCFShadowMap`: shaders that read packed depth from `shadow.map.texture` need a
-  change. `PCFSoftShadowMap` is deprecated, and `PCFShadowMap` is soft. **Breaking** in r182 itself,
-  `PCFSoftShadowMap` gives basic (hard) shadows without the deprecation warning (fixed in three.js r183, #32593): use
-  `PCFShadowMap`. The `onLoad()` result of `VOXLoader.load()` is an object with `chunks` and a `scene` (used as an
-  array, it still works and warns), and `VOXMesh` and `VOXData3DTexture` are deprecated (use `buildMesh()` and
-  `buildData3DTexture()`). The `colorBufferType` of
-  `WebGPURenderer` is `outputBufferType`. `Material.copy()` copies `allowOverride`.
+  with a hardware comparison for `PCFShadowMap`: shaders that read packed depth from `shadow.map.texture` need a change.
+  `PCFSoftShadowMap` is deprecated, and `PCFShadowMap` is soft (three-modded has the r183 fix that makes
+  `PCFSoftShadowMap` use it, #32593). The `onLoad()` result of `VOXLoader.load()` is an object with `chunks` and a
+  `scene` (used as an array, it still works and warns), and `VOXMesh` and `VOXData3DTexture` are deprecated (use
+  `buildMesh()` and `buildData3DTexture()`). The `colorBufferType` of `WebGPURenderer` is `outputBufferType`.
+  `Material.copy()` copies `allowOverride`.
 
 ### 0.182.10001-rc.1
 
