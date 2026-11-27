@@ -1,6 +1,5 @@
-import { DataTexture } from '../../../../src/textures/DataTexture.js';
-import { FloatType, RGBAFormat } from '../../../../src/constants.js';
-import { EXRExporter } from '../../../../examples/jsm/exporters/EXRExporter.js';
+import { DataTexture, FloatType, RGBAFormat } from 'three';
+import { EXRExporter, NO_COMPRESSION, RLE_COMPRESSION, ZIPS_COMPRESSION, ZIP_COMPRESSION, PIZ_COMPRESSION } from '../../../../examples/jsm/exporters/EXRExporter.js';
 import { EXRLoader } from '../../../../examples/jsm/loaders/EXRLoader.js';
 
 function createTexture( width, height, noise ) {
@@ -31,7 +30,7 @@ export default QUnit.module( 'Addons', () => {
 
 		QUnit.module( 'EXRExporter', () => {
 
-			const compressions = { NO_COMPRESSION: 0, ZIPS_COMPRESSION: 2, ZIP_COMPRESSION: 3 };
+			const compressions = { NO_COMPRESSION, RLE_COMPRESSION, ZIPS_COMPRESSION, ZIP_COMPRESSION, PIZ_COMPRESSION };
 
 			for ( const name in compressions ) {
 
@@ -60,6 +59,20 @@ export default QUnit.module( 'Addons', () => {
 				} );
 
 			}
+
+			QUnit.test( 'round trip (PIZ_COMPRESSION, 16-bit wavelet)', async ( assert ) => {
+
+				const width = 256, height = 32;
+				const data = new Float32Array( width * height * 4 );
+
+				for ( let i = 0; i < data.length; i ++ ) data[ i ] = 1 + i * 2 ** - 23;
+
+				const texture = new DataTexture( data, width, height, RGBAFormat, FloatType );
+				const result = await roundTrip( texture, PIZ_COMPRESSION );
+
+				assert.deepEqual( Array.from( result.data ), Array.from( data ) );
+
+			} );
 
 		} );
 

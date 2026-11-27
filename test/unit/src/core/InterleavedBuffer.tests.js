@@ -1,5 +1,3 @@
-/* global QUnit */
-
 import { InterleavedBuffer } from '../../../../src/core/InterleavedBuffer.js';
 
 import { DynamicDrawUsage } from '../../../../src/constants.js';
@@ -32,54 +30,6 @@ export default QUnit.module( 'Core', () => {
 		} );
 
 		// PROPERTIES
-		QUnit.todo( 'array', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'stride', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'count', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'usage', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'updateRanges', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'version', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'uuid', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'onUploadCallback', ( assert ) => {
-
-			// onUploadCallback() {} declared but used as property, refactor req
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
 
 		QUnit.test( 'needsUpdate', ( assert ) => {
 
@@ -143,9 +93,34 @@ export default QUnit.module( 'Core', () => {
 
 		} );
 
-		QUnit.todo( 'clone', ( assert ) => {
+		QUnit.test( 'clone', ( assert ) => {
 
-			assert.ok( false, 'everything\'s gonna be alright' );
+			const instance = new InterleavedBuffer( new Float32Array( [ 1, 2, 3, 7, 8, 9 ] ), 3 );
+			instance.setUsage( DynamicDrawUsage );
+
+			checkInstanceAgainstCopy( instance, instance.clone( {} ), assert );
+
+		} );
+
+		QUnit.test( 'clone (views into a shared array buffer)', ( assert ) => {
+
+			// e.g. GLTFLoader creates interleaved buffers as views at different offsets into one array buffer
+
+			const buffer = new Float32Array( [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ] ).buffer;
+			const a = new InterleavedBuffer( new Float32Array( buffer, 0, 4 ), 2 );
+			const b = new InterleavedBuffer( new Float32Array( buffer, 16, 8 ), 4 );
+			const c = new InterleavedBuffer( new Float32Array( buffer, 16, 8 ), 2 );
+
+			const data = {};
+			const clonedA = a.clone( data );
+			const clonedB = b.clone( data );
+			const clonedC = c.clone( data );
+
+			assert.deepEqual( Array.from( clonedA.array ), [ 1, 2, 3, 4 ], 'first view was copied' );
+			assert.deepEqual( Array.from( clonedB.array ), [ 5, 6, 7, 8, 9, 10, 11, 12 ], 'second view was copied' );
+			assert.ok( clonedA.array.buffer !== buffer, 'array buffer was copied' );
+			assert.strictEqual( clonedB.array.buffer.byteLength, 32, 'only the view was copied' );
+			assert.ok( clonedB.array.buffer === clonedC.array.buffer, 'views over the same range share their copy' );
 
 		} );
 
@@ -157,12 +132,6 @@ export default QUnit.module( 'Core', () => {
 			a.onUpload( func );
 
 			assert.strictEqual( a.onUploadCallback, func, 'Check callback was set properly' );
-
-		} );
-
-		QUnit.todo( 'toJSON', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
 
 		} );
 

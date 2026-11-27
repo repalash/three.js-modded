@@ -1,5 +1,3 @@
-/* global QUnit */
-
 import * as Constants from '../../../src/constants.js';
 
 export default QUnit.module( 'Constants', () => {
@@ -82,7 +80,6 @@ export default QUnit.module( 'Constants', () => {
 		assert.equal( Constants.CubeRefractionMapping, 302, 'CubeRefractionMapping is equal to 302' );
 		assert.equal( Constants.EquirectangularReflectionMapping, 303, 'EquirectangularReflectionMapping is equal to 303' );
 		assert.equal( Constants.EquirectangularRefractionMapping, 304, 'EquirectangularRefractionMapping is equal to 304' );
-		assert.equal( Constants.CubeUVReflectionMapping, 306, 'CubeUVReflectionMapping is equal to 306' );
 
 		assert.equal( Constants.RepeatWrapping, 1000, 'RepeatWrapping is equal to 1000' );
 		assert.equal( Constants.ClampToEdgeWrapping, 1001, 'ClampToEdgeWrapping is equal to 1001' );
@@ -109,8 +106,6 @@ export default QUnit.module( 'Constants', () => {
 
 		assert.equal( Constants.AlphaFormat, 1021, 'AlphaFormat is equal to 1021' );
 		assert.equal( Constants.RGBAFormat, 1023, 'RGBAFormat is equal to 1023' );
-		assert.equal( Constants.LuminanceFormat, 1024, 'LuminanceFormat is equal to 1024' );
-		assert.equal( Constants.LuminanceAlphaFormat, 1025, 'LuminanceAlphaFormat is equal to 1025' );
 		assert.equal( Constants.DepthFormat, 1026, 'DepthFormat is equal to 1026' );
 		assert.equal( Constants.DepthStencilFormat, 1027, 'DepthStencilFormat is equal to 1027' );
 		assert.equal( Constants.RedFormat, 1028, 'RedFormat is equal to 1028' );
@@ -179,7 +174,6 @@ export default QUnit.module( 'Constants', () => {
 		assert.equal( Constants.NoColorSpace, '', 'NoColorSpace is equal to ""' );
 		assert.equal( Constants.SRGBColorSpace, 'srgb', 'SRGBColorSpace is equal to srgb' );
 		assert.equal( Constants.LinearSRGBColorSpace, 'srgb-linear', 'LinearSRGBColorSpace is equal to srgb-linear' );
-		assert.equal( Constants.DisplayP3ColorSpace, 'display-p3', 'DisplayP3ColorSpace is equal to display-p3' );
 
 		assert.equal( Constants.ZeroStencilOp, 0, 'ZeroStencilOp is equal to 0' );
 		assert.equal( Constants.KeepStencilOp, 7680, 'KeepStencilOp is equal to 7680' );

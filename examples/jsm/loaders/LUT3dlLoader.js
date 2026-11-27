@@ -1,34 +1,56 @@
-// http://download.autodesk.com/us/systemdocs/help/2011/lustre/index.html?url=./files/WSc4e151a45a3b785a24c3d9a411df9298473-7ffd.htm,topicNumber=d0e9492
-// https://community.foundry.com/discuss/topic/103636/format-spec-for-3dl?mode=Post&postID=895258
-
 import {
 	ClampToEdgeWrapping,
 	Data3DTexture,
 	FileLoader,
-	FloatType,
 	LinearFilter,
 	Loader,
 	RGBAFormat,
 	UnsignedByteType,
 } from 'three';
 
+/**
+ * A loader for the 3DL LUT format.
+ *
+ * References:
+ * - [3D LUTs](http://download.autodesk.com/us/systemdocs/help/2011/lustre/index.html?url=./files/WSc4e151a45a3b785a24c3d9a411df9298473-7ffd.htm,topicNumber=d0e9492)
+ * - [Format Spec for .3dl](https://community.foundry.com/discuss/topic/103636/format-spec-for-3dl?mode=Post&postID=895258)
+ *
+ * ```js
+ * const loader = new LUT3dlLoader();
+ * const map = loader.loadAsync( 'luts/Presetpro-Cinematic.3dl' );
+ * ```
+ *
+ * @augments Loader
+ * @three_import import { LUT3dlLoader } from 'three/addons/loaders/LUT3dlLoader.js';
+ */
 export class LUT3dlLoader extends Loader {
 
+	/**
+	 * Constructs a new 3DL LUT loader.
+	 *
+	 * @param {LoadingManager} [manager] - The loading manager.
+	 */
 	constructor( manager ) {
 
 		super( manager );
 
+		/**
+		 * The texture type.
+		 *
+		 * @type {(UnsignedByteType|FloatType)}
+		 * @default UnsignedByteType
+		 */
 		this.type = UnsignedByteType;
 
 	}
 
+	/**
+	 * Sets the texture type.
+	 *
+	 * @param {(UnsignedByteType|FloatType)} type - The texture type to set.
+	 * @return {LUT3dlLoader} A reference to this loader.
+	 */
 	setType( type ) {
-
-		if ( type !== UnsignedByteType && type !== FloatType ) {
-
-			throw new Error( 'LUT3dlLoader: Unsupported type' );
-
-		}
 
 		this.type = type;
 
@@ -36,9 +58,22 @@ export class LUT3dlLoader extends Loader {
 
 	}
 
+	/**
+	 * Starts loading from the given URL and passes the loaded 3DL LUT asset
+	 * to the `onLoad()` callback.
+	 *
+	 * @param {string} url - The path/URL of the file to be loaded. This can also be a data URI.
+	 * @param {function({size:number,texture3D:Data3DTexture})} onLoad - Executed when the loading process has been finished.
+	 * @param {onProgressCallback} onProgress - Executed while the loading is in progress.
+	 * @param {onErrorCallback} onError - Executed when errors occur.
+	 */
 	load( url, onLoad, onProgress, onError ) {
 
 		const loader = new FileLoader( this.manager );
+		loader.setPriority( this.priority );
+		loader.setCache( this.cache );
+		loader.setRequestHeader( this.requestHeader );
+		loader.setWithCredentials( this.withCredentials );
 		loader.setPath( this.path );
 		loader.setResponseType( 'text' );
 		loader.load( url, text => {
@@ -67,6 +102,12 @@ export class LUT3dlLoader extends Loader {
 
 	}
 
+	/**
+	 * Parses the given 3DL LUT data and returns the resulting 3D data texture.
+	 *
+	 * @param {string} input - The raw 3DL LUT data as a string.
+	 * @return {{size:number,texture3D:Data3DTexture}} The parsed 3DL LUT.
+	 */
 	parse( input ) {
 
 		const regExpGridInfo = /^[\d ]+$/m;
@@ -77,7 +118,7 @@ export class LUT3dlLoader extends Loader {
 
 		if ( result === null ) {
 
-			throw new Error( 'LUT3dlLoader: Missing grid information' );
+			throw new Error( 'THREE.LUT3dlLoader: Missing grid information' );
 
 		}
 
@@ -90,7 +131,7 @@ export class LUT3dlLoader extends Loader {
 
 			if ( gridStep !== ( gridLines[ i ] - gridLines[ i - 1 ] ) ) {
 
-				throw new Error( 'LUT3dlLoader: Inconsistent grid size' );
+				throw new Error( 'THREE.LUT3dlLoader: Inconsistent grid size' );
 
 			}
 
@@ -123,7 +164,7 @@ export class LUT3dlLoader extends Loader {
 		}
 
 		// Determine the bit depth to scale the values to [0.0, 1.0].
-		const bits = Math.ceil( Math.log2( maxValue ) );
+		const bits = Math.max( 0, Math.ceil( Math.log2( maxValue ) ) );
 		const maxBitValue = Math.pow( 2, bits );
 
 		const data = this.type === UnsignedByteType ? new Uint8Array( dataFloat.length ) : dataFloat;

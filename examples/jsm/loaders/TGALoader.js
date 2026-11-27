@@ -3,14 +3,37 @@ import {
 	LinearMipmapLinearFilter
 } from 'three';
 
+/**
+ * A loader for the TGA texture format.
+ *
+ * ```js
+ * const loader = new TGALoader();
+ * const texture = await loader.loadAsync( 'textures/crate_color8.tga' );
+ * texture.colorSpace = THREE.SRGBColorSpace; // only for color textures
+ * ```
+ *
+ * @augments DataTextureLoader
+ * @three_import import { TGALoader } from 'three/addons/loaders/TGALoader.js';
+ */
 class TGALoader extends DataTextureLoader {
 
+	/**
+	 * Constructs a new TGA loader.
+	 *
+	 * @param {LoadingManager} [manager] - The loading manager.
+	 */
 	constructor( manager ) {
 
 		super( manager );
 
 	}
 
+	/**
+	 * Parses the given TGA texture data.
+	 *
+	 * @param {ArrayBuffer} buffer - The raw texture data.
+	 * @return {DataTextureLoader~TexData} An object representing the parsed texture data.
+	 */
 	parse( buffer ) {
 
 		// reference from vthibault, https://github.com/vthibault/roBrowser/blob/master/src/Loaders/Targa.js
@@ -169,18 +192,19 @@ class TGALoader extends DataTextureLoader {
 		function tgaGetImageData8bits( imageData, y_start, y_step, y_end, x_start, x_step, x_end, image, palettes ) {
 
 			const colormap = palettes;
-			let color, i = 0, x, y;
+			const colormap_index = header.colormap_index;
+			let index, i = 0, x, y;
 			const width = header.width;
 
 			for ( y = y_start; y !== y_end; y += y_step ) {
 
 				for ( x = x_start; x !== x_end; x += x_step, i ++ ) {
 
-					color = image[ i ];
+					index = image[ i ] - colormap_index; // map from full color map index to stored palette index
 					imageData[ ( x + width * y ) * 4 + 3 ] = 255;
-					imageData[ ( x + width * y ) * 4 + 2 ] = colormap[ ( color * 3 ) + 0 ];
-					imageData[ ( x + width * y ) * 4 + 1 ] = colormap[ ( color * 3 ) + 1 ];
-					imageData[ ( x + width * y ) * 4 + 0 ] = colormap[ ( color * 3 ) + 2 ];
+					imageData[ ( x + width * y ) * 4 + 2 ] = colormap[ ( index * 3 ) + 0 ];
+					imageData[ ( x + width * y ) * 4 + 1 ] = colormap[ ( index * 3 ) + 1 ];
+					imageData[ ( x + width * y ) * 4 + 0 ] = colormap[ ( index * 3 ) + 2 ];
 
 				}
 
@@ -366,7 +390,6 @@ class TGALoader extends DataTextureLoader {
 
 					default:
 						throw new Error( 'THREE.TGALoader: Format not supported.' );
-						break;
 
 				}
 
@@ -392,7 +415,6 @@ class TGALoader extends DataTextureLoader {
 
 					default:
 						throw new Error( 'THREE.TGALoader: Format not supported.' );
-						break;
 
 				}
 

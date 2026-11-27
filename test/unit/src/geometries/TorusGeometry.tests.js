@@ -1,5 +1,3 @@
-/* global QUnit */
-
 import { TorusGeometry } from '../../../../src/geometries/TorusGeometry.js';
 
 import { BufferGeometry } from '../../../../src/core/BufferGeometry.js';
@@ -18,6 +16,8 @@ export default QUnit.module( 'Geometries', () => {
 				radialSegments: 30,
 				tubularSegments: 10,
 				arc: 2.0,
+				thetaStart: Math.PI * 0.5,
+				thetaLength: Math.PI
 			};
 
 			geometries = [
@@ -27,6 +27,8 @@ export default QUnit.module( 'Geometries', () => {
 				new TorusGeometry( parameters.radius, parameters.tube, parameters.radialSegments ),
 				new TorusGeometry( parameters.radius, parameters.tube, parameters.radialSegments, parameters.tubularSegments ),
 				new TorusGeometry( parameters.radius, parameters.tube, parameters.radialSegments, parameters.tubularSegments, parameters.arc ),
+				new TorusGeometry( parameters.radius, parameters.tube, parameters.radialSegments, parameters.tubularSegments, parameters.arc, parameters.thetaStart ),
+				new TorusGeometry( parameters.radius, parameters.tube, parameters.radialSegments, parameters.tubularSegments, parameters.arc, parameters.thetaStart, parameters.thetaLength ),
 			];
 
 		} );
@@ -58,19 +60,6 @@ export default QUnit.module( 'Geometries', () => {
 				object.type === 'TorusGeometry',
 				'TorusGeometry.type should be TorusGeometry'
 			);
-
-		} );
-
-		QUnit.todo( 'parameters', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		// STATIC
-		QUnit.todo( 'fromJSON', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
 
 		} );
 

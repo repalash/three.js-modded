@@ -1,5 +1,3 @@
-/* global QUnit */
-
 import { Box3 } from '../../../../src/math/Box3.js';
 import { Sphere } from '../../../../src/math/Sphere.js';
 import { Triangle } from '../../../../src/math/Triangle.js';
@@ -7,6 +5,7 @@ import { Plane } from '../../../../src/math/Plane.js';
 import { Vector3 } from '../../../../src/math/Vector3.js';
 import { Matrix4 } from '../../../../src/math/Matrix4.js';
 import { Mesh } from '../../../../src/objects/Mesh.js';
+import { BatchedMesh } from '../../../../src/objects/BatchedMesh.js';
 import { BufferAttribute } from '../../../../src/core/BufferAttribute.js';
 import { BoxGeometry } from '../../../../src/geometries/BoxGeometry.js';
 import {
@@ -193,6 +192,22 @@ export default QUnit.module( 'Maths', () => {
 
 		} );
 
+		QUnit.test( 'setFromObject/Precise/BatchedMesh', ( assert ) => {
+
+			const geometry = new BoxGeometry( 2, 2, 2 );
+			const object = new BatchedMesh( 2, 100, 100 );
+			const geometryId = object.addGeometry( geometry );
+			object.setMatrixAt( object.addInstance( geometryId ), new Matrix4().makeTranslation( 10, 0, 0 ) );
+			object.setMatrixAt( object.addInstance( geometryId ), new Matrix4().makeTranslation( 20, 0, 0 ) );
+			object.position.set( 0, 5, 0 );
+
+			const box = new Box3().setFromObject( object, true );
+
+			assert.ok( box.min.equals( new Vector3( 9, 4, - 1 ) ), 'Minimum includes instance and world transforms' );
+			assert.ok( box.max.equals( new Vector3( 21, 6, 1 ) ), 'Maximum includes instance and world transforms' );
+
+		} );
+
 		QUnit.test( 'clone', ( assert ) => {
 
 			let a = new Box3( zero3.clone(), one3.clone() );
@@ -367,7 +382,7 @@ export default QUnit.module( 'Maths', () => {
 			assert.ok( a.max.equals( new Vector3( 1, 1, 1 ) ), 'Smaller box: correct new maximum' );
 
 			//
-			assert.ok( new Box3().expandByObject( new Mesh() ).isEmpty() === true, 'The AABB of a mesh with inital geometry is empty.' );
+			assert.ok( new Box3().expandByObject( new Mesh() ).isEmpty() === true, 'The AABB of a mesh with initial geometry is empty.' );
 
 		} );
 

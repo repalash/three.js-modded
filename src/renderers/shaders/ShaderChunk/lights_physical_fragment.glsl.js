@@ -1,13 +1,31 @@
 export default /* glsl */`
 PhysicalMaterial material;
-material.diffuseColor = diffuseColor.rgb * ( 1.0 - metalnessFactor );
+material.diffuseColor = diffuseColor.rgb;
+material.diffuseContribution = diffuseColor.rgb * ( 1.0 - metalnessFactor );
+material.metalness = metalnessFactor;
 
 vec3 dxy = max( abs( dFdx( nonPerturbedNormal ) ), abs( dFdy( nonPerturbedNormal ) ) );
 float geometryRoughness = max( max( dxy.x, dxy.y ), dxy.z );
 
-material.roughness = max( roughnessFactor, 0.0525 );// 0.0525 corresponds to the base mip of a 256 cubemap.
+// Minimum roughness, so even a perfect mirror samples a prefiltered level of the environment map.
+// Matches Filament's desktop MIN_PERCEPTUAL_ROUGHNESS: https://github.com/google/filament/blob/main/shaders/src/surface_material.fs
+material.roughness = max( roughnessFactor, 0.045 );
 material.roughness += geometryRoughness;
 material.roughness = min( material.roughness, 1.0 );
+
+#ifdef USE_DIFFUSE_ROUGHNESS
+
+	float diffuseRoughnessFactor = diffuseRoughness;
+
+	#ifdef USE_DIFFUSE_ROUGHNESSMAP
+
+		diffuseRoughnessFactor *= texture2D( diffuseRoughnessMap, vDiffuseRoughnessMapUv ).r;
+
+	#endif
+
+	material.diffuseRoughness = saturate( diffuseRoughnessFactor );
+
+#endif
 
 #ifdef IOR
 
@@ -40,11 +58,13 @@ material.roughness = min( material.roughness, 1.0 );
 
 	#endif
 
-	material.specularColor = mix( min( pow2( ( material.ior - 1.0 ) / ( material.ior + 1.0 ) ) * specularColorFactor, vec3( 1.0 ) ) * specularIntensityFactor, diffuseColor.rgb, metalnessFactor );
+	material.specularColor = min( pow2( ( material.ior - 1.0 ) / ( material.ior + 1.0 ) ) * specularColorFactor, vec3( 1.0 ) ) * specularIntensityFactor;
+	material.specularColorBlended = mix( material.specularColor, diffuseColor.rgb, metalnessFactor );
 
 #else
 
-	material.specularColor = mix( vec3( 0.04 ), diffuseColor.rgb, metalnessFactor );
+	material.specularColor = vec3( 0.04 );
+	material.specularColorBlended = mix( material.specularColor, diffuseColor.rgb, metalnessFactor );
 	material.specularF90 = 1.0;
 
 #endif
@@ -69,7 +89,7 @@ material.roughness = min( material.roughness, 1.0 );
 	#endif
 
 	material.clearcoat = saturate( material.clearcoat ); // Burley clearcoat model
-	material.clearcoatRoughness = max( material.clearcoatRoughness, 0.0525 );
+	material.clearcoatRoughness = max( material.clearcoatRoughness, 0.045 );
 	material.clearcoatRoughness += geometryRoughness;
 	material.clearcoatRoughness = min( material.clearcoatRoughness, 1.0 );
 
@@ -78,6 +98,12 @@ material.roughness = min( material.roughness, 1.0 );
 #ifdef USE_DISPERSION
 
 	material.dispersion = dispersion;
+
+#endif
+
+#ifdef USE_RETROREFLECTION
+
+	material.retroreflectivity = retroreflectivity;
 
 #endif
 
@@ -114,7 +140,7 @@ material.roughness = min( material.roughness, 1.0 );
 
 	#endif
 
-	material.sheenRoughness = clamp( sheenRoughness, 0.07, 1.0 );
+	material.sheenRoughness = clamp( sheenRoughness, 0.0001, 1.0 );
 
 	#ifdef USE_SHEEN_ROUGHNESSMAP
 

@@ -1,156 +1,88 @@
-import { FileLoader, Loader, TextureLoader, MeshBasicNodeMaterial, MeshPhysicalNodeMaterial, RepeatWrapping } from 'three';
+import { FileLoader, Loader } from 'three/webgpu';
 
-import {
-	float, bool, int, vec2, vec3, vec4, color, texture,
-	positionLocal, positionWorld, uv, vertexColor,
-	normalLocal, normalWorld, tangentLocal, tangentWorld,
-	add, sub, mul, div, mod, abs, sign, floor, ceil, round, pow, sin, cos, tan,
-	asin, acos, atan2, sqrt, exp, clamp, min, max, normalize, length, dot, cross, normalMap,
-	remap, smoothstep, luminance, mx_rgbtohsv, mx_hsvtorgb,
-	mix,
-	mx_ramplr, mx_ramptb, mx_splitlr, mx_splittb,
-	mx_fractal_noise_float, mx_noise_float, mx_cell_noise_float, mx_worley_noise_float,
-	mx_transform_uv,
-	mx_safepower, mx_contrast,
-	mx_srgb_texture_to_lin_rec709,
-	saturation,
-	timerLocal, frameId
-} from 'three/tsl';
+import { MaterialXDocument } from './materialx/MaterialXDocument.js';
+import { MaterialXLog } from './materialx/MaterialXLog.js';
+import { isZipBuffer, readMtlxArchive, createArchiveResolver } from './materialx/MaterialXArchive.js';
 
-const colorSpaceLib = {
-	mx_srgb_texture_to_lin_rec709
-};
+const _textDecoder = new TextDecoder();
 
-class MXElement {
+function getResourcePath( loaderPath, url ) {
 
-	constructor( name, nodeFunc, params = [] ) {
+	if ( loaderPath ) return loaderPath;
 
-		this.name = name;
-		this.nodeFunc = nodeFunc;
-		this.params = params;
-
-	}
+	const index = url.lastIndexOf( '/' );
+	return index === - 1 ? '' : url.slice( 0, index + 1 );
 
 }
 
-// Ref: https://github.com/mrdoob/three.js/issues/24674
-
-const mx_add = ( in1, in2 = float( 0 ) ) => add( in1, in2 );
-const mx_subtract = ( in1, in2 = float( 0 ) ) => sub( in1, in2 );
-const mx_multiply = ( in1, in2 = float( 1 ) ) => mul( in1, in2 );
-const mx_divide = ( in1, in2 = float( 1 ) ) => div( in1, in2 );
-const mx_modulo = ( in1, in2 = float( 1 ) ) => mod( in1, in2 );
-const mx_power = ( in1, in2 = float( 1 ) ) => pow( in1, in2 );
-const mx_atan2 = ( in1 = float( 0 ), in2 = float( 1 ) ) => atan2( in1, in2 );
-const mx_timer = () => timerLocal();
-const mx_frame = () => frameId;
-
-const MXElements = [
-
-	// << Math >>
-	new MXElement( 'add', mx_add, [ 'in1', 'in2' ] ),
-	new MXElement( 'subtract', mx_subtract, [ 'in1', 'in2' ] ),
-	new MXElement( 'multiply', mx_multiply, [ 'in1', 'in2' ] ),
-	new MXElement( 'divide', mx_divide, [ 'in1', 'in2' ] ),
-	new MXElement( 'modulo', mx_modulo, [ 'in1', 'in2' ] ),
-	new MXElement( 'absval', abs, [ 'in1', 'in2' ] ),
-	new MXElement( 'sign', sign, [ 'in1', 'in2' ] ),
-	new MXElement( 'floor', floor, [ 'in1', 'in2' ] ),
-	new MXElement( 'ceil', ceil, [ 'in1', 'in2' ] ),
-	new MXElement( 'round', round, [ 'in1', 'in2' ] ),
-	new MXElement( 'power', mx_power, [ 'in1', 'in2' ] ),
-	new MXElement( 'sin', sin, [ 'in' ] ),
-	new MXElement( 'cos', cos, [ 'in' ] ),
-	new MXElement( 'tan', tan, [ 'in' ] ),
-	new MXElement( 'asin', asin, [ 'in' ] ),
-	new MXElement( 'acos', acos, [ 'in' ] ),
-	new MXElement( 'atan2', mx_atan2, [ 'in1', 'in2' ] ),
-	new MXElement( 'sqrt', sqrt, [ 'in' ] ),
-	//new MtlXElement( 'ln', ... ),
-	new MXElement( 'exp', exp, [ 'in' ] ),
-	new MXElement( 'clamp', clamp, [ 'in', 'low', 'high' ] ),
-	new MXElement( 'min', min, [ 'in1', 'in2' ] ),
-	new MXElement( 'max', max, [ 'in1', 'in2' ] ),
-	new MXElement( 'normalize', normalize, [ 'in' ] ),
-	new MXElement( 'magnitude', length, [ 'in1', 'in2' ] ),
-	new MXElement( 'dotproduct', dot, [ 'in1', 'in2' ] ),
-	new MXElement( 'crossproduct', cross, [ 'in' ] ),
-	//new MtlXElement( 'transformpoint', ... ),
-	//new MtlXElement( 'transformvector', ... ),
-	//new MtlXElement( 'transformnormal', ... ),
-	//new MtlXElement( 'transformmatrix', ... ),
-	new MXElement( 'normalmap', normalMap, [ 'in', 'scale' ] ),
-	//new MtlXElement( 'transpose', ... ),
-	//new MtlXElement( 'determinant', ... ),
-	//new MtlXElement( 'invertmatrix', ... ),
-	//new MtlXElement( 'rotate2d', rotateUV, [ 'in', radians( 'amount' )** ] ),
-	//new MtlXElement( 'rotate3d', ... ),
-	//new MtlXElement( 'arrayappend', ... ),
-	//new MtlXElement( 'dot', ... ),
-
-	// << Adjustment >>
-	new MXElement( 'remap', remap, [ 'in', 'inlow', 'inhigh', 'outlow', 'outhigh' ] ),
-	new MXElement( 'smoothstep', smoothstep, [ 'in', 'low', 'high' ] ),
-	//new MtlXElement( 'curveadjust', ... ),
-	//new MtlXElement( 'curvelookup', ... ),
-	new MXElement( 'luminance', luminance, [ 'in', 'lumacoeffs' ] ),
-	new MXElement( 'rgbtohsv', mx_rgbtohsv, [ 'in' ] ),
-	new MXElement( 'hsvtorgb', mx_hsvtorgb, [ 'in' ] ),
-
-	// << Mix >>
-	new MXElement( 'mix', mix, [ 'bg', 'fg', 'mix' ] ),
-
-	// << Channel >>
-	new MXElement( 'combine2', vec2, [ 'in1', 'in2' ] ),
-	new MXElement( 'combine3', vec3, [ 'in1', 'in2', 'in3' ] ),
-	new MXElement( 'combine4', vec4, [ 'in1', 'in2', 'in3', 'in4' ] ),
-
-	// << Procedural >>
-	new MXElement( 'ramplr', mx_ramplr, [ 'valuel', 'valuer', 'texcoord' ] ),
-	new MXElement( 'ramptb', mx_ramptb, [ 'valuet', 'valueb', 'texcoord' ] ),
-	new MXElement( 'splitlr', mx_splitlr, [ 'valuel', 'valuer', 'texcoord' ] ),
-	new MXElement( 'splittb', mx_splittb, [ 'valuet', 'valueb', 'texcoord' ] ),
-	new MXElement( 'noise2d', mx_noise_float, [ 'texcoord', 'amplitude', 'pivot' ] ),
-	new MXElement( 'noise3d', mx_noise_float, [ 'texcoord', 'amplitude', 'pivot' ] ),
-	new MXElement( 'fractal3d', mx_fractal_noise_float, [ 'position', 'octaves', 'lacunarity', 'diminish', 'amplitude' ] ),
-	new MXElement( 'cellnoise2d', mx_cell_noise_float, [ 'texcoord' ] ),
-	new MXElement( 'cellnoise3d', mx_cell_noise_float, [ 'texcoord' ] ),
-	new MXElement( 'worleynoise2d', mx_worley_noise_float, [ 'texcoord', 'jitter' ] ),
-	new MXElement( 'worleynoise3d', mx_worley_noise_float, [ 'texcoord', 'jitter' ] ),
-
-	// << Supplemental >>
-	//new MtlXElement( 'tiledimage', ... ),
-	//new MtlXElement( 'triplanarprojection', triplanarTextures, [ 'filex', 'filey', 'filez' ] ),
-	//new MtlXElement( 'ramp4', ... ),
-	//new MtlXElement( 'place2d', mx_place2d, [ 'texcoord', 'pivot', 'scale', 'rotate', 'offset' ] ),
-	new MXElement( 'safepower', mx_safepower, [ 'in1', 'in2' ] ),
-	new MXElement( 'contrast', mx_contrast, [ 'in', 'amount', 'pivot' ] ),
-	//new MtlXElement( 'hsvadjust', ... ),
-	new MXElement( 'saturate', saturation, [ 'in', 'amount' ] ),
-	//new MtlXElement( 'extract', ... ),
-	//new MtlXElement( 'separate2', ... ),
-	//new MtlXElement( 'separate3', ... ),
-	//new MtlXElement( 'separate4', ... )
-
-	new MXElement( 'time', mx_timer ),
-	new MXElement( 'frame', mx_frame )
-
-];
-
-const MtlXLibrary = {};
-MXElements.forEach( element => MtlXLibrary[ element.name ] = element );
-
+/**
+ * A loader for the MaterialX format.
+ *
+ * The node materials loaded with this loader can only be used with {@link WebGPURenderer}.
+ * Besides plain `.mtlx` documents, the loader accepts `.mtlx.zip` archives that bundle a
+ * document with its textures.
+ *
+ * ```js
+ * const loader = new MaterialXLoader().setPath( SAMPLE_PATH );
+ * const { materials } = await loader.loadAsync( 'standard_surface_brass_tiled.mtlx' );
+ * ```
+ *
+ * @augments Loader
+ * @three_import import { MaterialXLoader } from 'three/addons/loaders/MaterialXLoader.js';
+ */
 class MaterialXLoader extends Loader {
 
+	/**
+	 * Constructs a new MaterialX loader.
+	 *
+	 * @param {LoadingManager} [manager] - The loading manager.
+	 */
 	constructor( manager ) {
 
 		super( manager );
 
+		/**
+		 * Releases the resources of the last loaded archive, if any.
+		 *
+		 * @private
+		 * @type {?Function}
+		 */
+		this.archiveDisposer = null;
+
 	}
 
-	load( url, onLoad, onProgress, onError ) {
+	/**
+	 * Frees the resources of the last loaded archive.
+	 *
+	 * @return {MaterialXLoader} A reference to this loader.
+	 */
+	dispose() {
 
-		const _onError = function ( e ) {
+		if ( this.archiveDisposer ) {
+
+			this.archiveDisposer();
+			this.archiveDisposer = null;
+
+		}
+
+		return this;
+
+	}
+
+	/**
+	 * Starts loading from the given URL and passes the loaded MaterialX asset
+	 * to the `onLoad()` callback.
+	 *
+	 * @param {string} url - The path/URL of the file to be loaded. This can also be a data URI.
+	 * @param {function(Object)} onLoad - Executed when the loading process has been finished. Receives the parse result, see {@link MaterialXLoader#parse}.
+	 * @param {onProgressCallback} onProgress - Executed while the loading is in progress.
+	 * @param {onErrorCallback} onError - Executed when errors occur.
+	 * @param {Object} [options] - Parse options, see {@link MaterialXLoader#parse}.
+	 * @return {MaterialXLoader} A reference to this loader.
+	 */
+	load( url, onLoad, onProgress, onError, options = {} ) {
+
+		const _onError = ( e ) => {
 
 			if ( onError ) {
 
@@ -162,15 +94,37 @@ class MaterialXLoader extends Loader {
 
 			}
 
+			this.manager.itemError( url );
+			this.manager.itemEnd( url );
+
 		};
 
+		// Keep the LoadingManager active until parsing and dependent resources
+		// have finished, matching the lifecycle used by GLTFLoader.
+		this.manager.itemStart( url );
+
 		new FileLoader( this.manager )
+			.setPriority( this.priority )
+			.setCache( this.cache )
 			.setPath( this.path )
-			.load( url, async ( text ) => {
+			.setRequestHeader( this.requestHeader )
+			.setWithCredentials( this.withCredentials )
+			.setResponseType( 'arraybuffer' )
+			.load( url, ( data ) => {
 
 				try {
 
-					onLoad( this.parse( text ) );
+					const parsed = this._parseBuffer( data, url, options );
+
+					parsed.document.waitForResources().then( () => {
+
+						parsed.result.errors = parsed.log.errors;
+						parsed.result.warnings = parsed.log.warnings;
+						this._throwOnErrors( parsed.log, options );
+						onLoad( parsed.result );
+						this.manager.itemEnd( url );
+
+					} ).catch( _onError );
 
 				} catch ( e ) {
 
@@ -184,666 +138,139 @@ class MaterialXLoader extends Loader {
 
 	}
 
-	parse( text ) {
+	/**
+	 * Async version of {@link MaterialXLoader#load}. The progress callback can be
+	 * omitted and the parse options passed as the second argument instead.
+	 *
+	 * @param {string} url - The path/URL of the file to be loaded. This can also be a data URI.
+	 * @param {onProgressCallback|Object} [onProgress] - Executed while the loading is in progress, or the parse options.
+	 * @param {Object} [options] - Parse options, see {@link MaterialXLoader#parse}.
+	 * @return {Promise<Object>} A Promise that resolves with the parse result.
+	 */
+	loadAsync( url, onProgress, options = {} ) {
 
-		return new MaterialX( this.manager, this.path ).parse( text );
+		if ( onProgress && typeof onProgress === 'object' ) {
 
-	}
-
-}
-
-class MaterialXNode {
-
-	constructor( materialX, nodeXML, nodePath = '' ) {
-
-		this.materialX = materialX;
-		this.nodeXML = nodeXML;
-		this.nodePath = nodePath ? nodePath + '/' + this.name : this.name;
-
-		this.parent = null;
-
-		this.node = null;
-
-		this.children = [];
-
-	}
-
-	get element() {
-
-		return this.nodeXML.nodeName;
-
-	}
-
-	get nodeGraph() {
-
-		return this.getAttribute( 'nodegraph' );
-
-	}
-
-	get nodeName() {
-
-		return this.getAttribute( 'nodename' );
-
-	}
-
-	get interfaceName() {
-
-		return this.getAttribute( 'interfacename' );
-
-	}
-
-	get output() {
-
-		return this.getAttribute( 'output' );
-
-	}
-
-	get name() {
-
-		return this.getAttribute( 'name' );
-
-	}
-
-	get type() {
-
-		return this.getAttribute( 'type' );
-
-	}
-
-	get value() {
-
-		return this.getAttribute( 'value' );
-
-	}
-
-	getNodeGraph() {
-
-		let nodeX = this;
-
-		while ( nodeX !== null ) {
-
-			if ( nodeX.element === 'nodegraph' ) {
-
-				break;
-
-			}
-
-			nodeX = nodeX.parent;
+			options = onProgress;
+			onProgress = undefined;
 
 		}
 
-		return nodeX;
+		return new Promise( ( resolve, reject ) => {
+
+			this.load( url, resolve, onProgress, reject, options );
+
+		} );
 
 	}
 
-	getRoot() {
+	/**
+	 * Parses a raw MaterialX document or a `.mtlx.zip` archive and returns the resulting materials.
+	 *
+	 * @param {ArrayBuffer|Uint8Array|string} data - The MaterialX document or archive.
+	 * @param {string} [url=''] - The URL the data was loaded from, used to resolve relative resource paths.
+	 * @param {Object} [options] - Parse options, see {@link MaterialXLoader#parse}.
+	 * @return {Object} The parse result, see {@link MaterialXLoader#parse}.
+	 */
+	parseBuffer( data, url = '', options = {} ) {
 
-		let nodeX = this;
-
-		while ( nodeX.parent !== null ) {
-
-			nodeX = nodeX.parent;
-
-		}
-
-		return nodeX;
-
-	}
-
-	get referencePath() {
-
-		let referencePath = null;
-
-		if ( this.nodeGraph !== null && this.output !== null ) {
-
-			referencePath = this.nodeGraph + '/' + this.output;
-
-		} else if ( this.nodeName !== null || this.interfaceName !== null ) {
-
-			referencePath = this.getNodeGraph().nodePath + '/' + ( this.nodeName || this.interfaceName );
-
-		}
-
-		return referencePath;
+		const parsed = this._parseBuffer( data, url, options );
+		this._throwOnErrors( parsed.log, options );
+		return parsed.result;
 
 	}
 
-	get hasReference() {
+	_parseBuffer( data, url = '', options = {} ) {
 
-		return this.referencePath !== null;
+		this.dispose();
 
-	}
+		let text;
+		let archiveResolver = null;
 
-	get isConst() {
+		if ( data && ( isZipBuffer( data ) || /\.mtlx\.zip$/i.test( url ) ) ) {
 
-		return this.element === 'input' && this.value !== null && this.type !== 'filename';
+			const archive = readMtlxArchive( data );
+			text = archive.text;
 
-	}
+			const resolver = createArchiveResolver( archive.files );
+			archiveResolver = resolver.resolve;
+			this.archiveDisposer = resolver.dispose;
 
-	getColorSpaceNode() {
+		} else if ( typeof data === 'string' ) {
 
-		const csSource = this.getAttribute( 'colorspace' );
-		const csTarget = this.getRoot().getAttribute( 'colorspace' );
+			text = data;
 
-		const nodeName = `mx_${ csSource }_to_${ csTarget }`;
+		} else if ( data instanceof Uint8Array ) {
 
-		return colorSpaceLib[ nodeName ];
-
-	}
-
-	getTexture() {
-
-		const filePrefix = this.getRecursiveAttribute( 'fileprefix' ) || '';
-
-		let loader = this.materialX.textureLoader;
-		const uri = filePrefix + this.value;
-
-		if ( uri ) {
-
-			const handler = this.materialX.manager.getHandler( uri );
-			if ( handler !== null ) loader = handler;
-
-		}
-
-		const texture = loader.load( uri );
-		texture.wrapS = texture.wrapT = RepeatWrapping;
-		texture.flipY = false;
-
-		return texture;
-
-	}
-
-	getClassFromType( type ) {
-
-		let nodeClass = null;
-
-		if ( type === 'integer' ) nodeClass = int;
-		else if ( type === 'float' ) nodeClass = float;
-		else if ( type === 'vector2' ) nodeClass = vec2;
-		else if ( type === 'vector3' ) nodeClass = vec3;
-		else if ( type === 'vector4' || type === 'color4' ) nodeClass = vec4;
-		else if ( type === 'color3' ) nodeClass = color;
-		else if ( type === 'boolean' ) nodeClass = bool;
-
-		return nodeClass;
-
-	}
-
-	getNode() {
-
-		let node = this.node;
-
-		if ( node !== null ) {
-
-			return node;
-
-		}
-
-		//
-
-		const type = this.type;
-
-		if ( this.isConst ) {
-
-			const nodeClass = this.getClassFromType( type );
-
-			node = nodeClass( ...this.getVector() );
-
-		} else if ( this.hasReference ) {
-
-			node = this.materialX.getMaterialXNode( this.referencePath ).getNode();
+			text = _textDecoder.decode( data );
 
 		} else {
 
-			const element = this.element;
-
-			if ( element === 'convert' ) {
-
-				const nodeClass = this.getClassFromType( type );
-
-				node = nodeClass( this.getNodeByName( 'in' ) );
-
-			} else if ( element === 'constant' ) {
-
-				node = this.getNodeByName( 'value' );
-
-			} else if ( element === 'position' ) {
-
-				const space = this.getAttribute( 'space' );
-				node = space === 'world' ? positionWorld : positionLocal;
-
-			} else if ( element === 'normal' ) {
-
-				const space = this.getAttribute( 'space' );
-				node = space === 'world' ? normalWorld : normalLocal;
-
-			} else if ( element === 'tangent' ) {
-
-				const space = this.getAttribute( 'space' );
-				node = space === 'world' ? tangentWorld : tangentLocal;
-
-			} else if ( element === 'texcoord' ) {
-
-				const indexNode = this.getChildByName( 'index' );
-				const index = indexNode ? parseInt( indexNode.value ) : 0;
-
-				node = uv( index );
-
-			} else if ( element === 'geomcolor' ) {
-
-				const indexNode = this.getChildByName( 'index' );
-				const index = indexNode ? parseInt( indexNode.value ) : 0;
-
-				node = vertexColor( index );
-
-			} else if ( element === 'tiledimage' ) {
-
-				const file = this.getChildByName( 'file' );
-
-				const textureFile = file.getTexture();
-				const uvTiling = mx_transform_uv( ...this.getNodesByNames( [ 'uvtiling', 'uvoffset' ] ) );
-
-				node = texture( textureFile, uvTiling );
-
-				const colorSpaceNode = file.getColorSpaceNode();
-
-				if ( colorSpaceNode ) {
-
-					node = colorSpaceNode( node );
-
-				}
-
-			} else if ( element === 'image' ) {
-
-				const file = this.getChildByName( 'file' );
-				const uvNode = this.getNodeByName( 'texcoord' );
-
-				const textureFile = file.getTexture();
-
-				node = texture( textureFile, uvNode );
-
-				const colorSpaceNode = file.getColorSpaceNode();
-
-				if ( colorSpaceNode ) {
-
-					node = colorSpaceNode( node );
-
-				}
-
-			} else if ( MtlXLibrary[ element ] !== undefined ) {
-
-				const nodeElement = MtlXLibrary[ element ];
-
-				node = nodeElement.nodeFunc( ...this.getNodesByNames( ...nodeElement.params ) );
-
-			}
+			text = _textDecoder.decode( new Uint8Array( data ) );
 
 		}
 
-		//
+		return this._parse( text, {
+			...options,
+			archiveResolver,
+			path: options.path || getResourcePath( this.path, url )
+		} );
 
-		if ( node === null ) {
+	}
 
-			console.warn( `THREE.MaterialXLoader: Unexpected node ${ new XMLSerializer().serializeToString( this.nodeXML ) }.` );
+	/**
+	 * Parses the given MaterialX document and returns the resulting materials
+	 * together with the translation log.
+	 *
+	 * @param {string} text - The raw MaterialX data as a string.
+	 * @param {Object} [options] - Parse options.
+	 * @param {string} [options.path] - The base path for resolving resources like textures. Defaults to the loader's path.
+	 * @param {string} [options.materialName] - Only translate the material with this name. Defaults to all materials.
+	 * @param {string} [options.uvSpace='bottom-left'] - The UV space of the document's textures, `'bottom-left'` or `'top-left'`.
+	 * @param {Function} [options.interfaceValidator] - Validates node interfaces, see `createStrictInterfaceValidator()` in `MaterialXInterfaceValidation.js`.
+	 * @param {function(Object, ?string): ?Node} [options.nodeResolver] - Builds the TSL node of a MaterialX node before the built-in node library. Called with the node and the requested output (`null` for the default output); returns the node, or `null` to leave it to the loader. For channel outputs such as `outx`, the loader takes the channel of the returned node.
+	 * @param {boolean} [options.throwOnErrors=true] - Whether translation errors throw or are only reported in the log.
+	 * @return {{materials: Object<string,NodeMaterial>, log: Array<Object>, errors: Array<Object>, warnings: Array<Object>}} The materials keyed by name and the translation log.
+	 */
+	parse( text, options = {} ) {
 
-			node = float( 0 );
+		const parsed = this._parse( text, options );
+		this._throwOnErrors( parsed.log, options );
+		return parsed.result;
+
+	}
+
+	_parse( text, options = {} ) {
+
+		const log = new MaterialXLog();
+
+		const document = new MaterialXDocument( this.manager, options.path || this.path, log, options.archiveResolver || null, options.uvSpace );
+		document.imageLoader.setPriority( this.priority );
+		document.imageLoader.setCache( this.cache );
+		document.textureLoader.setPriority( this.priority );
+		document.textureLoader.setCache( this.cache );
+		document.imageLoader.setCrossOrigin( this.crossOrigin );
+		document.textureLoader.setCrossOrigin( this.crossOrigin );
+		document.textureLoader.setRequestHeader( this.requestHeader );
+		document.textureLoader.setWithCredentials( this.withCredentials );
+
+		const result = document.parse( text, options.materialName || null, {
+			interfaceValidator: options.interfaceValidator,
+			nodeResolver: options.nodeResolver,
+		} );
+
+		return { document, log, result };
+
+	}
+
+	_throwOnErrors( log, options ) {
+
+		if ( options.throwOnErrors !== false && log.errors.length > 0 ) {
+
+			const details = log.errors.map( ( error ) => error.message ).join( ' ' );
+			throw new Error( `THREE.MaterialXLoader: MaterialX translation failed with ${log.errors.length} error(s). ${details}` );
 
 		}
-
-		//
-
-		const nodeToTypeClass = this.getClassFromType( type );
-
-		if ( nodeToTypeClass !== null ) {
-
-			node = nodeToTypeClass( node );
-
-		}
-
-		node.name = this.name;
-
-		this.node = node;
-
-		return node;
-
-	}
-
-	getChildByName( name ) {
-
-		for ( const input of this.children ) {
-
-			if ( input.name === name ) {
-
-				return input;
-
-			}
-
-		}
-
-	}
-
-	getNodes() {
-
-		const nodes = {};
-
-		for ( const input of this.children ) {
-
-			const node = input.getNode();
-
-			nodes[ node.name ] = node;
-
-		}
-
-		return nodes;
-
-	}
-
-	getNodeByName( name ) {
-
-		const child = this.getChildByName( name );
-
-		return child ? child.getNode() : undefined;
-
-	}
-
-	getNodesByNames( ...names ) {
-
-		const nodes = [];
-
-		for ( const name of names ) {
-
-			const node = this.getNodeByName( name );
-
-			if ( node ) nodes.push( node );
-
-		}
-
-		return nodes;
-
-	}
-
-	getValue() {
-
-		return this.value.trim();
-
-	}
-
-	getVector() {
-
-		const vector = [];
-
-		for ( const val of this.getValue().split( /[,|\s]/ ) ) {
-
-			if ( val !== '' ) {
-
-				vector.push( Number( val.trim() ) );
-
-			}
-
-		}
-
-		return vector;
-
-	}
-
-	getAttribute( name ) {
-
-		return this.nodeXML.getAttribute( name );
-
-	}
-
-	getRecursiveAttribute( name ) {
-
-		let attribute = this.nodeXML.getAttribute( name );
-
-		if ( attribute === null && this.parent !== null ) {
-
-			attribute = this.parent.getRecursiveAttribute( name );
-
-		}
-
-		return attribute;
-
-	}
-
-	setStandardSurfaceToGltfPBR( material ) {
-
-		const inputs = this.getNodes();
-
-		//
-
-		let colorNode = null;
-
-		if ( inputs.base && inputs.base_color ) colorNode = mul( inputs.base, inputs.base_color );
-		else if ( inputs.base ) colorNode = inputs.base;
-		else if ( inputs.base_color ) colorNode = inputs.base_color;
-
-		//
-
-		let roughnessNode = null;
-
-		if ( inputs.specular_roughness ) roughnessNode = inputs.specular_roughness;
-
-		//
-
-		let metalnessNode = null;
-
-		if ( inputs.metalness ) metalnessNode = inputs.metalness;
-
-		//
-
-		let clearcoatNode = null;
-		let clearcoatRoughnessNode = null;
-
-		if ( inputs.coat ) clearcoatNode = inputs.coat;
-		if ( inputs.coat_roughness ) clearcoatRoughnessNode = inputs.coat_roughness;
-
-		if ( inputs.coat_color ) {
-
-			colorNode = colorNode ? mul( colorNode, inputs.coat_color ) : colorNode;
-
-		}
-
-		//
-
-		let normalNode = null;
-
-		if ( inputs.normal ) normalNode = inputs.normal;
-
-		//
-
-		let emissiveNode = null;
-
-		if ( inputs.emission ) emissiveNode = inputs.emission;
-		if ( inputs.emissionColor ) {
-
-			emissiveNode = emissiveNode ? mul( emissiveNode, inputs.emissionColor ) : emissiveNode;
-
-		}
-
-		//
-
-		material.colorNode = colorNode || color( 0.8, 0.8, 0.8 );
-		material.roughnessNode = roughnessNode || float( 0.2 );
-		material.metalnessNode = metalnessNode || float( 0 );
-		material.clearcoatNode = clearcoatNode || float( 0 );
-		material.clearcoatRoughnessNode = clearcoatRoughnessNode || float( 0 );
-		if ( normalNode ) material.normalNode = normalNode;
-		if ( emissiveNode ) material.emissiveNode = emissiveNode;
-
-	}
-
-	/*setGltfPBR( material ) {
-
-		const inputs = this.getNodes();
-
-		console.log( inputs );
-
-	}*/
-
-	setMaterial( material ) {
-
-		const element = this.element;
-
-		if ( element === 'gltf_pbr' ) {
-
-			//this.setGltfPBR( material );
-
-		} else if ( element === 'standard_surface' ) {
-
-			this.setStandardSurfaceToGltfPBR( material );
-
-		}
-
-	}
-
-	toBasicMaterial() {
-
-		const material = new MeshBasicNodeMaterial();
-		material.name = this.name;
-
-		for ( const nodeX of this.children.toReversed() ) {
-
-			if ( nodeX.name === 'out' ) {
-
-				material.colorNode = nodeX.getNode();
-
-				break;
-
-			}
-
-		}
-
-		return material;
-
-	}
-
-	toPhysicalMaterial() {
-
-		const material = new MeshPhysicalNodeMaterial();
-		material.name = this.name;
-
-		for ( const nodeX of this.children ) {
-
-			const shaderProperties = this.materialX.getMaterialXNode( nodeX.nodeName );
-			shaderProperties.setMaterial( material );
-
-		}
-
-		return material;
-
-	}
-
-	toMaterials() {
-
-		const materials = {};
-
-		let isUnlit = true;
-
-		for ( const nodeX of this.children ) {
-
-			if ( nodeX.element === 'surfacematerial' ) {
-
-				const material = nodeX.toPhysicalMaterial();
-
-				materials[ material.name ] = material;
-
-				isUnlit = false;
-
-			}
-
-		}
-
-		if ( isUnlit ) {
-
-			for ( const nodeX of this.children ) {
-
-				if ( nodeX.element === 'nodegraph' ) {
-
-					const material = nodeX.toBasicMaterial();
-
-					materials[ material.name ] = material;
-
-				}
-
-			}
-
-		}
-
-		return materials;
-
-	}
-
-	add( materialXNode ) {
-
-		materialXNode.parent = this;
-
-		this.children.push( materialXNode );
-
-	}
-
-}
-
-class MaterialX {
-
-	constructor( manager, path ) {
-
-		this.manager = manager;
-		this.path = path;
-		this.resourcePath = '';
-
-		this.nodesXLib = new Map();
-		//this.nodesXRefLib = new WeakMap();
-
-		this.textureLoader = new TextureLoader( manager );
-
-	}
-
-	addMaterialXNode( materialXNode ) {
-
-		this.nodesXLib.set( materialXNode.nodePath, materialXNode );
-
-	}
-
-	/*getMaterialXNodeFromXML( xmlNode ) {
-
-        return this.nodesXRefLib.get( xmlNode );
-
-    }*/
-
-	getMaterialXNode( ...names ) {
-
-		return this.nodesXLib.get( names.join( '/' ) );
-
-	}
-
-	parseNode( nodeXML, nodePath = '' ) {
-
-		const materialXNode = new MaterialXNode( this, nodeXML, nodePath );
-		if ( materialXNode.nodePath ) this.addMaterialXNode( materialXNode );
-
-		for ( const childNodeXML of nodeXML.children ) {
-
-			const childMXNode = this.parseNode( childNodeXML, materialXNode.nodePath );
-			materialXNode.add( childMXNode );
-
-		}
-
-		return materialXNode;
-
-	}
-
-	parse( text ) {
-
-		const rootXML = new DOMParser().parseFromString( text, 'application/xml' ).documentElement;
-
-		this.textureLoader.setPath( this.path );
-
-		//
-
-		const materials = this.parseNode( rootXML ).toMaterials();
-
-		return { materials };
 
 	}
 

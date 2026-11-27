@@ -1,8 +1,5 @@
-/* global QUnit */
-
-import { BufferAttribute } from '../../../../src/core/BufferAttribute.js';
-
 import {
+	BufferAttribute,
 	Int8BufferAttribute,
 	Uint8BufferAttribute,
 	Uint8ClampedBufferAttribute,
@@ -14,7 +11,7 @@ import {
 	Float32BufferAttribute
 } from '../../../../src/core/BufferAttribute.js';
 
-import { DynamicDrawUsage } from '../../../../src/constants.js';
+import { DynamicDrawUsage, StaticDrawUsage, FloatType } from '../../../../src/constants.js';
 import { toHalfFloat, fromHalfFloat } from '../../../../src/extras/DataUtils.js';
 
 export default QUnit.module( 'Core', () => {
@@ -33,70 +30,6 @@ export default QUnit.module( 'Core', () => {
 				/array should be a Typed Array/,
 				'Calling constructor with a simple array throws Error'
 			);
-
-		} );
-
-		// PROPERTIES
-		QUnit.todo( 'name', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'array', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'itemSize', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'count', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'normalized', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'usage', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'updateRanges', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'version', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'onUploadCallback', ( assert ) => {
-
-			// onUploadCallback() {}
-			// defined as member function but set property. refactor req
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'needsUpdate', ( assert ) => {
-
-			// set needsUpdate( value )
-			assert.ok( false, 'everything\'s gonna be alright' );
 
 		} );
 
@@ -148,9 +81,9 @@ export default QUnit.module( 'Core', () => {
 			const i = attr.array;
 			const i2 = attr2.array; // should be [4, 5, 6, 7, 8, 9, 1, 2, 3]
 
-			assert.ok( i2[ 0 ] === i[ 3 ] && i2[ 1 ] === i[ 4 ] && i2[ 2 ] === i[ 5 ], 'chunck copied to correct place' );
-			assert.ok( i2[ 3 ] === i[ 6 ] && i2[ 4 ] === i[ 7 ] && i2[ 5 ] === i[ 8 ], 'chunck copied to correct place' );
-			assert.ok( i2[ 6 ] === i[ 0 ] && i2[ 7 ] === i[ 1 ] && i2[ 8 ] === i[ 2 ], 'chunck copied to correct place' );
+			assert.ok( i2[ 0 ] === i[ 3 ] && i2[ 1 ] === i[ 4 ] && i2[ 2 ] === i[ 5 ], 'chunk copied to correct place' );
+			assert.ok( i2[ 3 ] === i[ 6 ] && i2[ 4 ] === i[ 7 ] && i2[ 5 ] === i[ 8 ], 'chunk copied to correct place' );
+			assert.ok( i2[ 6 ] === i[ 0 ] && i2[ 7 ] === i[ 1 ] && i2[ 8 ] === i[ 2 ], 'chunk copied to correct place' );
 
 		} );
 
@@ -162,34 +95,6 @@ export default QUnit.module( 'Core', () => {
 			a.copyArray( f32a );
 
 			assert.deepEqual( a.array, f32a, 'Check array has new values' );
-
-		} );
-
-		QUnit.todo( 'applyMatrix3', ( assert ) => {
-
-			// applyMatrix3( m )
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'applyMatrix4', ( assert ) => {
-
-			// applyMatrix4( m )
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'applyNormalMatrix', ( assert ) => {
-
-			// applyNormalMatrix( m )
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'transformDirection', ( assert ) => {
-
-			// transformDirection( m )
-			assert.ok( false, 'everything\'s gonna be alright' );
 
 		} );
 
@@ -289,7 +194,10 @@ export default QUnit.module( 'Core', () => {
 				itemSize: 3,
 				type: 'Float32Array',
 				array: [ 1, 2, 3, 4, 5, 6 ],
-				normalized: false
+				normalized: false,
+				name: '',
+				usage: StaticDrawUsage,
+				gpuType: FloatType
 			}, 'Serialized to JSON as expected' );
 
 			const attr2 = new BufferAttribute( new Float32Array( [ 1, 2, 3, 4, 5, 6 ] ), 3, true );
@@ -303,6 +211,7 @@ export default QUnit.module( 'Core', () => {
 				normalized: true,
 				name: 'attributeName',
 				usage: DynamicDrawUsage,
+				gpuType: FloatType
 			}, 'Serialized to JSON as expected with non-default values' );
 
 		} );

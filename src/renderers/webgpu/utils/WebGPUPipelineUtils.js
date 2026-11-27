@@ -1,34 +1,73 @@
-import { BlendColorFactor, OneMinusBlendColorFactor, } from '../../common/Constants.js';
-
 import {
-	GPUFrontFace, GPUCullMode, GPUColorWriteFlags, GPUCompareFunction, GPUBlendFactor, GPUBlendOperation, GPUIndexFormat, GPUStencilOperation
+	GPUFrontFace, GPUCullMode, GPUColorWriteFlags, GPUCompareFunction, GPUBlendFactor, GPUBlendOperation, GPUStencilOperation, GPUPrimitiveTopology
 } from './WebGPUConstants.js';
 
 import {
-	FrontSide, BackSide, DoubleSide,
+	BackSide, DoubleSide,
 	NeverDepth, AlwaysDepth, LessDepth, LessEqualDepth, EqualDepth, GreaterEqualDepth, GreaterDepth, NotEqualDepth,
-	NoBlending, NormalBlending, AdditiveBlending, SubtractiveBlending, MultiplyBlending, CustomBlending,
+	NoBlending, NormalBlending, AdditiveBlending, SubtractiveBlending, MultiplyBlending, CustomBlending, MaterialBlending,
 	ZeroFactor, OneFactor, SrcColorFactor, OneMinusSrcColorFactor, SrcAlphaFactor, OneMinusSrcAlphaFactor, DstColorFactor,
 	OneMinusDstColorFactor, DstAlphaFactor, OneMinusDstAlphaFactor, SrcAlphaSaturateFactor,
+	ConstantColorFactor, OneMinusConstantColorFactor, ConstantAlphaFactor, OneMinusConstantAlphaFactor,
 	AddEquation, SubtractEquation, ReverseSubtractEquation, MinEquation, MaxEquation,
 	KeepStencilOp, ZeroStencilOp, ReplaceStencilOp, InvertStencilOp, IncrementStencilOp, DecrementStencilOp, IncrementWrapStencilOp, DecrementWrapStencilOp,
 	NeverStencilFunc, AlwaysStencilFunc, LessStencilFunc, LessEqualStencilFunc, EqualStencilFunc, GreaterEqualStencilFunc, GreaterStencilFunc, NotEqualStencilFunc
 } from '../../../constants.js';
 
+import { error, ReversedDepthFuncs, warn, warnOnce } from '../../../utils.js';
+
+import GPUComputePipelineDescriptor from '../descriptors/GPUComputePipelineDescriptor.js';
+import GPUPipelineLayoutDescriptor from '../descriptors/GPUPipelineLayoutDescriptor.js';
+import GPURenderBundleEncoderDescriptor from '../descriptors/GPURenderBundleEncoderDescriptor.js';
+import GPURenderPipelineDescriptor from '../descriptors/GPURenderPipelineDescriptor.js';
+
+const _computePipelineDescriptor = new GPUComputePipelineDescriptor();
+const _pipelineLayoutDescriptor = new GPUPipelineLayoutDescriptor();
+const _renderBundleEncoderDescriptor = new GPURenderBundleEncoderDescriptor();
+const _renderPipelineDescriptor = new GPURenderPipelineDescriptor();
+
+/**
+ * A WebGPU backend utility module for managing pipelines.
+ *
+ * @private
+ */
 class WebGPUPipelineUtils {
 
+	/**
+	 * Constructs a new utility object.
+	 *
+	 * @param {WebGPUBackend} backend - The WebGPU backend.
+	 */
 	constructor( backend ) {
 
+		/**
+		 * A reference to the WebGPU backend.
+		 *
+		 * @type {WebGPUBackend}
+		 */
 		this.backend = backend;
 
 	}
 
-	_getSampleCount( renderObjectContext ) {
+	/**
+	 * Returns the sample count derived from the given render context.
+	 *
+	 * @private
+	 * @param {RenderContext} renderContext - The render context.
+	 * @return {number} The sample count.
+	 */
+	_getSampleCount( renderContext ) {
 
-		return this.backend.utils.getSampleCountRenderContext( renderObjectContext );
+		return this.backend.utils.getSampleCountRenderContext( renderContext );
 
 	}
 
+	/**
+	 * Creates a render pipeline for the given render object.
+	 *
+	 * @param {RenderObject} renderObject - The render object.
+	 * @param {Array<Promise>} promises - An array of compilation promises which are used in `compileAsync()`.
+	 */
 	createRenderPipeline( renderObject, promises ) {
 
 		const { object, material, geometry, pipeline } = renderObject;
@@ -47,22 +86,23 @@ class WebGPUPipelineUtils {
 		for ( const bindGroup of renderObject.getBindings() ) {
 
 			const bindingsData = backend.get( bindGroup );
+			const { layoutGPU } = bindingsData.layout;
 
-			bindGroupLayouts.push( bindingsData.layout );
+			bindGroupLayouts.push( layoutGPU );
 
 		}
 
 		// vertex buffers
 
-		const vertexBuffers = backend.attributeUtils.createShaderVertexBuffers( renderObject );
+		const vertexBuffers = backend.attributeUtils.getVertexBufferLayout( renderObject );
 
-		// blending
+		// material blending
 
-		let blending;
+		let materialBlending;
 
-		if ( material.transparent === true && material.blending !== NoBlending ) {
+		if ( material.blending !== NoBlending && ( material.blending !== NormalBlending || material.transparent !== false ) ) {
 
-			blending = this._getBlending( material );
+			materialBlending = this._getBlending( material );
 
 		}
 
@@ -88,10 +128,46 @@ class WebGPUPipelineUtils {
 		if ( renderObject.context.textures !== null ) {
 
 			const textures = renderObject.context.textures;
+			const mrt = renderObject.context.mrt;
 
 			for ( let i = 0; i < textures.length; i ++ ) {
 
-				const colorFormat = utils.getTextureFormatGPU( textures[ i ] );
+				const texture = textures[ i ];
+				const colorFormat = utils.getTextureFormatGPU( texture );
+
+				// mrt blending
+
+				let blending;
+
+				if ( mrt !== null ) {
+
+					if ( this.backend.compatibilityMode !== true ) {
+
+						const blendMode = mrt.getBlendMode( texture.name );
+
+						if ( blendMode.blending === MaterialBlending ) {
+
+							blending = materialBlending;
+
+						} else if ( blendMode.blending !== NoBlending ) {
+
+							blending = this._getBlending( blendMode );
+
+						}
+
+					} else {
+
+						warnOnce( 'WebGPURenderer: Multiple Render Targets (MRT) blending configuration is not fully supported in compatibility mode. The material blending will be used for all render targets.' );
+
+						blending = materialBlending;
+
+					}
+
+				} else {
+
+					blending = materialBlending;
+
+				}
 
 				targets.push( {
 					format: colorFormat,
@@ -107,7 +183,7 @@ class WebGPUPipelineUtils {
 
 			targets.push( {
 				format: colorFormat,
-				blend: blending,
+				blend: materialBlending,
 				writeMask: colorWriteMask
 			} );
 
@@ -122,43 +198,144 @@ class WebGPUPipelineUtils {
 
 		const sampleCount = this._getSampleCount( renderObject.context );
 
-		const pipelineDescriptor = {
-			label: `renderPipeline_${ material.name || material.type }_${ material.id }`,
-			vertex: Object.assign( {}, vertexModule, { buffers: vertexBuffers } ),
-			fragment: Object.assign( {}, fragmentModule, { targets } ),
-			primitive: primitiveState,
-			depthStencil: {
-				format: depthStencilFormat,
-				depthWriteEnabled: material.depthWrite,
-				depthCompare: depthCompare,
-				stencilFront: stencilFront,
-				stencilBack: {}, // three.js does not provide an API to configure the back function (gl.stencilFuncSeparate() was never used)
-				stencilReadMask: material.stencilFuncMask,
-				stencilWriteMask: material.stencilWriteMask
-			},
-			multisample: {
-				count: sampleCount,
-				alphaToCoverageEnabled: material.alphaToCoverage
-			},
-			layout: device.createPipelineLayout( {
-				bindGroupLayouts
-			} )
-		};
+		_pipelineLayoutDescriptor.bindGroupLayouts = bindGroupLayouts;
+
+		const pipelineLayout = device.createPipelineLayout( _pipelineLayoutDescriptor );
+
+		_pipelineLayoutDescriptor.reset();
+
+		_renderPipelineDescriptor.label = `renderPipeline_${ material.name || material.type }_${ material.id }`;
+		_renderPipelineDescriptor.vertex = Object.assign( {}, vertexModule, { buffers: vertexBuffers } );
+		_renderPipelineDescriptor.fragment = Object.assign( {}, fragmentModule, { targets } );
+		_renderPipelineDescriptor.primitive = primitiveState;
+		_renderPipelineDescriptor.multisample.count = sampleCount;
+		_renderPipelineDescriptor.multisample.alphaToCoverageEnabled = material.alphaToCoverage && sampleCount > 1;
+		_renderPipelineDescriptor.layout = pipelineLayout;
+
+		const depthStencil = {};
+		const renderDepth = renderObject.context.depth;
+		const renderStencil = renderObject.context.stencil;
+
+		if ( renderDepth === true || renderStencil === true ) {
+
+			if ( renderDepth === true ) {
+
+				depthStencil.format = depthStencilFormat;
+				depthStencil.depthWriteEnabled = material.depthWrite;
+				depthStencil.depthCompare = depthCompare;
+
+			}
+
+			if ( renderStencil === true ) {
+
+				depthStencil.stencilFront = stencilFront;
+				depthStencil.stencilBack = stencilFront; // apply the same stencil ops to both faces, matching gl.stencilOp() which is not face-separated
+				depthStencil.stencilReadMask = material.stencilFuncMask;
+				depthStencil.stencilWriteMask = material.stencilWriteMask;
+
+			}
+
+			if ( material.polygonOffset === true && ( primitiveState.topology === GPUPrimitiveTopology.TriangleList ) ) {
+
+				depthStencil.depthBias = ( this.backend.parameters.reversedDepthBuffer ) ? - material.polygonOffsetUnits : material.polygonOffsetUnits;
+				depthStencil.depthBiasSlopeScale = ( this.backend.parameters.reversedDepthBuffer ) ? - material.polygonOffsetFactor : material.polygonOffsetFactor;
+				depthStencil.depthBiasClamp = 0; // three.js does not provide an API to configure this value
+
+			}
+
+			_renderPipelineDescriptor.depthStencil = depthStencil;
+
+		}
+
+		// create pipeline
+
+		device.pushErrorScope( 'validation' );
+
+		const stages = [
+			{ program: vertexProgram, module: vertexModule.module },
+			{ program: fragmentProgram, module: fragmentModule.module }
+		];
+		const pipelineLabel = _renderPipelineDescriptor.label;
 
 		if ( promises === null ) {
 
-			pipelineData.pipeline = device.createRenderPipeline( pipelineDescriptor );
+			pipelineData.pipeline = device.createRenderPipeline( _renderPipelineDescriptor );
+
+			_renderPipelineDescriptor.reset();
+
+			device.popErrorScope().then( ( err ) => {
+
+				if ( err !== null ) {
+
+					pipelineData.error = true;
+
+					error( `WebGPURenderer: Render pipeline creation failed (${ pipelineLabel }): ${ err.message }` );
+
+					this._reportShaderDiagnostics( stages, pipelineLabel );
+
+				}
+
+			} );
 
 		} else {
 
-			const p = new Promise( ( resolve /*, reject*/ ) => {
+			const p = new Promise( async ( resolve /*, reject*/ ) => {
 
-				device.createRenderPipelineAsync( pipelineDescriptor ).then( pipeline => {
+				try {
 
-					pipelineData.pipeline = pipeline;
+					let asyncError = null;
+					let pipelinePromise = null;
+
+					try {
+
+						pipelinePromise = device.createRenderPipelineAsync( _renderPipelineDescriptor );
+
+					} catch ( err ) {
+
+						asyncError = err;
+
+					}
+
+					_renderPipelineDescriptor.reset();
+
+					// Pop the error scope before awaiting the pipeline, so several pipelines
+					// can be created at the same time without mixing their error scopes.
+					const errorScopePromise = device.popErrorScope();
+
+					if ( pipelinePromise !== null ) {
+
+						try {
+
+							pipelineData.pipeline = await pipelinePromise;
+
+						} catch ( err ) {
+
+							asyncError = err;
+
+						}
+
+					}
+
+					const errorScope = await errorScopePromise;
+
+					if ( errorScope !== null || asyncError !== null ) {
+
+						pipelineData.error = true;
+
+						const reason = ( errorScope && errorScope.message ) || ( asyncError && asyncError.message ) || 'unknown';
+						error( `WebGPURenderer: Async render pipeline creation failed (${ pipelineLabel }): ${ reason }` );
+
+						await this._reportShaderDiagnostics( stages, pipelineLabel );
+
+					}
+
+				} finally {
+
+					// Guarantee resolution so `compileAsync`'s Promise.all cannot hang on an
+					// unexpected throw from any await above.
 					resolve();
 
-				} );
+				}
 
 			} );
 
@@ -168,27 +345,43 @@ class WebGPUPipelineUtils {
 
 	}
 
-	createBundleEncoder( renderContext ) {
+	/**
+	 * Creates GPU render bundle encoder for the given render context.
+	 *
+	 * @param {RenderContext} renderContext - The render context.
+	 * @param {?string} [label='renderBundleEncoder'] - The label.
+	 * @return {GPURenderBundleEncoder} The GPU render bundle encoder.
+	 */
+	createBundleEncoder( renderContext, label = 'renderBundleEncoder' ) {
 
 		const backend = this.backend;
 		const { utils, device } = backend;
 
 		const depthStencilFormat = utils.getCurrentDepthStencilFormat( renderContext );
-		const colorFormat = utils.getCurrentColorFormat( renderContext );
+		const colorFormats = utils.getCurrentColorFormats( renderContext );
 		const sampleCount = this._getSampleCount( renderContext );
 
-		const descriptor = {
-			label: 'renderBundleEncoder',
-			colorFormats: [ colorFormat ],
-			depthStencilFormat,
-			sampleCount
-		};
+		_renderBundleEncoderDescriptor.label = label;
+		_renderBundleEncoderDescriptor.colorFormats = colorFormats;
+		_renderBundleEncoderDescriptor.depthStencilFormat = depthStencilFormat;
+		_renderBundleEncoderDescriptor.sampleCount = sampleCount;
 
-		return device.createRenderBundleEncoder( descriptor );
+		const bundleEncoder = device.createRenderBundleEncoder( _renderBundleEncoderDescriptor );
+
+		_renderBundleEncoderDescriptor.reset();
+
+		return bundleEncoder;
 
 	}
 
-	createComputePipeline( pipeline, bindings ) {
+	/**
+	 * Creates a compute pipeline for the given compute node.
+	 *
+	 * @param {ComputePipeline} pipeline - The compute pipeline.
+	 * @param {Array<BindGroup>} bindings - The bindings.
+	 * @param {?Array<Promise>} [promises=null] - Optional compilation promises.
+	 */
+	createComputePipeline( pipeline, bindings, promises = null ) {
 
 		const backend = this.backend;
 		const device = backend.device;
@@ -204,35 +397,181 @@ class WebGPUPipelineUtils {
 		for ( const bindingsGroup of bindings ) {
 
 			const bindingsData = backend.get( bindingsGroup );
+			const { layoutGPU } = bindingsData.layout;
 
-			bindGroupLayouts.push( bindingsData.layout );
+			bindGroupLayouts.push( layoutGPU );
 
 		}
 
-		pipelineGPU.pipeline = device.createComputePipeline( {
-			compute: computeProgram,
-			layout: device.createPipelineLayout( {
-				bindGroupLayouts
-			} )
-		} );
+		const computeStage = pipeline.computeProgram;
+		const pipelineLabel = `computePipeline_${ computeStage.stage }${ computeStage.name ? `_${ computeStage.name }` : '' }`;
+
+		device.pushErrorScope( 'validation' );
+
+		_pipelineLayoutDescriptor.bindGroupLayouts = bindGroupLayouts;
+
+		const pipelineLayout = device.createPipelineLayout( _pipelineLayoutDescriptor );
+
+		_pipelineLayoutDescriptor.reset();
+
+		_computePipelineDescriptor.label = pipelineLabel;
+		_computePipelineDescriptor.compute = computeProgram;
+		_computePipelineDescriptor.layout = pipelineLayout;
+
+		if ( promises === null ) {
+
+			pipelineGPU.pipeline = device.createComputePipeline( _computePipelineDescriptor );
+
+			_computePipelineDescriptor.reset();
+
+			device.popErrorScope().then( ( err ) => {
+
+				if ( err !== null ) {
+
+					pipelineGPU.error = true;
+
+					error( `WebGPURenderer: Compute pipeline creation failed (${ pipelineLabel }): ${ err.message }` );
+
+					this._reportShaderDiagnostics( [ { program: computeStage, module: computeProgram.module } ], pipelineLabel );
+
+				}
+
+			} );
+
+		} else {
+
+			const promise = new Promise( async ( resolve /*, reject*/ ) => {
+
+				try {
+
+					let asyncError = null;
+					let pipelinePromise = null;
+
+					try {
+
+						pipelinePromise = device.createComputePipelineAsync( _computePipelineDescriptor );
+
+					} catch ( err ) {
+
+						asyncError = err;
+
+					}
+
+					_computePipelineDescriptor.reset();
+
+					// Pop the error scope before awaiting the pipeline, so several pipelines
+					// can be created at the same time without mixing their error scopes.
+					const errorScopePromise = device.popErrorScope();
+
+					if ( pipelinePromise !== null ) {
+
+						try {
+
+							pipelineGPU.pipeline = await pipelinePromise;
+
+						} catch ( err ) {
+
+							asyncError = err;
+
+						}
+
+					}
+
+					const errorScope = await errorScopePromise;
+
+					if ( errorScope !== null || asyncError !== null ) {
+
+						pipelineGPU.error = true;
+
+						const reason = ( errorScope && errorScope.message ) || ( asyncError && asyncError.message ) || 'unknown';
+						error( `WebGPURenderer: Async compute pipeline creation failed (${ pipelineLabel }): ${ reason }` );
+
+						await this._reportShaderDiagnostics( [ { program: computeStage, module: computeProgram.module } ], pipelineLabel );
+
+					}
+
+				} finally {
+
+					// Guarantee resolution so `compileComputeAsync`'s Promise.all cannot hang on an
+					// unexpected throw from any await above.
+					resolve();
+
+				}
+
+			} );
+
+			promises.push( promise );
+
+		}
 
 	}
 
-	_getBlending( material ) {
+	/**
+	 * Reads line-accurate diagnostics from shader modules and logs them.
+	 * Called from pipeline creation error paths to turn opaque validation
+	 * failures into actionable WGSL feedback.
+	 *
+	 * @private
+	 * @param {Array<{program: ProgrammableStage, module: GPUShaderModule}>} stages - Pairs of program + compiled shader module.
+	 * @param {string} pipelineLabel - Label of the owning pipeline, used as log prefix.
+	 * @return {Promise<void>}
+	 */
+	async _reportShaderDiagnostics( stages, pipelineLabel ) {
+
+		for ( const { program, module } of stages ) {
+
+			const info = await module.getCompilationInfo();
+			if ( info.messages.length === 0 ) continue;
+
+			const sourceLines = program.code.split( '\n' );
+
+			for ( const msg of info.messages ) {
+
+				const location = msg.lineNum > 0
+					? ` at line ${ msg.lineNum }${ msg.linePos > 0 ? `:${ msg.linePos }` : '' }`
+					: '';
+
+				const header = `WebGPURenderer [${ pipelineLabel } / ${ program.stage } ${ msg.type }]${ location }: ${ msg.message }`;
+
+				let excerpt = '';
+				if ( msg.lineNum > 0 && msg.lineNum <= sourceLines.length ) {
+
+					excerpt = `\n  ${ sourceLines[ msg.lineNum - 1 ] }`;
+					if ( msg.linePos > 0 ) excerpt += `\n  ${ ' '.repeat( msg.linePos - 1 ) }^`;
+
+				}
+
+				( msg.type === 'error' ? error : warn )( header + excerpt );
+
+			}
+
+		}
+
+	}
+
+	/**
+	 * Returns the blending state as a descriptor object required
+	 * for the pipeline creation.
+	 *
+	 * @private
+	 * @param {Material|BlendMode} object - The object containing blending information.
+	 * @return {Object} The blending state.
+	 */
+	_getBlending( object ) {
 
 		let color, alpha;
 
-		const blending = material.blending;
-		const blendSrc = material.blendSrc;
-		const blendDst = material.blendDst;
-		const blendEquation = material.blendEquation;
+		const blending = object.blending;
+		const blendSrc = object.blendSrc;
+		const blendDst = object.blendDst;
+		const blendEquation = object.blendEquation;
 
 
 		if ( blending === CustomBlending ) {
 
-			const blendSrcAlpha = material.blendSrcAlpha !== null ? material.blendSrcAlpha : blendSrc;
-			const blendDstAlpha = material.blendDstAlpha !== null ? material.blendDstAlpha : blendDst;
-			const blendEquationAlpha = material.blendEquationAlpha !== null ? material.blendEquationAlpha : blendEquation;
+			const blendSrcAlpha = object.blendSrcAlpha !== null ? object.blendSrcAlpha : blendSrc;
+			const blendDstAlpha = object.blendDstAlpha !== null ? object.blendDstAlpha : blendDst;
+			const blendEquationAlpha = object.blendEquationAlpha !== null ? object.blendEquationAlpha : blendEquation;
 
 			color = {
 				srcFactor: this._getBlendFactor( blendSrc ),
@@ -248,7 +587,7 @@ class WebGPUPipelineUtils {
 
 		} else {
 
-			const premultipliedAlpha = material.premultipliedAlpha;
+			const premultipliedAlpha = object.premultipliedAlpha;
 
 			const setBlend = ( srcRGB, dstRGB, srcAlpha, dstAlpha ) => {
 
@@ -283,7 +622,7 @@ class WebGPUPipelineUtils {
 						break;
 
 					case MultiplyBlending:
-						setBlend( GPUBlendFactor.Zero, GPUBlendFactor.Src, GPUBlendFactor.Zero, GPUBlendFactor.SrcAlpha );
+						setBlend( GPUBlendFactor.Dst, GPUBlendFactor.OneMinusSrcAlpha, GPUBlendFactor.Zero, GPUBlendFactor.One );
 						break;
 
 				}
@@ -297,15 +636,15 @@ class WebGPUPipelineUtils {
 						break;
 
 					case AdditiveBlending:
-						setBlend( GPUBlendFactor.SrcAlpha, GPUBlendFactor.One, GPUBlendFactor.SrcAlpha, GPUBlendFactor.One );
+						setBlend( GPUBlendFactor.SrcAlpha, GPUBlendFactor.One, GPUBlendFactor.One, GPUBlendFactor.One );
 						break;
 
 					case SubtractiveBlending:
-						setBlend( GPUBlendFactor.Zero, GPUBlendFactor.OneMinusSrc, GPUBlendFactor.Zero, GPUBlendFactor.One );
+						error( `WebGPURenderer: "SubtractiveBlending" requires "${ object.isMaterial ? 'material' : 'blendMode' }.premultipliedAlpha = true".` );
 						break;
 
 					case MultiplyBlending:
-						setBlend( GPUBlendFactor.Zero, GPUBlendFactor.Src, GPUBlendFactor.Zero, GPUBlendFactor.Src );
+						error( `WebGPURenderer: "MultiplyBlending" requires "${ object.isMaterial ? 'material' : 'blendMode' }.premultipliedAlpha = true".` );
 						break;
 
 				}
@@ -320,12 +659,18 @@ class WebGPUPipelineUtils {
 
 		} else {
 
-			console.error( 'THREE.WebGPURenderer: Invalid blending: ', blending );
+			error( 'WebGPURenderer: Invalid blending: ', blending );
 
 		}
 
 	}
-
+	/**
+	 * Returns the GPU blend factor which is required for the pipeline creation.
+	 *
+	 * @private
+	 * @param {number} blend - The blend factor as a three.js constant.
+	 * @return {string} The GPU blend factor.
+	 */
 	_getBlendFactor( blend ) {
 
 		let blendFactor;
@@ -361,7 +706,7 @@ class WebGPUPipelineUtils {
 				break;
 
 			case OneMinusDstColorFactor:
-				blendFactor = GPUBlendFactor.OneMinusDstColor;
+				blendFactor = GPUBlendFactor.OneMinusDst;
 				break;
 
 			case DstAlphaFactor:
@@ -376,16 +721,18 @@ class WebGPUPipelineUtils {
 				blendFactor = GPUBlendFactor.SrcAlphaSaturated;
 				break;
 
-			case BlendColorFactor:
+			case ConstantColorFactor:
+			case ConstantAlphaFactor: // WebGPU has no dedicated constant alpha blend factors
 				blendFactor = GPUBlendFactor.Constant;
 				break;
 
-			case OneMinusBlendColorFactor:
+			case OneMinusConstantColorFactor:
+			case OneMinusConstantAlphaFactor: // WebGPU has no dedicated constant alpha blend factors
 				blendFactor = GPUBlendFactor.OneMinusConstant;
 				break;
 
 			default:
-				console.error( 'THREE.WebGPURenderer: Blend factor not supported.', blend );
+				error( 'WebGPURenderer: Blend factor not supported.', blend );
 
 		}
 
@@ -393,6 +740,13 @@ class WebGPUPipelineUtils {
 
 	}
 
+	/**
+	 * Returns the GPU stencil compare function which is required for the pipeline creation.
+	 *
+	 * @private
+	 * @param {Material} material - The material.
+	 * @return {string} The GPU stencil compare function.
+	 */
 	_getStencilCompare( material ) {
 
 		let stencilCompare;
@@ -434,7 +788,7 @@ class WebGPUPipelineUtils {
 				break;
 
 			default:
-				console.error( 'THREE.WebGPURenderer: Invalid stencil function.', stencilFunc );
+				error( 'WebGPURenderer: Invalid stencil function.', stencilFunc );
 
 		}
 
@@ -442,6 +796,13 @@ class WebGPUPipelineUtils {
 
 	}
 
+	/**
+	 * Returns the GPU stencil operation which is required for the pipeline creation.
+	 *
+	 * @private
+	 * @param {number} op - A three.js constant defining the stencil operation.
+	 * @return {string} The GPU stencil operation.
+	 */
 	_getStencilOperation( op ) {
 
 		let stencilOperation;
@@ -481,7 +842,7 @@ class WebGPUPipelineUtils {
 				break;
 
 			default:
-				console.error( 'THREE.WebGPURenderer: Invalid stencil operation.', stencilOperation );
+				error( 'WebGPURenderer: Invalid stencil operation.', stencilOperation );
 
 		}
 
@@ -489,6 +850,13 @@ class WebGPUPipelineUtils {
 
 	}
 
+	/**
+	 * Returns the GPU blend operation which is required for the pipeline creation.
+	 *
+	 * @private
+	 * @param {number} blendEquation - A three.js constant defining the blend equation.
+	 * @return {string} The GPU blend operation.
+	 */
 	_getBlendOperation( blendEquation ) {
 
 		let blendOperation;
@@ -516,7 +884,7 @@ class WebGPUPipelineUtils {
 				break;
 
 			default:
-				console.error( 'THREE.WebGPUPipelineUtils: Blend equation not supported.', blendEquation );
+				error( 'WebGPUPipelineUtils: Blend equation not supported.', blendEquation );
 
 		}
 
@@ -524,52 +892,62 @@ class WebGPUPipelineUtils {
 
 	}
 
+	/**
+	 * Returns the primitive state as a descriptor object required
+	 * for the pipeline creation.
+	 *
+	 * @private
+	 * @param {Object3D} object - The 3D object.
+	 * @param {BufferGeometry} geometry - The geometry.
+	 * @param {Material} material - The material.
+	 * @return {Object} The primitive state.
+	 */
 	_getPrimitiveState( object, geometry, material ) {
 
 		const descriptor = {};
 		const utils = this.backend.utils;
 
+		//
+
 		descriptor.topology = utils.getPrimitiveTopology( object, material );
+		descriptor.stripIndexFormat = utils.getStripIndexFormat( object, geometry );
 
-		if ( geometry.index !== null && object.isLine === true && object.isLineSegments !== true ) {
+		//
 
-			descriptor.stripIndexFormat = ( geometry.index.array instanceof Uint16Array ) ? GPUIndexFormat.Uint16 : GPUIndexFormat.Uint32;
+		let flipSided = ( material.side === BackSide );
 
-		}
+		if ( object.isMesh && object.matrixWorld.determinantAffine() < 0 ) flipSided = ! flipSided;
 
-		switch ( material.side ) {
+		descriptor.frontFace = ( flipSided === true ) ? GPUFrontFace.CW : GPUFrontFace.CCW;
 
-			case FrontSide:
-				descriptor.frontFace = GPUFrontFace.CCW;
-				descriptor.cullMode = GPUCullMode.Back;
-				break;
+		//
 
-			case BackSide:
-				descriptor.frontFace = GPUFrontFace.CCW;
-				descriptor.cullMode = GPUCullMode.Front;
-				break;
-
-			case DoubleSide:
-				descriptor.frontFace = GPUFrontFace.CCW;
-				descriptor.cullMode = GPUCullMode.None;
-				break;
-
-			default:
-				console.error( 'THREE.WebGPUPipelineUtils: Unknown material.side value.', material.side );
-				break;
-
-		}
+		descriptor.cullMode = ( material.side === DoubleSide ) ? GPUCullMode.None : GPUCullMode.Back;
 
 		return descriptor;
 
 	}
 
+	/**
+	 * Returns the GPU color write mask which is required for the pipeline creation.
+	 *
+	 * @private
+	 * @param {Material} material - The material.
+	 * @return {number} The GPU color write mask.
+	 */
 	_getColorWriteMask( material ) {
 
 		return ( material.colorWrite === true ) ? GPUColorWriteFlags.All : GPUColorWriteFlags.None;
 
 	}
 
+	/**
+	 * Returns the GPU depth compare function which is required for the pipeline creation.
+	 *
+	 * @private
+	 * @param {Material} material - The material.
+	 * @return {string} The GPU depth compare function.
+	 */
 	_getDepthCompare( material ) {
 
 		let depthCompare;
@@ -580,7 +958,7 @@ class WebGPUPipelineUtils {
 
 		} else {
 
-			const depthFunc = material.depthFunc;
+			const depthFunc = ( this.backend.parameters.reversedDepthBuffer ) ? ReversedDepthFuncs[ material.depthFunc ] : material.depthFunc;
 
 			switch ( depthFunc ) {
 
@@ -617,7 +995,7 @@ class WebGPUPipelineUtils {
 					break;
 
 				default:
-					console.error( 'THREE.WebGPUPipelineUtils: Invalid depth function.', depthFunc );
+					error( 'WebGPUPipelineUtils: Invalid depth function.', depthFunc );
 
 			}
 

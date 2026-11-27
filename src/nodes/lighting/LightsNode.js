@@ -1,12 +1,50 @@
-import Node, { registerNode } from '../core/Node.js';
-import { nodeObject, nodeProxy, vec3 } from '../tsl/TSLBase.js';
+import Node from '../core/Node.js';
+import { property, vec3 } from '../tsl/TSLBase.js';
+import { hashArray } from '../core/NodeUtils.js';
+import { warn } from '../../utils.js';
 
+/**
+ * A node representing the total diffuse light.
+ *
+ * @type {Node<vec3>}
+ */
+const totalDiffuse = property( 'vec3', 'totalDiffuse' );
+
+/**
+ * A node representing the total specular light.
+ *
+ * @type {Node<vec3>}
+ */
+const totalSpecular = property( 'vec3', 'totalSpecular' );
+
+/**
+ * A node representing the outgoing light.
+ *
+ * @type {Node<vec3>}
+ */
+const outgoingLight = property( 'vec3', 'outgoingLight' );
+
+/**
+ * Sorts an array of lights in ascending order by their IDs.
+ *
+ * @private
+ * @param {Array<Light>} lights - The array of lights to sort.
+ * @return {Array<Light>} The sorted array of lights.
+ */
 const sortLights = ( lights ) => {
 
 	return lights.sort( ( a, b ) => a.id - b.id );
 
 };
 
+/**
+ * Finds and returns a lighting node associated with a specific light ID.
+ *
+ * @private
+ * @param {number} id - The ID of the light to search for.
+ * @param {Array<LightingNode>} lightNodes - The array of lighting nodes to search within.
+ * @return {?LightingNode} The matching lighting node, or null if not found.
+ */
 const getLightNodeById = ( id, lightNodes ) => {
 
 	for ( const lightNode of lightNodes ) {
@@ -23,74 +61,192 @@ const getLightNodeById = ( id, lightNodes ) => {
 
 };
 
+/**
+ * WeakMap cache mapping light objects to their corresponding lighting node instances.
+ *
+ * @private
+ * @type {WeakMap<Light, LightingNode>}
+ */
+const _lightsNodeRef = /*@__PURE__*/ new WeakMap();
+
+/**
+ * Array used to temporarily store light IDs and shadow casting states for hashing.
+ *
+ * @private
+ * @type {Array<number>}
+ */
+const _hashData = [];
+
+/**
+ * This node represents the scene's lighting and manages the lighting model's life cycle
+ * for the current build 3D object. It is responsible for computing the total outgoing
+ * light in a given lighting context.
+ *
+ * @augments Node
+ */
 class LightsNode extends Node {
 
-	constructor( lights = [] ) {
+	static get type() {
+
+		return 'LightsNode';
+
+	}
+
+	/**
+	 * Constructs a new lights node.
+	 */
+	constructor() {
 
 		super( 'vec3' );
 
-		this.totalDiffuseNode = vec3().toVar( 'totalDiffuse' );
-		this.totalSpecularNode = vec3().toVar( 'totalSpecular' );
+		/**
+		 * A node representing the total diffuse light.
+		 *
+		 * @type {Node<vec3>}
+		 */
+		this.totalDiffuseNode = totalDiffuse;
 
-		this.outgoingLightNode = vec3().toVar( 'outgoingLight' );
+		/**
+		 * A node representing the total specular light.
+		 *
+		 * @type {Node<vec3>}
+		 */
+		this.totalSpecularNode = totalSpecular;
 
-		this._lights = lights;
+		/**
+		 * A node representing the outgoing light.
+		 *
+		 * @type {Node<vec3>}
+		 */
+		this.outgoingLightNode = outgoingLight;
 
-		this._lightNodes = null;
-		this._lightNodesHash = null;
+		/**
+		 * An array representing the lights in the scene.
+		 *
+		 * @private
+		 * @type {Array<Light>}
+		 */
+		this._lights = [];
 
+		/**
+		 * `LightsNode` sets this property to `true` by default.
+		 *
+		 * @type {boolean}
+		 * @default true
+		 */
 		this.global = true;
 
 	}
 
+	isCacheable( /*builder*/ ) {
+
+		return false;
+
+	}
+
+	/**
+	 * Overwrites the default {@link Node#customCacheKey} implementation by including
+	 * light data into the cache key.
+	 *
+	 * @return {number} The custom cache key.
+	 */
+	customCacheKey() {
+
+		const builtinLights = this.getBuiltinLights();
+
+		for ( let i = 0; i < builtinLights.length; i ++ ) {
+
+			const light = builtinLights[ i ];
+
+			_hashData.push( light.id );
+			_hashData.push( light.castShadow ? 1 : 0 );
+
+			if ( light.castShadow === true ) {
+
+				// force rebuild on version change to avoid the usage of removed shadow nodes
+
+				const lightNode = _lightsNodeRef.get( light );
+				const lightVersion = ( lightNode ) ? lightNode.version : 0; // light nodes start at version 0, see #35019
+
+				_hashData.push( lightVersion );
+
+			}
+
+			if ( light.isSpotLight === true ) {
+
+				const hashMap = ( light.map !== null ) ? light.map.id : - 1;
+				const hashColorNode = ( light.colorNode ) ? light.colorNode.getCacheKey() : - 1;
+
+				_hashData.push( hashMap, hashColorNode );
+
+			}
+
+		}
+
+		const cacheKey = hashArray( _hashData );
+
+		_hashData.length = 0;
+
+		return cacheKey;
+
+	}
+
+	/**
+	 * Computes a hash value for identifying the current light nodes setup.
+	 *
+	 * @param {NodeBuilder} builder - A reference to the current node builder.
+	 * @return {string} The computed hash.
+	 */
 	getHash( builder ) {
 
-		if ( this._lightNodesHash === null ) {
+		const nodeData = builder.getDataFromNode( this );
 
-			if ( this._lightNodes === null ) this.setupLightsNode( builder );
+		if ( nodeData.lightNodesHash === undefined ) {
+
+			const lightNodes = this.setupLightsNode( builder );
+
+			nodeData.lightNodes = lightNodes;
 
 			const hash = [];
 
-			for ( const lightNode of this._lightNodes ) {
+			for ( const lightNode of lightNodes ) {
 
 				hash.push( lightNode.getHash() );
 
 			}
 
-			this._lightNodesHash = 'lights-' + hash.join( ',' );
+			nodeData.lightNodesHash = 'lights-' + hash.join( ',' );
 
 		}
 
-		return this._lightNodesHash;
+		return nodeData.lightNodesHash;
 
 	}
 
-	analyze( builder ) {
-
-		const properties = builder.getDataFromNode( this );
-
-		for ( const node of properties.nodes ) {
-
-			node.build( builder );
-
-		}
-
-	}
-
+	/**
+	 * Creates lighting nodes for each scene light. This makes it possible to further
+	 * process lights in the node system.
+	 *
+	 * @param {NodeBuilder} builder - A reference to the current node builder.
+	 * @return {Array<LightingNode>} The array of lighting nodes.
+	 */
 	setupLightsNode( builder ) {
 
+		const nodeData = builder.getDataFromNode( this );
 		const lightNodes = [];
 
-		const previousLightNodes = this._lightNodes;
+		const previousLightNodes = nodeData.lightNodes || null;
+		const materialLightings = builder.context.materialLightings;
 
-		const lights = sortLights( this._lights );
-		const nodeLibrary = builder.renderer.nodes.library;
+		const builtinLights = this.getBuiltinLights();
+
+		const lights = sortLights( [ ...materialLightings, ...builtinLights ] );
 
 		for ( const light of lights ) {
 
 			if ( light.isNode ) {
 
-				lightNodes.push( nodeObject( light ) );
+				lightNodes.push( light );
 
 			} else {
 
@@ -98,72 +254,144 @@ class LightsNode extends Node {
 
 				if ( previousLightNodes !== null ) {
 
-					lightNode = getLightNodeById( light.id, previousLightNodes ); // resuse existing light node
+					lightNode = getLightNodeById( light.id, previousLightNodes );
 
 				}
 
 				if ( lightNode === null ) {
 
-					const lightNodeClass = nodeLibrary.getLightNodeClass( light.constructor );
+					const lightNodeClass = light._lightNode;
 
 					if ( lightNodeClass === undefined ) {
 
-						console.warn( `LightsNode.setupNodeLights: Light node not found for ${ light.constructor.name }` );
+						warn( `LightsNode.setupNodeLights: Light node not found for ${ light.constructor.name }` );
 						continue;
 
 					}
 
-					lightNodes.push( nodeObject( new lightNodeClass( light ) ) );
+					if ( _lightsNodeRef.has( light ) === false ) {
+
+						_lightsNodeRef.set( light, new lightNodeClass( light ) );
+
+					}
+
+					lightNode = _lightsNodeRef.get( light );
 
 				}
+
+				lightNodes.push( lightNode );
 
 			}
 
 		}
 
-		this._lightNodes = lightNodes;
+		return lightNodes;
 
 	}
 
+	/**
+	 * Sets up a direct light in the lighting model.
+	 *
+	 * @param {Object} builder - The builder object containing the context and stack.
+	 * @param {Object} lightNode - The light node.
+	 * @param {Object} lightData - The light object containing color and direction properties.
+	 */
+	setupDirectLight( builder, lightNode, lightData ) {
+
+		const { lightingModel, reflectedLight } = builder.context;
+
+		lightingModel.direct( {
+			...lightData,
+			lightNode,
+			reflectedLight
+		}, builder );
+
+	}
+
+	/**
+	 * Sets up a direct rect area light in the lighting model.
+	 *
+	 * @param {Object} builder - The builder object containing the context and stack.
+	 * @param {Object} lightNode - The light node.
+	 * @param {Object} lightData - The light object containing color and area light properties.
+	 */
+	setupDirectRectAreaLight( builder, lightNode, lightData ) {
+
+		const { lightingModel, reflectedLight } = builder.context;
+
+		lightingModel.directRectArea( {
+			...lightData,
+			lightNode,
+			reflectedLight
+		}, builder );
+
+	}
+
+	/**
+	 * Setups the internal lights by building all respective
+	 * light nodes.
+	 *
+	 * @param {NodeBuilder} builder - A reference to the current node builder.
+	 * @param {Array<LightingNode>} lightNodes - An array of lighting nodes.
+	 */
+	setupLights( builder, lightNodes ) {
+
+		for ( const lightNode of lightNodes ) {
+
+			lightNode.build( builder );
+
+		}
+
+		if ( builder.context.lightProbeIrradiance !== undefined ) {
+
+			builder.context.irradiance.addAssign( builder.context.lightProbeIrradiance );
+
+		}
+
+	}
+
+	getLightNodes( builder ) {
+
+		const nodeData = builder.getDataFromNode( this );
+
+		if ( nodeData.lightNodes === undefined ) {
+
+			nodeData.lightNodes = this.setupLightsNode( builder );
+
+		}
+
+		return nodeData.lightNodes;
+
+	}
+
+	/**
+	 * The implementation makes sure that for each light in the scene
+	 * there is a corresponding light node. By building the light nodes
+	 * and evaluating the lighting model the outgoing light is computed.
+	 *
+	 * @param {NodeBuilder} builder - A reference to the current node builder.
+	 * @return {Node<vec3>} A node representing the outgoing light.
+	 */
 	setup( builder ) {
 
-		if ( this._lightNodes === null ) this.setupLightsNode( builder );
+		const currentLightsNode = builder.lightsNode;
+
+		builder.lightsNode = this;
+
+		let outgoingLightNode = this.outgoingLightNode;
 
 		const context = builder.context;
 		const lightingModel = context.lightingModel;
 
-		let outgoingLightNode = this.outgoingLightNode;
-
 		if ( lightingModel ) {
 
-			const { _lightNodes, totalDiffuseNode, totalSpecularNode } = this;
+			const { totalDiffuseNode, totalSpecularNode } = this;
 
 			context.outgoingLight = outgoingLightNode;
 
-			const stack = builder.addStack();
+			builder.addStack();
 
-			//
-
-			const properties = builder.getDataFromNode( this );
-			properties.nodes = stack.nodes;
-
-			//
-
-			lightingModel.start( context, stack, builder );
-
-			// lights
-
-			for ( const lightNode of _lightNodes ) {
-
-				lightNode.build( builder );
-
-			}
-
-			//
-
-			lightingModel.indirect( context, stack, builder );
-
-			//
+			lightingModel.start( builder );
 
 			const { backdrop, backdropAlpha } = context;
 			const { directDiffuse, directSpecular, indirectDiffuse, indirectSpecular } = context.reflectedLight;
@@ -182,8 +410,6 @@ class LightsNode extends Node {
 
 				}
 
-				context.material.transparent = true;
-
 			}
 
 			totalDiffuseNode.assign( totalDiffuse );
@@ -191,34 +417,65 @@ class LightsNode extends Node {
 
 			outgoingLightNode.assign( totalDiffuseNode.add( totalSpecularNode ) );
 
-			//
-
-			lightingModel.finish( context, stack, builder );
-
-			//
+			lightingModel.finish( builder );
 
 			outgoingLightNode = outgoingLightNode.bypass( builder.removeStack() );
 
 		}
 
+		builder.lightsNode = currentLightsNode;
+
 		return outgoingLightNode;
 
 	}
 
+	/**
+	 * Configures this node with an array of lights.
+	 *
+	 * @param {Array<Light>} lights - An array of lights.
+	 * @return {LightsNode} A reference to this node.
+	 */
 	setLights( lights ) {
 
 		this._lights = lights;
-
-		this._lightNodes = null;
-		this._lightNodesHash = null;
 
 		return this;
 
 	}
 
+	/**
+	 * Returns an array of the scene's lights.
+	 *
+	 * @return {Array<Light>} The scene's lights.
+	 */
 	getLights() {
 
 		return this._lights;
+
+	}
+
+	/**
+	 * Returns an array of the scene's lights.
+	 *
+	 * The light variations are shader-dependent;
+	 * if this array changes, the shader needs to be recreated.
+	 *
+	 * @return {Array<Light>} The scene's lights.
+	 */
+	getBuiltinLights() {
+
+		return this._lights;
+
+	}
+
+	/**
+	 * Whether the scene has lights or not.
+	 *
+	 * @type {boolean}
+	 */
+	get hasLights() {
+
+		return this._lights.length > 0;
 
 	}
 
@@ -226,6 +483,13 @@ class LightsNode extends Node {
 
 export default LightsNode;
 
-LightsNode.type = /*@__PURE__*/ registerNode( 'Lights', LightsNode );
-
-export const lights = /*@__PURE__*/ nodeProxy( LightsNode );
+/**
+ * TSL function for creating an instance of `LightsNode` and configuring
+ * it with the given array of lights.
+ *
+ * @tsl
+ * @function
+ * @param {Array<Light>} lights - An array of lights.
+ * @return {LightsNode} The created lights node.
+ */
+export const lights = ( lights = [] ) => new LightsNode().setLights( lights );

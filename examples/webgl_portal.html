@@ -4,6 +4,10 @@
 		<title>three.js webgl - portal</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<meta property="og:title" content="three.js webgl - portal">
+		<meta property="og:type" content="website">
+		<meta property="og:url" content="https://threejs.org/examples/webgl_portal.html">
+		<meta property="og:image" content="https://threejs.org/examples/screenshots/webgl_portal.jpg">
 		<link type="text/css" rel="stylesheet" href="main.css">
 		<style>
 			body {
@@ -193,7 +197,7 @@
 				CameraUtils.frameCorners( portalCamera, bottomLeftCorner, bottomRightCorner, topLeftCorner, false );
 
 				// render the portal
-				// thisPortalTexture.texture.colorSpace = renderer.outputColorSpace;
+				thisPortalTexture.texture.colorSpace = renderer.outputColorSpace;
 				renderer.setRenderTarget( thisPortalTexture );
 				renderer.state.buffers.depth.setMask( true ); // make sure the depth buffer is writable so it can be properly cleared, see #18897
 				if ( renderer.autoClear === false ) renderer.clear();

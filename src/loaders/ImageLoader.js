@@ -3,14 +3,46 @@ import { Loader } from './Loader.js';
 import { FileLoader } from './FileLoader.js';
 import { createElementNS } from '../utils.js';
 
+const _loading = new WeakMap();
+
+/**
+ * A loader for loading images. The class loads images with the HTML `Image` API.
+ *
+ * ```js
+ * const loader = new THREE.ImageLoader();
+ * const image = await loader.loadAsync( 'image.png' );
+ * ```
+ * Please note that `ImageLoader` has dropped support for progress
+ * events in `r84`. For an `ImageLoader` that supports progress events, see
+ * [this thread](https://github.com/mrdoob/three.js/issues/10439#issuecomment-275785639).
+ *
+ * @augments Loader
+ */
 class ImageLoader extends Loader {
 
+	/**
+	 * Constructs a new image loader.
+	 *
+	 * @param {LoadingManager} [manager] - The loading manager.
+	 */
 	constructor( manager ) {
 
 		super( manager );
 
 	}
 
+	/**
+	 * Starts loading from the given URL and passes the loaded image
+	 * to the `onLoad()` callback. The method also returns a new `Image` object which can
+	 * directly be used for texture creation. If you do it this way, the texture
+	 * may pop up in your scene once the respective loading process is finished.
+	 *
+	 * @param {string} url - The path/URL of the file to be loaded. This can also be a data URI.
+	 * @param {function(Image)} onLoad - Executed when the loading process has been finished.
+	 * @param {onProgressCallback} onProgress - Unsupported in this loader.
+	 * @param {onErrorCallback} onError - Executed when errors occur.
+	 * @return {Image} The image.
+	 */
 	load( url, onLoad, onProgress, onError ) {
 
 		const origUrl = url;
@@ -21,19 +53,36 @@ class ImageLoader extends Loader {
 
 		const scope = this;
 
-		const cached = Cache.get( url );
+		const cached = Cache.get( `image:${url}` );
 
 		if ( cached !== undefined ) {
 
-			scope.manager.itemStart( url );
+			if ( cached.complete === true ) {
 
-			setTimeout( function () {
+				scope.manager.itemStart( url );
 
-				if ( onLoad ) onLoad( cached );
+				setTimeout( function () {
 
-				scope.manager.itemEnd( url );
+					if ( onLoad ) onLoad( cached );
 
-			}, 0 );
+					scope.manager.itemEnd( url );
+
+				}, 0 );
+
+			} else {
+
+				let arr = _loading.get( cached );
+
+				if ( arr === undefined ) {
+
+					arr = [];
+					_loading.set( cached, arr );
+
+				}
+
+				arr.push( { onLoad, onError } );
+
+			}
 
 			return cached;
 
@@ -45,9 +94,20 @@ class ImageLoader extends Loader {
 
 			removeEventListeners();
 
-			Cache.add( url, this );
-
 			if ( onLoad ) onLoad( this );
+
+			//
+
+			const callbacks = _loading.get( this ) || [];
+
+			for ( let i = 0; i < callbacks.length; i ++ ) {
+
+				const callback = callbacks[ i ];
+				if ( callback.onLoad ) callback.onLoad( this );
+
+			}
+
+			_loading.delete( this );
 
 			scope.manager.itemEnd( url );
 
@@ -58,6 +118,22 @@ class ImageLoader extends Loader {
 			removeEventListeners();
 
 			if ( onError ) onError( event );
+
+			Cache.remove( `image:${url}` );
+
+			//
+
+			const callbacks = _loading.get( this ) || [];
+
+			for ( let i = 0; i < callbacks.length; i ++ ) {
+
+				const callback = callbacks[ i ];
+				if ( callback.onError ) callback.onError( event );
+
+			}
+
+			_loading.delete( this );
+
 
 			scope.manager.itemError( url );
 			scope.manager.itemEnd( url );
@@ -80,7 +156,10 @@ class ImageLoader extends Loader {
 
 		}
 
+		Cache.add( `image:${url}`, image );
 		scope.manager.itemStart( url );
+
+		image.fetchPriority = this.priority;
 
 		Cache.get( url, 'blob' ).then( ( cachedBlob )=>{
 
@@ -118,6 +197,14 @@ class ImageLoader extends Loader {
 				if ( onError ) onError( event );
 
 			} );
+
+		} ).catch( ( error )=>{
+
+			// a failing cache lookup (CacheStorage unavailable, quota, corrupted entry) must not leave the load pending forever
+			removeEventListeners();
+			if ( onError ) onError( error );
+			scope.manager.itemError( url );
+			scope.manager.itemEnd( url );
 
 		} );
 

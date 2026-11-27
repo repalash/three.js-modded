@@ -4,6 +4,10 @@
 		<title>three.js webgpu - morph face targets</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<meta property="og:title" content="three.js webgpu - morph face targets">
+		<meta property="og:type" content="website">
+		<meta property="og:url" content="https://threejs.org/examples/webgpu_morphtargets_face.html">
+		<meta property="og:image" content="https://threejs.org/examples/screenshots/webgpu_morphtargets_face.jpg">
 		<link type="text/css" rel="stylesheet" href="main.css">
 		<style>
 			body {
@@ -22,7 +26,8 @@
 			{
 				"imports": {
 					"three": "../build/three.webgpu.js",
-					"three/tsl": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+					"three/tsl": "../build/three.tsl.js",
 					"three/addons/": "./jsm/"
 				}
 			}
@@ -30,9 +35,7 @@
 
 		<script type="module">
 
-			import * as THREE from 'three';
-
-			import Stats from 'three/addons/libs/stats.module.js';
+			import * as THREE from 'three/webgpu';
 
 			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
@@ -41,7 +44,7 @@
 			import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
 			import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
-			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+			import { Inspector } from 'three/addons/inspector/Inspector.js';
 
 			init();
 
@@ -49,8 +52,8 @@
 
 				let mixer;
 
-				const clock = new THREE.Clock();
-
+				const timer = new THREE.Timer();
+				timer.connect( document );
 
 				const camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 20 );
 				camera.position.set( - 1.8, 0.8, 3 );
@@ -62,6 +65,7 @@
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.setAnimationLoop( animate );
 				renderer.toneMapping = THREE.ACESFilmicToneMapping;
+				renderer.inspector = new Inspector();
 				document.body.appendChild( renderer.domElement );
 
 				await renderer.init();
@@ -70,11 +74,10 @@
 				const pmremGenerator = new THREE.PMREMGenerator( renderer );
 
 				scene.background = new THREE.Color( 0x666666 );
-				scene.environment = pmremGenerator.fromScene( environment ).texture;
+				scene.environment = pmremGenerator.fromScene( environment, 0.04 ).texture;
 
 				const ktx2Loader = await new KTX2Loader()
-					.setTranscoderPath( 'jsm/libs/basis/' )
-					.detectSupportAsync( renderer );
+					.detectSupport( renderer );
 
 				new GLTFLoader()
 					.setKTX2Loader( ktx2Loader )
@@ -94,8 +97,7 @@
 						const head = mesh.getObjectByName( 'mesh_2' );
 						const influences = head.morphTargetInfluences;
 
-						const gui = new GUI();
-						gui.close();
+						const gui = renderer.inspector.createParameters( 'Morph Targets' );
 
 						for ( const [ key, value ] of Object.entries( head.morphTargetDictionary ) ) {
 
@@ -118,14 +120,11 @@
 				controls.maxPolarAngle = Math.PI / 1.8;
 				controls.target.set( 0, 0.15, - 0.2 );
 
-				const stats = new Stats();
-				document.body.appendChild( stats.dom );
-
-
-
 				function animate() {
 
-					const delta = clock.getDelta();
+					timer.update();
+
+					const delta = timer.getDelta();
 
 					if ( mixer ) {
 
@@ -136,8 +135,6 @@
 					renderer.render( scene, camera );
 
 					controls.update();
-
-					stats.update();
 
 				}
 

@@ -1,15 +1,45 @@
-import Node, { registerNode } from './Node.js';
-import { nodeObject, varying } from '../tsl/TSLBase.js';
+import Node from './Node.js';
+import { varying } from '../tsl/TSLBase.js';
+import { warn } from '../../utils.js';
 
+/**
+ * Base class for representing shader attributes as nodes.
+ *
+ * @augments Node
+ */
 class AttributeNode extends Node {
 
+	static get type() {
+
+		return 'AttributeNode';
+
+	}
+
+	/**
+	 * Constructs a new attribute node.
+	 *
+	 * @param {string} attributeName - The name of the attribute.
+	 * @param {?string} nodeType - The node type.
+	 */
 	constructor( attributeName, nodeType = null ) {
 
 		super( nodeType );
 
+		/**
+		 * `AttributeNode` sets this property to `true` by default.
+		 *
+		 * @type {boolean}
+		 * @default true
+		 */
 		this.global = true;
 
 		this._attributeName = attributeName;
+
+	}
+
+	isCacheable( /*builder*/ ) {
+
+		return false;
 
 	}
 
@@ -19,7 +49,40 @@ class AttributeNode extends Node {
 
 	}
 
-	getNodeType( builder ) {
+	/**
+	 * Returns the node which provides the value of this attribute in the current context, if any.
+	 * The context can provide attributes with a `getAttribute( name, builder )` function, e.g. if the
+	 * vertices are pulled from a storage buffer or the surface is reconstructed per fragment. The
+	 * function should return the same node for the same attribute.
+	 *
+	 * @param {NodeBuilder} builder - The current node builder.
+	 * @return {?Node} The node providing the value of the attribute.
+	 */
+	getContextAttribute( builder ) {
+
+		const getAttribute = builder.context.getAttribute;
+
+		return getAttribute ? getAttribute( this.getAttributeName( builder ), builder ) : null;
+
+	}
+
+	/**
+	 * An attribute provided by the context is replaced by the provided node, like an override.
+	 *
+	 * @param {NodeBuilder} builder - The current node builder.
+	 * @return {Node} The shared node if possible. Otherwise `this` is returned.
+	 */
+	getShared( builder ) {
+
+		return this.getContextAttribute( builder ) || super.getShared( builder );
+
+	}
+
+	generateNodeType( builder ) {
+
+		const contextAttribute = this.getContextAttribute( builder );
+
+		if ( contextAttribute ) return contextAttribute.getNodeType( builder );
 
 		let nodeType = this.nodeType;
 
@@ -45,6 +108,14 @@ class AttributeNode extends Node {
 
 	}
 
+	/**
+	 * Sets the attribute name to the given value. The method can be
+	 * overwritten in derived classes if the final name must be computed
+	 * analytically.
+	 *
+	 * @param {string} attributeName - The name of the attribute.
+	 * @return {AttributeNode} A reference to this node.
+	 */
 	setAttributeName( attributeName ) {
 
 		this._attributeName = attributeName;
@@ -53,6 +124,14 @@ class AttributeNode extends Node {
 
 	}
 
+	/**
+	 * Returns the attribute name of this node. The method can be
+	 * overwritten in derived classes if the final name must be computed
+	 * analytically.
+	 *
+	 * @param {NodeBuilder} builder - The current node builder.
+	 * @return {string} The attribute name.
+	 */
 	getAttributeName( /*builder*/ ) {
 
 		return this._attributeName;
@@ -86,7 +165,7 @@ class AttributeNode extends Node {
 
 		} else {
 
-			console.warn( `AttributeNode: Vertex attribute "${ attributeName }" not found on geometry.` );
+			warn( `AttributeNode: Vertex attribute "${ attributeName }" not found on geometry.` );
 
 			return builder.generateConst( nodeType );
 
@@ -116,6 +195,13 @@ class AttributeNode extends Node {
 
 export default AttributeNode;
 
-AttributeNode.type = /*@__PURE__*/ registerNode( 'Attribute', AttributeNode );
-
-export const attribute = ( name, nodeType ) => nodeObject( new AttributeNode( name, nodeType ) );
+/**
+ * TSL function for creating an attribute node.
+ *
+ * @tsl
+ * @function
+ * @param {string} name - The name of the attribute.
+ * @param {?string} [nodeType=null] - The node type.
+ * @returns {AttributeNode}
+ */
+export const attribute = ( name, nodeType = null ) => new AttributeNode( name, nodeType );

@@ -1,8 +1,8 @@
-/* global QUnit */
-
 import { Line } from '../../../../src/objects/Line.js';
 
 import { Object3D } from '../../../../src/core/Object3D.js';
+import { BufferGeometry } from '../../../../src/core/BufferGeometry.js';
+import { Float32BufferAttribute } from '../../../../src/core/BufferAttribute.js';
 import { Material } from '../../../../src/materials/Material.js';
 
 export default QUnit.module( 'Objects', () => {
@@ -39,18 +39,6 @@ export default QUnit.module( 'Objects', () => {
 
 		} );
 
-		QUnit.todo( 'geometry', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'material', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
 		// PUBLIC
 		QUnit.test( 'isLine', ( assert ) => {
 
@@ -59,12 +47,6 @@ export default QUnit.module( 'Objects', () => {
 				object.isLine,
 				'Line.isLine should be true'
 			);
-
-		} );
-
-		QUnit.todo( 'copy', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
 
 		} );
 
@@ -85,28 +67,21 @@ export default QUnit.module( 'Objects', () => {
 
 		} );
 
-		QUnit.todo( 'computeLineDistances', ( assert ) => {
+		QUnit.test( 'copy/morphTargets', ( assert ) => {
 
-			assert.ok( false, 'everything\'s gonna be alright' );
+			const geometry = new BufferGeometry();
+			geometry.setAttribute( 'position', new Float32BufferAttribute( [ 0, 0, 0, 1, 1, 1 ], 3 ) );
+			geometry.morphAttributes.position = [ new Float32BufferAttribute( [ 1, 0, 0, 0, 1, 0 ], 3 ) ];
+			geometry.morphAttributes.position[ 0 ].name = 'target';
 
-		} );
+			const line = new Line( geometry );
+			line.morphTargetInfluences[ 0 ] = 0.5;
 
-		QUnit.todo( 'raycast', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'updateMorphTargets', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'clone', ( assert ) => {
-
-			// inherited from Object3D, test instance specific behaviour.
-			assert.ok( false, 'everything\'s gonna be alright' );
+			const copy = line.clone();
+			assert.deepEqual( copy.morphTargetInfluences, [ 0.5 ], 'morphTargetInfluences are copied' );
+			assert.notStrictEqual( copy.morphTargetInfluences, line.morphTargetInfluences, 'morphTargetInfluences are not shared' );
+			assert.deepEqual( copy.morphTargetDictionary, { target: 0 }, 'morphTargetDictionary is copied' );
+			assert.notStrictEqual( copy.morphTargetDictionary, line.morphTargetDictionary, 'morphTargetDictionary is not shared' );
 
 		} );
 

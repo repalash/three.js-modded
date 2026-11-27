@@ -1,7 +1,6 @@
-/* global QUnit */
-
 import { ImageBitmapLoader } from '../../../../src/loaders/ImageBitmapLoader.js';
 
+import { Cache } from '../../../../src/loaders/Cache.js';
 import { Loader } from '../../../../src/loaders/Loader.js';
 import { CONSOLE_LEVEL } from '../../utils/console-wrapper.js';
 
@@ -12,7 +11,7 @@ export default QUnit.module( 'Loaders', () => {
 		// INHERITANCE
 		QUnit.test( 'Extending', ( assert ) => {
 
-			// surpress the following console message when testing
+			// suppress the following console message when testing
 			// THREE.ImageBitmapLoader: createImageBitmap() not supported.
 
 			console.level = CONSOLE_LEVEL.OFF;
@@ -29,7 +28,7 @@ export default QUnit.module( 'Loaders', () => {
 		// INSTANCING
 		QUnit.test( 'Instancing', ( assert ) => {
 
-			// surpress the following console message when testing
+			// suppress the following console message when testing
 			// THREE.ImageBitmapLoader: createImageBitmap() not supported.
 
 			console.level = CONSOLE_LEVEL.OFF;
@@ -43,7 +42,7 @@ export default QUnit.module( 'Loaders', () => {
 		// PROPERTIES
 		QUnit.test( 'options', ( assert ) => {
 
-			// surpress the following console message when testing in node
+			// suppress the following console message when testing in node
 			// THREE.ImageBitmapLoader: createImageBitmap() not supported.
 
 			console.level = CONSOLE_LEVEL.OFF;
@@ -58,7 +57,7 @@ export default QUnit.module( 'Loaders', () => {
 		// PUBLIC
 		QUnit.test( 'isImageBitmapLoader', ( assert ) => {
 
-			// surpress the following console message when testing in node
+			// suppress the following console message when testing in node
 			// THREE.ImageBitmapLoader: createImageBitmap() not supported.
 
 			console.level = CONSOLE_LEVEL.OFF;
@@ -72,17 +71,42 @@ export default QUnit.module( 'Loaders', () => {
 
 		} );
 
-		QUnit.todo( 'setOptions', ( assert ) => {
+		QUnit.test( 'load', async ( assert ) => {
 
-			// setOptions( options )
-			assert.ok( false, 'everything\'s gonna be alright' );
+			const canvas = document.createElement( 'canvas' );
+			canvas.width = 8;
+			canvas.height = 8;
 
-		} );
+			const url = canvas.toDataURL( 'image/png' );
 
-		QUnit.todo( 'load', ( assert ) => {
+			const enabled = Cache.enabled;
+			Cache.enabled = true;
 
-			// load( url, onLoad, onProgress, onError )
-			assert.ok( false, 'everything\'s gonna be alright' );
+			try {
+
+				// concurrent requests for the same URL share the cached promise
+
+				const [ first, second ] = await Promise.all( [
+					new ImageBitmapLoader().loadAsync( url ),
+					new ImageBitmapLoader().loadAsync( url )
+				] );
+
+				assert.ok(
+					first instanceof ImageBitmap,
+					'The first request resolves with an image bitmap.'
+				);
+
+				assert.ok(
+					second instanceof ImageBitmap,
+					'The second request resolves with an image bitmap.'
+				);
+
+			} finally {
+
+				Cache.remove( `image-bitmap:${url}` );
+				Cache.enabled = enabled;
+
+			}
 
 		} );
 

@@ -3,116 +3,213 @@ import { AttributeType } from './Constants.js';
 
 import { Uint16BufferAttribute, Uint32BufferAttribute } from '../../core/BufferAttribute.js';
 
-function arrayNeedsUint32( array ) {
-
-	// assumes larger values usually on last
-
-	for ( let i = array.length - 1; i >= 0; -- i ) {
-
-		if ( array[ i ] >= 65535 ) return true; // account for PRIMITIVE_RESTART_FIXED_INDEX, #24565
-
-	}
-
-	return false;
-
-}
-
+/**
+ * Returns the wireframe version for the given geometry.
+ *
+ * @private
+ * @function
+ * @param {BufferGeometry} geometry - The geometry.
+ * @return {number} The version.
+ */
 function getWireframeVersion( geometry ) {
 
 	return ( geometry.index !== null ) ? geometry.index.version : geometry.attributes.position.version;
 
 }
 
-function getWireframeIndex( geometry ) {
+/**
+ * Returns the wireframe ID for the given geometry.
+ *
+ * @private
+ * @function
+ * @param {BufferGeometry} geometry - The geometry.
+ * @return {number} The ID.
+ */
+function getWireframeId( geometry ) {
 
-	const indices = [];
+	return ( geometry.index !== null ) ? geometry.index.id : geometry.attributes.position.id;
+
+}
+
+/**
+ * Returns a wireframe index attribute for the given geometry.
+ *
+ * @private
+ * @function
+ * @param {BufferGeometry} geometry - The geometry.
+ * @return {BufferAttribute} The wireframe index attribute.
+ */
+function getWireframeIndex( geometry ) {
 
 	const geometryIndex = geometry.index;
 	const geometryPosition = geometry.attributes.position;
+	const count = geometryIndex !== null ? geometryIndex.array.length : ( geometryPosition.array.length / 3 ) - 1;
+
+	const IndexBufferAttribute = geometryPosition.count >= 65535 ? Uint32BufferAttribute : Uint16BufferAttribute;
+	const attribute = new IndexBufferAttribute( Math.ceil( count / 3 ) * 6, 1 );
+	const indices = attribute.array;
 
 	if ( geometryIndex !== null ) {
 
 		const array = geometryIndex.array;
 
-		for ( let i = 0, l = array.length; i < l; i += 3 ) {
+		for ( let i = 0, j = 0; i < count; i += 3 ) {
 
 			const a = array[ i + 0 ];
 			const b = array[ i + 1 ];
 			const c = array[ i + 2 ];
 
-			indices.push( a, b, b, c, c, a );
+			indices[ j ++ ] = a; indices[ j ++ ] = b;
+			indices[ j ++ ] = b; indices[ j ++ ] = c;
+			indices[ j ++ ] = c; indices[ j ++ ] = a;
 
 		}
 
 	} else {
 
-		const array = geometryPosition.array;
-
-		for ( let i = 0, l = ( array.length / 3 ) - 1; i < l; i += 3 ) {
+		for ( let i = 0, j = 0; i < count; i += 3 ) {
 
 			const a = i + 0;
 			const b = i + 1;
 			const c = i + 2;
 
-			indices.push( a, b, b, c, c, a );
+			indices[ j ++ ] = a; indices[ j ++ ] = b;
+			indices[ j ++ ] = b; indices[ j ++ ] = c;
+			indices[ j ++ ] = c; indices[ j ++ ] = a;
 
 		}
 
 	}
 
-	const attribute = new ( arrayNeedsUint32( indices ) ? Uint32BufferAttribute : Uint16BufferAttribute )( indices, 1 );
 	attribute.version = getWireframeVersion( geometry );
+	attribute.__id = getWireframeId( geometry );
 
 	return attribute;
 
 }
 
+/**
+ * This renderer module manages geometries.
+ *
+ * @private
+ * @augments DataMap
+ */
 class Geometries extends DataMap {
 
-	constructor( attributes, info ) {
+	/**
+	 * Constructs a new geometry management component.
+	 *
+	 * @param {Backend} backend - The renderer's backend.
+	 * @param {Attributes} attributes - Renderer component for managing attributes.
+	 * @param {Info} info - Renderer component for managing metrics and monitoring data.
+	 */
+	constructor( backend, attributes, info ) {
 
 		super();
 
+		/**
+		 * The renderer's backend.
+		 *
+		 * @type {Backend}
+		 */
+		this.backend = backend;
+
+		/**
+		 * Renderer component for managing attributes.
+		 *
+		 * @type {Attributes}
+		 */
 		this.attributes = attributes;
+
+		/**
+		 * Renderer component for managing metrics and monitoring data.
+		 *
+		 * @type {Info}
+		 */
 		this.info = info;
 
+		/**
+		 * Weak Map for managing attributes for wireframe rendering.
+		 *
+		 * @type {WeakMap<BufferGeometry,BufferAttribute>}
+		 */
 		this.wireframes = new WeakMap();
 
+		/**
+		 * This Weak Map is used to make sure buffer attributes are
+		 * updated only once per render call.
+		 *
+		 * @type {WeakMap<BufferAttribute,number>}
+		 */
 		this.attributeCall = new WeakMap();
+
+		/**
+		 * Stores weak references to the geometries with attached
+		 * `dispose` event listeners.
+		 *
+		 * @private
+		 * @type {Set<WeakRef<BufferGeometry>>}
+		 */
+		this._tracked = new Set();
+
+		/**
+		 * Removes weak references from `_tracked` when their geometry
+		 * has been garbage collected without an explicit `dispose()`.
+		 *
+		 * @private
+		 * @type {FinalizationRegistry}
+		 */
+		this._registry = new FinalizationRegistry( ( ref ) => this._tracked.delete( ref ) );
 
 	}
 
-	has( renderObject ) {
-
-		const geometry = renderObject.geometry;
+	/**
+	 * Returns `true` if the given geometry is initialized.
+	 *
+	 * @param {BufferGeometry} geometry - The geometry.
+	 * @return {boolean} Whether if the given geometry is initialized or not.
+	 */
+	has( geometry ) {
 
 		return super.has( geometry ) && this.get( geometry ).initialized === true;
 
 	}
 
+	/**
+	 * Prepares the geometry of the given render object for rendering.
+	 *
+	 * @param {RenderObject} renderObject - The render object.
+	 */
 	updateForRender( renderObject ) {
 
-		if ( this.has( renderObject ) === false ) this.initGeometry( renderObject );
+		const geometry = renderObject.geometry;
+
+		if ( this.has( geometry ) === false ) this.initGeometry( geometry );
 
 		this.updateAttributes( renderObject );
 
 	}
 
-	initGeometry( renderObject ) {
+	/**
+	 * Initializes the given geometry.
+	 *
+	 * @param {BufferGeometry} geometry - The geometry.
+	 */
+	initGeometry( geometry ) {
 
-		const geometry = renderObject.geometry;
 		const geometryData = this.get( geometry );
 
 		geometryData.initialized = true;
 
 		this.info.memory.geometries ++;
 
-		const onDispose = () => {
+		geometryData.onDispose = () => {
 
 			this.info.memory.geometries --;
 
+			// index
+
 			const index = geometry.index;
-			const geometryAttributes = renderObject.getAttributes();
 
 			if ( index !== null ) {
 
@@ -120,11 +217,15 @@ class Geometries extends DataMap {
 
 			}
 
-			for ( const geometryAttribute of geometryAttributes ) {
+			// geometry attributes
 
-				this.attributes.delete( geometryAttribute );
+			for ( const attribute of Object.values( geometry.attributes ) ) {
+
+				this.attributes.delete( this.backend.getBufferAttribute( attribute ) );
 
 			}
+
+			// wireframe attributes
 
 			const wireframeAttribute = this.wireframes.get( geometry );
 
@@ -134,15 +235,35 @@ class Geometries extends DataMap {
 
 			}
 
-			geometry.removeEventListener( 'dispose', onDispose );
+			//
+
+			geometry.removeEventListener( 'dispose', geometryData.onDispose );
+
+			this._tracked.delete( geometryData.ref );
+			this._registry.unregister( geometryData.ref );
+
+			this.delete( geometry );
 
 		};
 
-		geometry.addEventListener( 'dispose', onDispose );
+		geometry.addEventListener( 'dispose', geometryData.onDispose );
+
+		// see #31798 why tracking separate remove listeners is required right now
+		geometryData.ref = new WeakRef( geometry );
+
+		this._tracked.add( geometryData.ref );
+		this._registry.register( geometry, geometryData.ref, geometryData.ref );
 
 	}
 
+	/**
+	 * Updates the geometry attributes of the given render object.
+	 *
+	 * @param {RenderObject} renderObject - The render object.
+	 */
 	updateAttributes( renderObject ) {
+
+		// attributes
 
 		const attributes = renderObject.getAttributes();
 
@@ -160,6 +281,8 @@ class Geometries extends DataMap {
 
 		}
 
+		// indexes
+
 		const index = this.getIndex( renderObject );
 
 		if ( index !== null ) {
@@ -168,44 +291,71 @@ class Geometries extends DataMap {
 
 		}
 
-	}
+		// indirect
 
-	updateAttribute( attribute, type ) {
+		const indirect = renderObject.geometry.indirect;
 
-		const callId = this.info.render.calls;
+		if ( indirect !== null ) {
 
-		if ( ! attribute.isInterleavedBufferAttribute ) {
-
-			if ( this.attributeCall.get( attribute ) !== callId ) {
-
-				this.attributes.update( attribute, type );
-
-				this.attributeCall.set( attribute, callId );
-
-			}
-
-		} else {
-
-			if ( this.attributeCall.get( attribute ) === undefined ) {
-
-				this.attributes.update( attribute, type );
-
-				this.attributeCall.set( attribute, callId );
-
-			} else if ( this.attributeCall.get( attribute.data ) !== callId ) {
-
-				this.attributes.update( attribute, type );
-
-				this.attributeCall.set( attribute.data, callId );
-
-				this.attributeCall.set( attribute, callId );
-
-			}
+			this.updateAttribute( indirect, AttributeType.INDIRECT );
 
 		}
 
 	}
 
+	/**
+	 * Updates the given attribute.
+	 *
+	 * @param {BufferAttribute} attribute - The attribute to update.
+	 * @param {number} type - The attribute type.
+	 */
+	updateAttribute( attribute, type ) {
+
+		const callId = this.info.render.calls;
+
+		const bufferAttribute = this.backend.getBufferAttribute( attribute );
+
+		if ( this.attributeCall.get( bufferAttribute ) !== callId ) {
+
+			this.attributes.update( bufferAttribute, type );
+
+			this.attributeCall.set( bufferAttribute, callId );
+
+		}
+
+	}
+
+	/**
+	 * Returns the indirect buffer attribute of the given render object.
+	 *
+	 * @param {RenderObject} renderObject - The render object.
+	 * @return {?BufferAttribute} The indirect attribute. `null` if no indirect drawing is used.
+	 */
+	getIndirect( renderObject ) {
+
+		return renderObject.geometry.indirect;
+
+	}
+
+	/**
+	 * Returns the byte offset into the indirect attribute buffer of the given render object.
+	 *
+	 * @param {RenderObject} renderObject - The render object.
+	 * @return {number} The byte offset into the indirect attribute buffer.
+	 */
+	getIndirectOffset( renderObject ) {
+
+		return renderObject.geometry.indirectOffset;
+
+	}
+
+	/**
+	 * Returns the index of the given render object's geometry. This is implemented
+	 * in a method to return a wireframe index if necessary.
+	 *
+	 * @param {RenderObject} renderObject - The render object.
+	 * @return {?BufferAttribute} The index. Returns `null` for non-indexed geometries.
+	 */
 	getIndex( renderObject ) {
 
 		const { geometry, material } = renderObject;
@@ -224,7 +374,7 @@ class Geometries extends DataMap {
 
 				wireframes.set( geometry, wireframeAttribute );
 
-			} else if ( wireframeAttribute.version !== getWireframeVersion( geometry ) ) {
+			} else if ( wireframeAttribute.version !== getWireframeVersion( geometry ) || wireframeAttribute.__id !== getWireframeId( geometry ) ) {
 
 				this.attributes.delete( wireframeAttribute );
 
@@ -239,6 +389,60 @@ class Geometries extends DataMap {
 		}
 
 		return index;
+
+	}
+
+	/**
+	 * Deletes the attributes that are defined via nodes and not on geometry level.
+	 *
+	 * @param {RenderObject} renderObject - The render object.
+	 */
+	deleteNodeAttributes( renderObject ) {
+
+		const currentAttributes = new Set( Object.values( renderObject.geometry.attributes ) );
+
+		for ( const attribute of renderObject.getAttributes() ) {
+
+			if ( currentAttributes.has( attribute ) === false ) {
+
+				this.attributes.delete( this.backend.getBufferAttribute( attribute ) );
+
+			}
+
+		}
+
+	}
+
+	/**
+	 * Deletes the vertex state for the given render object.
+	 *
+	 * @param {RenderObject} renderObject - The render object.
+	 */
+	deleteVertexState( renderObject ) {
+
+		this.backend.deleteVertexState( renderObject );
+
+	}
+
+	/**
+	 * Frees internal resources.
+	 */
+	dispose() {
+
+		for ( const ref of this._tracked ) {
+
+			const geometry = ref.deref();
+
+			if ( geometry === undefined ) continue;
+
+			const geometryData = this.get( geometry );
+			geometryData.onDispose();
+
+		}
+
+		this._tracked.clear();
+
+		super.dispose();
 
 	}
 

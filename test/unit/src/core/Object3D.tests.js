@@ -1,5 +1,3 @@
-/* global QUnit */
-
 import { Object3D } from '../../../../src/core/Object3D.js';
 
 import { Vector3 } from '../../../../src/math/Vector3.js';
@@ -75,23 +73,6 @@ export default QUnit.module( 'Core', () => {
 		} );
 
 		// PROPERTIES
-		QUnit.todo( 'id', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'uuid', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'name', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
 
 		QUnit.test( 'type', ( assert ) => {
 
@@ -100,138 +81,6 @@ export default QUnit.module( 'Core', () => {
 				object.type === 'Object3D',
 				'Object3D.type should be Object3D'
 			);
-
-		} );
-
-		QUnit.todo( 'parent', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'children', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'up', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'position', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'rotation', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'quaternion', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'scale', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'modelViewMatrix', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'normalMatrix', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'matrix', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'matrixWorld', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'matrixAutoUpdate', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'matrixWorldNeedsUpdate', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'matrixWorldAutoUpdate', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'layers', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'visible', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'castShadow', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'receiveShadow', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'frustumCulled', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'renderOrder', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'animations', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'userData', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
 
 		} );
 
@@ -312,18 +161,6 @@ export default QUnit.module( 'Core', () => {
 
 		} );
 
-		QUnit.todo( 'onBeforeRender', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'onAfterRender', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
 		QUnit.test( 'applyMatrix4', ( assert ) => {
 
 			const a = new Object3D();
@@ -343,6 +180,25 @@ export default QUnit.module( 'Core', () => {
 				Math.abs( a.quaternion.z - expectedQuat.z ) <= eps,
 				'Quaternion has the expected values'
 			);
+
+		} );
+
+		QUnit.test( 'applyMatrix4 (pivot)', ( assert ) => {
+
+			const object = new Object3D();
+			object.position.set( 1, 2, 3 );
+			object.rotation.set( 0.3, - 0.7, 1.2 );
+			object.scale.set( 2, 3, 4 );
+			object.pivot = new Vector3( 1, - 2, 3 );
+			object.updateMatrix();
+
+			const m = new Matrix4().makeRotationY( 0.4 ).setPosition( 3, - 2, 1 );
+			const expectedMatrix = m.clone().multiply( object.matrix );
+
+			object.applyMatrix4( m );
+			object.updateMatrix();
+
+			assert.ok( matrixEquals4( object.matrix, expectedMatrix ), 'Transformation is applied correctly with pivot' );
 
 		} );
 
@@ -425,18 +281,6 @@ export default QUnit.module( 'Core', () => {
 			a.setRotationFromQuaternion( rotation );
 			euler.setFromQuaternion( a.getWorldQuaternion( new Quaternion() ) );
 			assert.ok( eulerEquals( euler, new Euler( Math.PI, 0, - Math.PI ) ), 'Correct values after rotation' );
-
-		} );
-
-		QUnit.todo( 'rotateOnAxis', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'rotateOnWorldAxis', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
 
 		} );
 
@@ -616,7 +460,7 @@ export default QUnit.module( 'Core', () => {
 			a.add( child1 );
 			assert.strictEqual( a.children.length, 2, 'The first child was added to the parent' );
 			a.clear();
-			assert.strictEqual( a.children.length, 0, 'All childrens were removed' );
+			assert.strictEqual( a.children.length, 0, 'All children were removed' );
 			assert.strictEqual( child1.parent, null, 'First child has no parent' );
 			assert.strictEqual( child2.parent, null, 'Second child has no parent' );
 
@@ -685,6 +529,26 @@ export default QUnit.module( 'Core', () => {
 
 		} );
 
+		QUnit.test( 'attach (pivot)', ( assert ) => {
+
+			const object = new Object3D();
+			object.position.set( 1, 2, 3 );
+			object.rotation.set( 0.3, - 0.7, 1.2 );
+			object.scale.set( 2, 3, 4 );
+			object.pivot = new Vector3( 1, - 2, 3 );
+			object.updateMatrixWorld();
+
+			const expectedMatrixWorld = object.matrixWorld.clone();
+
+			const parent = new Object3D();
+			parent.position.set( 4, 5, 6 );
+			parent.rotation.set( 0.2, 0.4, 0.6 );
+			parent.attach( object );
+
+			assert.ok( matrixEquals4( object.matrixWorld, expectedMatrixWorld ), 'World matrix is maintained with pivot' );
+
+		} );
+
 		QUnit.test( 'getObjectById/getObjectByName/getObjectByProperty', ( assert ) => {
 
 			const parent = new Object3D();
@@ -722,8 +586,8 @@ export default QUnit.module( 'Core', () => {
 			childName.add( childName2 );
 			parent.add( childName, childNothing );
 
-			assert.strictEqual( parent.getObjectsByProperty( 'name', 'foo' ).length, 3, 'Get amount of all childs by name "foo"' );
-			assert.strictEqual( parent.getObjectsByProperty( 'name', 'foo' ).some( obj => obj.name !== 'foo' ), false, 'Get all childs by name "foo"' );
+			assert.strictEqual( parent.getObjectsByProperty( 'name', 'foo' ).length, 3, 'Count the number of children with name "foo"' );
+			assert.strictEqual( parent.getObjectsByProperty( 'name', 'foo' ).some( obj => obj.name !== 'foo' ), false, 'Get all children with name "foo"' );
 
 		} );
 
@@ -749,12 +613,6 @@ export default QUnit.module( 'Core', () => {
 
 			assert.deepEqual( a.getWorldPosition( position ), expectedParent, 'WorldPosition as expected for parent' );
 			assert.deepEqual( b.getWorldPosition( position ), expectedChild, 'WorldPosition as expected for child' );
-
-		} );
-
-		QUnit.todo( 'getWorldQuaternion', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
 
 		} );
 
@@ -814,12 +672,6 @@ export default QUnit.module( 'Core', () => {
 			d.lookAt( new Vector3( 0, - 1, 1 ) );
 
 			assert.ok( true, 'Calling lookAt after getWorldScale does not create errors' );
-
-		} );
-
-		QUnit.todo( 'raycast', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
 
 		} );
 
@@ -1220,6 +1072,7 @@ export default QUnit.module( 'Core', () => {
 			object.matrixWorld.identity();
 
 			object.matrixAutoUpdate = false;
+			object.matrixWorldNeedsUpdate = true;
 			object.updateWorldMatrix( true, false );
 
 			assert.deepEqual( object.matrix.elements,
@@ -1271,7 +1124,7 @@ export default QUnit.module( 'Core', () => {
 
 			const gold = {
 				'metadata': {
-					'version': 4.6,
+					'version': 4.7,
 					'type': 'Object',
 					'generator': 'Object3D.toJSON'
 				},
@@ -1282,6 +1135,10 @@ export default QUnit.module( 'Core', () => {
 					'castShadow': true,
 					'receiveShadow': true,
 					'visible': false,
+					'frustumCulled': true,
+					'renderOrder': 0,
+					'static': false,
+					'matrixAutoUpdate': true,
 					'userData': { 'foo': 'bar' },
 					'layers': 1,
 					'matrix': [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ],
@@ -1289,12 +1146,28 @@ export default QUnit.module( 'Core', () => {
 						{
 							'uuid': '5D4E9AE8-DA61-4912-A575-71A5BE3D72CD',
 							'type': 'Object3D',
+							'name': '',
+							'castShadow': false,
+							'receiveShadow': false,
+							'visible': true,
+							'frustumCulled': true,
+							'renderOrder': 0,
+							'static': false,
+							'matrixAutoUpdate': true,
 							'layers': 1,
 							'matrix': [ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 ],
 							'children': [
 								{
 									'uuid': 'B43854B3-E970-4E85-BD41-AAF8D7BFA189',
 									'type': 'Object3D',
+									'name': '',
+									'castShadow': false,
+									'receiveShadow': false,
+									'visible': true,
+									'frustumCulled': true,
+									'renderOrder': 0,
+									'static': false,
+									'matrixAutoUpdate': true,
 									'layers': 1,
 									'matrix': [ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 ],
 									'up': [ 0, 1, 0 ]
@@ -1317,13 +1190,14 @@ export default QUnit.module( 'Core', () => {
 
 		QUnit.test( 'clone', ( assert ) => {
 
+			/* eslint-disable prefer-const*/
 			let a;
 			const b = new Object3D();
 
 			assert.strictEqual( a, undefined, 'Undefined pre-clone()' );
 
 			a = b.clone();
-			assert.notStrictEqual( a, b, 'Defined but seperate instances post-clone()' );
+			assert.notStrictEqual( a, b, 'Defined but separate instances post-clone()' );
 
 			a.uuid = b.uuid;
 			assert.deepEqual( a, b, 'But identical properties' );

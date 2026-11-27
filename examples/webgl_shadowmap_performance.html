@@ -4,13 +4,17 @@
 		<title>three.js webgl - shadow map</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<meta property="og:title" content="three.js webgl - shadow map">
+		<meta property="og:type" content="website">
+		<meta property="og:url" content="https://threejs.org/examples/webgl_shadowmap_performance.html">
+		<meta property="og:image" content="https://threejs.org/examples/screenshots/webgl_shadowmap_performance.jpg">
 		<link type="text/css" rel="stylesheet" href="main.css">
 	</head>
 
 	<body>
 
 		<div id="info">
-		<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - shadowmap - models by <a href="https://mirada.com/" target="_blank" rel="noopener">mirada</a> from <a href="http://www.ro.me" target="_blank" rel="noopener">rome</a><br />
+		<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - shadowmap - models by <a href="https://mirada.com/" target="_blank" rel="noopener">mirada</a> from <a href="https://rome.mrdoob.com" target="_blank" rel="noopener">rome</a><br />
 		move camera with WASD / RF + mouse
 		</div>
 
@@ -51,7 +55,8 @@
 
 			const morphs = [], animGroups = [];
 
-			const clock = new THREE.Clock();
+			const timer = new THREE.Timer();
+			timer.connect( document );
 
 			init();
 
@@ -107,13 +112,13 @@
 				//
 
 				renderer.shadowMap.enabled = true;
-				renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+				renderer.shadowMap.type = THREE.PCFShadowMap;
 
 				// CONTROLS
 
 				controls = new FirstPersonControls( camera, renderer.domElement );
 
-				controls.lookSpeed = 0.0125;
+				controls.lookSpeed = 0.2;
 				controls.movementSpeed = 500;
 				controls.lookVertical = true;
 
@@ -139,8 +144,6 @@
 				camera.updateProjectionMatrix();
 
 				renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
-
-				controls.handleResize();
 
 			}
 
@@ -303,6 +306,8 @@
 
 			function animate() {
 
+				timer.update();
+
 				stats.begin();
 				render();
 				stats.end();
@@ -311,7 +316,7 @@
 
 			function render() {
 
-				const delta = clock.getDelta();
+				const delta = timer.getDelta();
 
 				if ( mixer ) mixer.update( delta );
 

@@ -1,16 +1,55 @@
-import { registerNode } from './Node.js';
 import InputNode from './InputNode.js';
 
+const _regNum = /float|u?int/;
+
+/**
+ * Class for representing a constant value in the shader.
+ *
+ * @augments InputNode
+ */
 class ConstNode extends InputNode {
 
+	static get type() {
+
+		return 'ConstNode';
+
+	}
+
+	/**
+	 * Constructs a new input node.
+	 *
+	 * @param {any} value - The value of this node. Usually a JS primitive or three.js object (vector, matrix, color).
+	 * @param {?string} nodeType - The node type. If no explicit type is defined, the node tries to derive the type from its value.
+	 */
 	constructor( value, nodeType = null ) {
 
 		super( value, nodeType );
 
+		/**
+		 * This flag can be used for type testing.
+		 *
+		 * @type {boolean}
+		 * @readonly
+		 * @default true
+		 */
 		this.isConstNode = true;
+
+		/**
+		 * Whether this constant is an implicit number whose type can adapt to other operands.
+		 *
+		 * @type {boolean}
+		 * @default false
+		 */
+		this.isWeak = false;
 
 	}
 
+	/**
+	 * Generates the shader string of the value with the current node builder.
+	 *
+	 * @param {NodeBuilder} builder - The current node builder.
+	 * @return {string} The generated value as a shader string.
+	 */
 	generateConst( builder ) {
 
 		return builder.generateConst( this.getNodeType( builder ), this.value );
@@ -21,12 +60,38 @@ class ConstNode extends InputNode {
 
 		const type = this.getNodeType( builder );
 
+		if ( _regNum.test( type ) && _regNum.test( output ) ) {
+
+			let value = this.value;
+
+			// Preserve the declared integer value before converting to the output type.
+			if ( type === 'int' ) value = Math.trunc( value );
+			else if ( type === 'uint' ) value = value >= 0 ? Math.trunc( value ) : 0;
+
+			return builder.generateConst( output, value );
+
+		}
+
 		return builder.format( this.generateConst( builder ), type, output );
+
+	}
+
+	serialize( data ) {
+
+		super.serialize( data );
+
+		data.isWeak = this.isWeak;
+
+	}
+
+	deserialize( data ) {
+
+		super.deserialize( data );
+
+		this.isWeak = data.isWeak === true;
 
 	}
 
 }
 
 export default ConstNode;
-
-ConstNode.type = /*@__PURE__*/ registerNode( 'Const', ConstNode );

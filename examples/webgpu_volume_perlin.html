@@ -4,32 +4,49 @@
 		<title>three.js webgpu - volumetric perlin</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<link type="text/css" rel="stylesheet" href="main.css">
+		<meta property="og:title" content="three.js webgpu - volumetric perlin">
+		<meta property="og:type" content="website">
+		<meta property="og:url" content="https://threejs.org/examples/webgpu_volume_perlin.html">
+		<meta property="og:image" content="https://threejs.org/examples/screenshots/webgpu_volume_perlin.jpg">
+		<link type="text/css" rel="stylesheet" href="example.css">
 	</head>
 
 	<body>
+
 		<div id="info">
-			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> webgpu - volumetric perlin
+			<a href="https://threejs.org/" target="_blank" rel="noopener" class="logo-link"></a>
+
+			<div class="title-wrapper">
+				<a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a><span>Volumetric Perlin</span>
+			</div>
+
+			<small>Volumetric rendering using raymarching and 3D Perlin noise texture.</small>
 		</div>
 
 		<script type="importmap">
 			{
 				"imports": {
 					"three": "../build/three.webgpu.js",
-					"three/tsl": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+					"three/tsl": "../build/three.tsl.js",
 					"three/addons/": "./jsm/"
 				}
 			}
 		</script>
 
 		<script type="module">
-			import * as THREE from 'three';
-			import { Break, If, vec3, materialReference, Fn } from 'three/tsl';
+
+			import * as THREE from 'three/webgpu';
+			import { Break, If, Loop, select, bool, vec3, vec4, texture3D, uniform, Fn } from 'three/tsl';
+
+			import { RaymarchingBox } from 'three/addons/tsl/utils/Raymarching.js';
 
 			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 			import { ImprovedNoise } from 'three/addons/math/ImprovedNoise.js';
 
-			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+			import { Inspector } from 'three/addons/inspector/Inspector.js';
+
+			const REFINEMENT_STEPS = 4;
 
 			let renderer, scene, camera;
 			let mesh;
@@ -42,6 +59,7 @@
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.setAnimationLoop( animate );
+				renderer.inspector = new Inspector();
 				document.body.appendChild( renderer.domElement );
 
 				scene = new THREE.Scene();
@@ -85,52 +103,90 @@
 				texture.unpackAlignment = 1;
 				texture.needsUpdate = true;
 
-				// Material
+				// Shader
 
-				const geometry = new THREE.BoxGeometry( 1, 1, 1 );
-				const material = new THREE.VolumeNodeMaterial( {
-					side: THREE.BackSide,
-				} );
+				const opaqueRaymarchingTexture = Fn( ( { texture, steps, threshold, refine } ) => {
 
-				material.base = new THREE.Color( 0x798aa0 );
-				material.map = texture;
-				material.steps = 200;
-				material.threshold = 0.6;
+					const finalColor = vec4( 0 ).toVar();
 
-				const threshold = materialReference( 'threshold', 'float' );
+					const positionPrev = vec3( 0 ).toVar();
+					const hasPrev = bool( false ).toVar();
 
-				material.testNode = Fn( ( { map, mapValue, probe, finalColor } ) => {
+					RaymarchingBox( steps, ( { positionRay } ) => {
 
-					If( mapValue.greaterThan( threshold ), () => {
+						const mapValue = texture.sample( positionRay.add( 0.5 ) ).r.toVar();
 
-						const p = vec3().temp().assign( probe ).addAssign( 0.5 );
+						If( mapValue.greaterThan( threshold ), () => {
 
-						finalColor.rgb.assign( map.normal( p ).mul( 0.5 ).add( probe.mul( 1.5 ).add( 0.25 ) ) );
-						finalColor.a.assign( 1 );
-						Break();
+							const surfacePos = positionRay.toVar();
+
+							If( refine.and( hasPrev ), () => {
+
+								// The surface lies between the previous sample (below the threshold)
+								// and the current one (above it). Bisect that interval to localize
+								// the crossing precisely.
+
+								const p0 = positionPrev.toVar();
+								const p1 = positionRay.toVar();
+
+								Loop( REFINEMENT_STEPS, () => {
+
+									const pm = p0.add( p1 ).mul( 0.5 ).toConst();
+									const dm = texture.sample( pm.add( 0.5 ) ).r.toConst();
+
+									const isGreater = dm.greaterThan( threshold );
+
+									p1.assign( select( isGreater, pm, p1 ).uniformFlow() );
+									p0.assign( select( isGreater, p0, pm ).uniformFlow() );
+
+								} );
+
+								surfacePos.assign( p1 );
+
+							} );
+
+							const p = vec3( surfacePos ).add( 0.5 );
+
+							finalColor.rgb.assign( texture.normal( p ).mul( 0.5 ).add( surfacePos.mul( 1.5 ).add( 0.25 ) ) );
+							finalColor.a.assign( 1 );
+							Break();
+
+						} );
+
+						positionPrev.assign( positionRay );
+						hasPrev.assign( true );
 
 					} );
 
+					return finalColor;
+
 				} );
 
-				mesh = new THREE.Mesh( geometry, material );
+				//
 
+				const threshold = uniform( 0.6 );
+				const steps = uniform( 200 );
+				const refine = uniform( true );
+
+				const material = new THREE.NodeMaterial();
+				material.colorNode = opaqueRaymarchingTexture( {
+					texture: texture3D( texture, null, 0 ),
+					steps,
+					threshold,
+					refine
+				} );
+				material.side = THREE.BackSide;
+				material.transparent = true;
+
+				mesh = new THREE.Mesh( new THREE.BoxGeometry( 1, 1, 1 ), material );
 				scene.add( mesh );
 
 				//
 
-				const parameters = { threshold: 0.6, steps: 200 };
-
-				function update() {
-
-					material.threshold = parameters.threshold;
-					material.steps = parameters.steps;
-
-				}
-
-				const gui = new GUI();
-				gui.add( parameters, 'threshold', 0, 1, 0.01 ).onChange( update );
-				gui.add( parameters, 'steps', 0, 300, 1 ).onChange( update );
+				const gui = renderer.inspector.createParameters( 'Parameters' );
+				gui.add( threshold, 'value', 0, 1, 0.01 ).name( 'threshold' );
+				gui.add( steps, 'value', 0, 300, 1 ).name( 'steps' );
+				gui.add( refine, 'value' ).name( 'refine' );
 
 				window.addEventListener( 'resize', onWindowResize );
 

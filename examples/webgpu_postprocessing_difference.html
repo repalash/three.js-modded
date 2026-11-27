@@ -4,20 +4,30 @@
 		<title>three.js webgpu - frame difference</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<link type="text/css" rel="stylesheet" href="main.css">
+		<meta property="og:title" content="three.js webgpu - frame difference">
+		<meta property="og:type" content="website">
+		<meta property="og:url" content="https://threejs.org/examples/webgpu_postprocessing_difference.html">
+		<meta property="og:image" content="https://threejs.org/examples/screenshots/webgpu_postprocessing_difference.jpg">
+		<link type="text/css" rel="stylesheet" href="example.css">
 	</head>
 	<body>
 
 		<div id="info">
-			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a>
-			<br/>saturated color of objects according to the difference from one frame to another
+			<a href="https://threejs.org/" target="_blank" rel="noopener" class="logo-link"></a>
+
+			<div class="title-wrapper">
+				<a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a><span>Difference</span>
+			</div>
+
+			<small>Saturated color of objects according to the difference from one frame to another.</small>
 		</div>
 
 		<script type="importmap">
 			{
 				"imports": {
 					"three": "../build/three.webgpu.js",
-					"three/tsl": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+					"three/tsl": "../build/three.tsl.js",
 					"three/addons/": "./jsm/"
 				}
 			}
@@ -25,19 +35,18 @@
 
 		<script type="module">
 
-			import * as THREE from 'three';
+			import * as THREE from 'three/webgpu';
 			import { pass, luminance, saturation } from 'three/tsl';
 
 			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-			import { Timer } from 'three/addons/misc/Timer.js';
 
-			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+			import { Inspector } from 'three/addons/inspector/Inspector.js';
 
 			const params = {
 				speed: 0
 			};
 
-			let camera, renderer, postProcessing;
+			let camera, renderer, renderPipeline;
 			let timer, mesh, controls;
 
 			init();
@@ -48,6 +57,7 @@
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.setAnimationLoop( animate );
+				renderer.inspector = new Inspector();
 				renderer.toneMapping = THREE.NeutralToneMapping;
 				document.body.appendChild( renderer.domElement );
 
@@ -60,7 +70,8 @@
 				scene.fog = new THREE.Fog( 0x0487e2, 7, 25 );
 				scene.background = new THREE.Color( 0x0487e2 );
 
-				timer = new Timer();
+				timer = new THREE.Timer();
+				timer.connect( document );
 
 				const texture = new THREE.TextureLoader().load( 'textures/crate.gif' );
 				texture.colorSpace = THREE.SRGBColorSpace;
@@ -73,7 +84,7 @@
 
 				// post processing
 
-				postProcessing = new THREE.PostProcessing( renderer );
+				renderPipeline = new THREE.RenderPipeline( renderer );
 
 				const scenePass = pass( scene, camera );
 
@@ -84,7 +95,7 @@
 
 				const saturationAmount = luminance( frameDiff ).mul( 1000 ).clamp( 0, 3 );
 
-				postProcessing.outputNode = saturation( currentTexture, saturationAmount );
+				renderPipeline.outputNode = saturation( currentTexture, saturationAmount );
 
 				//
 
@@ -98,7 +109,7 @@
 
 				//
 
-				const gui = new GUI();
+				const gui = renderer.inspector.createParameters( 'Settings' );
 				gui.add( params, 'speed', 0, 2 );
 
 			}
@@ -120,7 +131,7 @@
 
 				mesh.rotation.y += timer.getDelta() * 5 * params.speed;
 
-				postProcessing.render();
+				renderPipeline.render();
 
 			}
 

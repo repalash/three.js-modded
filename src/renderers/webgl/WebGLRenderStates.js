@@ -6,6 +6,7 @@ function WebGLRenderState( extensions ) {
 
 	const lightsArray = [];
 	const shadowsArray = [];
+	const lightProbeGridArray = [];
 
 	function init( camera ) {
 
@@ -13,12 +14,21 @@ function WebGLRenderState( extensions ) {
 
 		lightsArray.length = 0;
 		shadowsArray.length = 0;
+		lightProbeGridArray.length = 0;
 
 	}
 
 	function pushLight( light ) {
 
-		lightsArray.push( light );
+		if ( light.isLightProbeGrid ) {
+
+			lightProbeGridArray.push( light );
+
+		} else {
+
+			lightsArray.push( light );
+
+		}
 
 	}
 
@@ -32,6 +42,8 @@ function WebGLRenderState( extensions ) {
 
 		lights.setup( lightsArray );
 
+		lightProbeGridArray.sort( ( a, b ) => a.priority - b.priority || a.id - b.id );
+
 	}
 
 	function setupLightsView( camera ) {
@@ -43,12 +55,14 @@ function WebGLRenderState( extensions ) {
 	const state = {
 		lightsArray: lightsArray,
 		shadowsArray: shadowsArray,
+		lightProbeGridArray: lightProbeGridArray,
 
 		camera: null,
 
 		lights: lights,
 
-		transmissionRenderTarget: {}
+		transmissionRenderTarget: {},
+		textureUnits: 0
 	};
 
 	return {
