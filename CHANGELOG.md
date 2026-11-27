@@ -61,7 +61,8 @@ From three.js r178–r182, the changes most likely to need a change in an app (a
 - r181: Physical materials look different: the indirect specular light uses a DFG lookup table, rough materials keep
   more energy (they are brighter), and PMREM reflections changed. The async methods of `WebGPURenderer`
   (`renderAsync()`, `hasFeatureAsync()`, ...) and `KTX2Loader.detectSupportAsync()` are deprecated: call
-  `await renderer.init()`, then the sync ones.
+  `await renderer.init()`, then the sync ones. Log messages go through `log()`, `warn()` and `error()`, which add the
+  `THREE.` prefix and can be redirected with `setConsoleFunction()`.
 - r182: **Breaking** `WebGLRenderer` shadow maps are depth textures (a cube depth texture for point lights), sampled
   with a hardware comparison for `PCFShadowMap`: shaders that read packed depth from `shadow.map.texture` need a change.
   `PCFSoftShadowMap` is deprecated, and `PCFShadowMap` is soft (three-modded has the r183 fix that makes
