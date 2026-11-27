@@ -1,34 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>three.js webgpu - materials - environment maps</title>
+		<title>three.js webgpu - environment maps</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<link type="text/css" rel="stylesheet" href="main.css">
+		<meta property="og:title" content="three.js webgpu - environment maps">
+		<meta property="og:type" content="website">
+		<meta property="og:url" content="https://threejs.org/examples/webgpu_materials_envmaps.html">
+		<meta property="og:image" content="https://threejs.org/examples/screenshots/webgpu_materials_envmaps.jpg">
+		<link type="text/css" rel="stylesheet" href="example.css">
 	</head>
 	<body>
 
 		<div id="info">
-			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - webgpu environment mapping example<br/>
-			Equirectangular Map by <a href="http://www.flickr.com/photos/jonragnarsson/2294472375/" target="_blank" rel="noopener">J&oacute;n Ragnarsson</a>.
+			<a href="https://threejs.org/" target="_blank" rel="noopener" class="logo-link"></a>
+
+			<div class="title-wrapper">
+				<a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a><span>Environment Mapping</span>
+			</div>
+
+			<small>
+				Equirectangular Map by <a href="https://www.flickr.com/photos/jonragnarsson/2294472375/" target="_blank" rel="noopener">J&oacute;n Ragnarsson</a>.
+			</small>
 		</div>
 
 		<script type="importmap">
 			{
 				"imports": {
 					"three": "../build/three.webgpu.js",
-					"three/tsl": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+					"three/tsl": "../build/three.tsl.js",
 					"three/addons/": "./jsm/"
 				}
 			}
 		</script>
 
-
 		<script type="module">
 
-			import * as THREE from 'three';
+			import * as THREE from 'three/webgpu';
 
-			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+			import { Inspector } from 'three/addons/inspector/Inspector.js';
+
 			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 			let controls, camera, scene, renderer;
@@ -76,6 +88,7 @@
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.setAnimationLoop( animate );
+				renderer.inspector = new Inspector();
 				document.body.appendChild( renderer.domElement );
 
 				//
@@ -87,28 +100,34 @@
 				//
 
 				params = {
-					Cube: function () {
+					Type: 'Cube',
+					Refraction: false,
+					backgroundRotationX: false,
+					backgroundRotationY: false,
+					backgroundRotationZ: false,
+					syncMaterial: false
+				};
+
+				const gui = renderer.inspector.createParameters( 'Parameters' );
+				gui.add( params, 'Type', [ 'Cube', 'Equirectangular' ] ).onChange( function ( value ) {
+
+					if ( value === 'Cube' ) {
 
 						scene.background = textureCube;
 
 						sphereMaterial.envMap = textureCube;
 						sphereMaterial.needsUpdate = true;
 
-					},
-					Equirectangular: function () {
+					} else if ( value === 'Equirectangular' ) {
 
 						scene.background = textureEquirec;
 
 						sphereMaterial.envMap = textureEquirec;
 						sphereMaterial.needsUpdate = true;
 
-					},
-					Refraction: false
-				};
+					}
 
-				const gui = new GUI( { width: 300 } );
-				gui.add( params, 'Cube' );
-				gui.add( params, 'Equirectangular' );
+				} );
 				gui.add( params, 'Refraction' ).onChange( function ( value ) {
 
 					if ( value ) {
@@ -126,7 +145,10 @@
 					sphereMaterial.needsUpdate = true;
 
 				} );
-				gui.open();
+				gui.add( params, 'backgroundRotationX' );
+				gui.add( params, 'backgroundRotationY' );
+				gui.add( params, 'backgroundRotationZ' );
+				gui.add( params, 'syncMaterial' );
 
 				window.addEventListener( 'resize', onWindowResize );
 
@@ -144,6 +166,30 @@
 			//
 
 			function animate() {
+
+				if ( params.backgroundRotationX ) {
+
+					scene.backgroundRotation.x += 0.001;
+
+				}
+
+				if ( params.backgroundRotationY ) {
+
+					scene.backgroundRotation.y += 0.001;
+
+				}
+
+				if ( params.backgroundRotationZ ) {
+
+					scene.backgroundRotation.z += 0.001;
+
+				}
+
+				if ( params.syncMaterial ) {
+
+					sphereMesh.material.envMapRotation.copy( scene.backgroundRotation );
+
+				}
 
 				camera.lookAt( scene.position );
 				renderer.render( scene, camera );

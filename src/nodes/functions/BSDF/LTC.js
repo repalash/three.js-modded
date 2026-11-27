@@ -22,15 +22,7 @@ const LTC_Uv = /*@__PURE__*/ Fn( ( { N, V, roughness } ) => {
 
 	return uv;
 
-} ).setLayout( {
-	name: 'LTC_Uv',
-	type: 'vec2',
-	inputs: [
-		{ name: 'N', type: 'vec3' },
-		{ name: 'V', type: 'vec3' },
-		{ name: 'roughness', type: 'float' }
-	]
-} );
+}, { N: 'vec3', V: 'vec3', roughness: 'float', return: 'vec2' } );
 
 const LTC_ClippedSphereFormFactor = /*@__PURE__*/ Fn( ( { f } ) => {
 
@@ -41,13 +33,7 @@ const LTC_ClippedSphereFormFactor = /*@__PURE__*/ Fn( ( { f } ) => {
 
 	return max( l.mul( l ).add( f.z ).div( l.add( 1.0 ) ), 0 );
 
-} ).setLayout( {
-	name: 'LTC_ClippedSphereFormFactor',
-	type: 'float',
-	inputs: [
-		{ name: 'f', type: 'vec3' }
-	]
-} );
+}, { f: 'vec3', return: 'float' } );
 
 const LTC_EdgeVectorFormFactor = /*@__PURE__*/ Fn( ( { v1, v2 } ) => {
 
@@ -63,14 +49,7 @@ const LTC_EdgeVectorFormFactor = /*@__PURE__*/ Fn( ( { v1, v2 } ) => {
 
 	return v1.cross( v2 ).mul( theta_sintheta );
 
-} ).setLayout( {
-	name: 'LTC_EdgeVectorFormFactor',
-	type: 'vec3',
-	inputs: [
-		{ name: 'v1', type: 'vec3' },
-		{ name: 'v2', type: 'vec3' }
-	]
-} );
+}, { v1: 'vec3', v2: 'vec3', return: 'vec3' } );
 
 const LTC_Evaluate = /*@__PURE__*/ Fn( ( { N, V, P, mInv, p0, p1, p2, p3 } ) => {
 
@@ -112,20 +91,58 @@ const LTC_Evaluate = /*@__PURE__*/ Fn( ( { N, V, P, mInv, p0, p1, p2, p3 } ) => 
 
 	return result;
 
-} ).setLayout( {
-	name: 'LTC_Evaluate',
-	type: 'vec3',
-	inputs: [
-		{ name: 'N', type: 'vec3' },
-		{ name: 'V', type: 'vec3' },
-		{ name: 'P', type: 'vec3' },
-		{ name: 'mInv', type: 'mat3' },
-		{ name: 'p0', type: 'vec3' },
-		{ name: 'p1', type: 'vec3' },
-		{ name: 'p2', type: 'vec3' },
-		{ name: 'p3', type: 'vec3' }
-	]
+}, {
+	N: 'vec3',
+	V: 'vec3',
+	P: 'vec3',
+	mInv: 'mat3',
+	p0: 'vec3',
+	p1: 'vec3',
+	p2: 'vec3',
+	p3: 'vec3',
+	return: 'vec3'
 } );
 
+const LTC_Evaluate_Volume = /*@__PURE__*/ Fn( ( { P, p0, p1, p2, p3 } ) => {
 
-export { LTC_Evaluate, LTC_Uv };
+	// bail if point is on back side of plane of light
+	// assumes ccw winding order of light vertices
+	const v1 = p1.sub( p0 ).toVar();
+	const v2 = p3.sub( p0 ).toVar();
+
+	const lightNormal = v1.cross( v2 );
+	const result = vec3().toVar();
+
+	If( lightNormal.dot( P.sub( p0 ) ).greaterThanEqual( 0.0 ), () => {
+
+		// transform rect
+		// & project rect onto sphere
+		const coords0 = p0.sub( P ).normalize().toVar();
+		const coords1 = p1.sub( P ).normalize().toVar();
+		const coords2 = p2.sub( P ).normalize().toVar();
+		const coords3 = p3.sub( P ).normalize().toVar();
+
+		// calculate vector form factor
+		const vectorFormFactor = vec3( 0 ).toVar();
+		vectorFormFactor.addAssign( LTC_EdgeVectorFormFactor( { v1: coords0, v2: coords1 } ) );
+		vectorFormFactor.addAssign( LTC_EdgeVectorFormFactor( { v1: coords1, v2: coords2 } ) );
+		vectorFormFactor.addAssign( LTC_EdgeVectorFormFactor( { v1: coords2, v2: coords3 } ) );
+		vectorFormFactor.addAssign( LTC_EdgeVectorFormFactor( { v1: coords3, v2: coords0 } ) );
+
+		// adjust for horizon clipping
+		result.assign( vec3( LTC_ClippedSphereFormFactor( { f: vectorFormFactor.abs() } ) ) );
+
+	} );
+
+	return result;
+
+}, {
+	P: 'vec3',
+	p0: 'vec3',
+	p1: 'vec3',
+	p2: 'vec3',
+	p3: 'vec3',
+	return: 'vec3'
+} );
+
+export { LTC_Evaluate, LTC_Evaluate_Volume, LTC_Uv };

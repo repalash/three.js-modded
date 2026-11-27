@@ -1,5 +1,3 @@
-/* global QUnit */
-
 import { ImageLoader } from '../../../../src/loaders/ImageLoader.js';
 
 import { Loader } from '../../../../src/loaders/Loader.js';
@@ -7,6 +5,13 @@ import { Loader } from '../../../../src/loaders/Loader.js';
 export default QUnit.module( 'Loaders', () => {
 
 	QUnit.module( 'ImageLoader', () => {
+
+		QUnit.test( 'image request priority', async ( assert ) => {
+
+			const image = await new ImageLoader().setPriority( 'high' ).loadAsync( '/examples/textures/uv_grid_opengl.jpg' );
+			assert.strictEqual( image.fetchPriority, 'high' );
+
+		} );
 
 		// INHERITANCE
 		QUnit.test( 'Extending', ( assert ) => {
@@ -24,13 +29,6 @@ export default QUnit.module( 'Loaders', () => {
 
 			const object = new ImageLoader();
 			assert.ok( object, 'Can instantiate an ImageLoader.' );
-
-		} );
-
-		// PUBLIC
-		QUnit.todo( 'load', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
 
 		} );
 

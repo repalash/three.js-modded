@@ -1,8 +1,7 @@
-/* global QUnit */
-
 import { NumberKeyframeTrack } from '../../../../src/animation/tracks/NumberKeyframeTrack.js';
 
 import { KeyframeTrack } from '../../../../src/animation/KeyframeTrack.js';
+import { InterpolateBezier } from '../../../../src/constants.js';
 import { CONSOLE_LEVEL } from '../../utils/console-wrapper.js';
 
 export default QUnit.module( 'Animation', () => {
@@ -41,103 +40,24 @@ export default QUnit.module( 'Animation', () => {
 		} );
 
 		// PROPERTIES
-		QUnit.todo( 'name', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'times', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'values', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
 
 		// PROPERTIES - PROTOTYPE
-		QUnit.todo( 'TimeBufferType', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'ValueBufferType', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'DefaultInterpolation', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		// STATIC
-		QUnit.todo( 'toJSON', ( assert ) => {
-
-			// static method toJSON
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
 
 		// PUBLIC
-		QUnit.todo( 'InterpolantFactoryMethodDiscrete', ( assert ) => {
 
-			assert.ok( false, 'everything\'s gonna be alright' );
+		QUnit.test( 'shift', ( assert ) => {
 
-		} );
+			const track = new NumberKeyframeTrack( '.material.opacity', [ 0, 1 ], [ 0, 1 ], InterpolateBezier );
+			track.settings = {
+				inTangents: new Float32Array( [ - 0.5, 0, 0.5, 1 ] ),
+				outTangents: new Float32Array( [ 0.5, 0, 1.5, 1 ] )
+			};
 
-		QUnit.todo( 'InterpolantFactoryMethodLinear', ( assert ) => {
+			track.shift( 2 );
 
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'InterpolantFactoryMethodSmooth', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'setInterpolation', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'getInterpolation', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'getValueSize', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'shift', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'scale', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'trim', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
+			assert.smartEqual( Array.from( track.settings.inTangents ), [ 1.5, 0, 2.5, 1 ] );
+			assert.smartEqual( Array.from( track.settings.outTangents ), [ 2.5, 0, 3.5, 1 ] );
+			assert.strictEqual( track.createInterpolant().evaluate( 2.5 )[ 0 ], 0.5, 'Shifted curve keeps its shape.' );
 
 		} );
 
@@ -164,12 +84,6 @@ export default QUnit.module( 'Animation', () => {
 
 			assert.smartEqual( Array.from( track.times ), [ 0, 3, 4 ] );
 			assert.smartEqual( Array.from( track.values ), [ 0, 0, 1 ] );
-
-		} );
-
-		QUnit.todo( 'clone', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
 
 		} );
 

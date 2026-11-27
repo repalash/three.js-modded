@@ -1,20 +1,73 @@
 import DataMap from './DataMap.js';
-import RenderPipeline from './RenderPipeline.js';
+import RenderObjectPipeline from './RenderObjectPipeline.js';
 import ComputePipeline from './ComputePipeline.js';
 import ProgrammableStage from './ProgrammableStage.js';
 
+/**
+ * This renderer module manages the pipelines of the renderer.
+ *
+ * @private
+ * @augments DataMap
+ */
 class Pipelines extends DataMap {
 
-	constructor( backend, nodes ) {
+	/**
+	 * Constructs a new pipeline management component.
+	 *
+	 * @param {Backend} backend - The renderer's backend.
+	 * @param {NodeManager} nodes - Renderer component for managing nodes related logic.
+	 * @param {Info} info - Renderer component for managing metrics and monitoring data.
+	 */
+	constructor( backend, nodes, info ) {
 
 		super();
 
+		/**
+		 * The renderer's backend.
+		 *
+		 * @type {Backend}
+		 */
 		this.backend = backend;
+
+		/**
+		 * Renderer component for managing nodes related logic.
+		 *
+		 * @type {NodeManager}
+		 */
 		this.nodes = nodes;
 
-		this.bindings = null; // set by the bindings
+		/**
+		 * Renderer component for managing metrics and monitoring data.
+		 *
+		 * @type {Info}
+		 */
+		this.info = info;
 
+		/**
+		 * A references to the bindings management component.
+		 * This reference will be set inside the `Bindings`
+		 * constructor.
+		 *
+		 * @type {?Bindings}
+		 * @default null
+		 */
+		this.bindings = null;
+
+		/**
+		 * Internal cache for maintaining pipelines.
+		 * The key of the map is a cache key, the value the pipeline.
+		 *
+		 * @type {Map<string,Pipeline>}
+		 */
 		this.caches = new Map();
+
+		/**
+		 * This dictionary maintains for each shader stage type (vertex,
+		 * fragment and compute) the programmable stage objects which
+		 * represent the actual shader code.
+		 *
+		 * @type {Object<string,Map<string, ProgrammableStage>>}
+		 */
 		this.programs = {
 			vertex: new Map(),
 			fragment: new Map(),
@@ -23,7 +76,15 @@ class Pipelines extends DataMap {
 
 	}
 
-	getForCompute( computeNode, bindings ) {
+	/**
+	 * Returns a compute pipeline for the given compute node.
+	 *
+	 * @param {Node} computeNode - The compute node.
+	 * @param {Array<BindGroup>} bindings - The bindings.
+	 * @param {?Array<Promise>} [promises=null] - An array of compilation promises which is only relevant in context of `Renderer.compileComputeAsync()`.
+	 * @return {ComputePipeline} The compute pipeline.
+	 */
+	getForCompute( computeNode, bindings, promises = null ) {
 
 		const { backend } = this;
 
@@ -50,12 +111,11 @@ class Pipelines extends DataMap {
 
 			if ( stageCompute === undefined ) {
 
-				if ( previousPipeline && previousPipeline.computeProgram.usedTimes === 0 ) this._releaseProgram( previousPipeline.computeProgram );
-
-				stageCompute = new ProgrammableStage( nodeBuilderState.computeShader, 'compute', nodeBuilderState.transforms, nodeBuilderState.nodeAttributes );
+				stageCompute = new ProgrammableStage( nodeBuilderState.computeShader, 'compute', computeNode.name );
 				this.programs.compute.set( nodeBuilderState.computeShader, stageCompute );
 
 				backend.createProgram( stageCompute );
+				this.info.createProgram( stageCompute );
 
 			}
 
@@ -67,9 +127,7 @@ class Pipelines extends DataMap {
 
 			if ( pipeline === undefined ) {
 
-				if ( previousPipeline && previousPipeline.usedTimes === 0 ) this._releasePipeline( previousPipeline );
-
-				pipeline = this._getComputePipeline( computeNode, stageCompute, cacheKey, bindings );
+				pipeline = this._getComputePipeline( computeNode, stageCompute, cacheKey, bindings, promises );
 
 			}
 
@@ -77,6 +135,15 @@ class Pipelines extends DataMap {
 
 			pipeline.usedTimes ++;
 			stageCompute.usedTimes ++;
+
+			// release previous pipeline and program if they are not used anymore
+
+			if ( previousPipeline ) {
+
+				if ( previousPipeline.usedTimes === 0 ) this._releasePipeline( previousPipeline );
+				if ( previousPipeline.computeProgram.usedTimes === 0 ) this._releaseProgram( previousPipeline.computeProgram );
+
+			}
 
 			//
 
@@ -89,6 +156,13 @@ class Pipelines extends DataMap {
 
 	}
 
+	/**
+	 * Returns a render pipeline for the given render object.
+	 *
+	 * @param {RenderObject} renderObject - The render object.
+	 * @param {?Array<Promise>} [promises=null] - An array of compilation promises which is only relevant in context of `Renderer.compileAsync()`.
+	 * @return {RenderObjectPipeline} The render pipeline.
+	 */
 	getForRender( renderObject, promises = null ) {
 
 		const { backend } = this;
@@ -111,18 +185,19 @@ class Pipelines extends DataMap {
 
 			const nodeBuilderState = renderObject.getNodeBuilderState();
 
+			const name = renderObject.material ? renderObject.material.name : '';
+
 			// programmable stages
 
 			let stageVertex = this.programs.vertex.get( nodeBuilderState.vertexShader );
 
 			if ( stageVertex === undefined ) {
 
-				if ( previousPipeline && previousPipeline.vertexProgram.usedTimes === 0 ) this._releaseProgram( previousPipeline.vertexProgram );
-
-				stageVertex = new ProgrammableStage( nodeBuilderState.vertexShader, 'vertex' );
+				stageVertex = new ProgrammableStage( nodeBuilderState.vertexShader, 'vertex', name );
 				this.programs.vertex.set( nodeBuilderState.vertexShader, stageVertex );
 
 				backend.createProgram( stageVertex );
+				this.info.createProgram( stageVertex );
 
 			}
 
@@ -130,12 +205,11 @@ class Pipelines extends DataMap {
 
 			if ( stageFragment === undefined ) {
 
-				if ( previousPipeline && previousPipeline.fragmentProgram.usedTimes === 0 ) this._releaseProgram( previousPipeline.fragmentProgram );
-
-				stageFragment = new ProgrammableStage( nodeBuilderState.fragmentShader, 'fragment' );
+				stageFragment = new ProgrammableStage( nodeBuilderState.fragmentShader, 'fragment', name );
 				this.programs.fragment.set( nodeBuilderState.fragmentShader, stageFragment );
 
 				backend.createProgram( stageFragment );
+				this.info.createProgram( stageFragment );
 
 			}
 
@@ -146,8 +220,6 @@ class Pipelines extends DataMap {
 			let pipeline = this.caches.get( cacheKey );
 
 			if ( pipeline === undefined ) {
-
-				if ( previousPipeline && previousPipeline.usedTimes === 0 ) this._releasePipeline( previousPipeline );
 
 				pipeline = this._getRenderPipeline( renderObject, stageVertex, stageFragment, cacheKey, promises );
 
@@ -163,6 +235,16 @@ class Pipelines extends DataMap {
 			stageVertex.usedTimes ++;
 			stageFragment.usedTimes ++;
 
+			// release previous pipeline and programs if they are not used anymore
+
+			if ( previousPipeline ) {
+
+				if ( previousPipeline.usedTimes === 0 ) this._releasePipeline( previousPipeline );
+				if ( previousPipeline.vertexProgram.usedTimes === 0 ) this._releaseProgram( previousPipeline.vertexProgram );
+				if ( previousPipeline.fragmentProgram.usedTimes === 0 ) this._releaseProgram( previousPipeline.fragmentProgram );
+
+			}
+
 			//
 
 			data.pipeline = pipeline;
@@ -173,6 +255,32 @@ class Pipelines extends DataMap {
 
 	}
 
+	/**
+	 * Checks if the render pipeline for the given render object is ready for drawing.
+	 * Returns false if the GPU pipeline is still being compiled asynchronously.
+	 *
+	 * @param {RenderObject} renderObject - The render object.
+	 * @return {boolean} True if the pipeline is ready for drawing.
+	 */
+	isReady( renderObject ) {
+
+		const data = this.get( renderObject );
+		const pipeline = data.pipeline;
+
+		if ( pipeline === undefined ) return false;
+
+		const pipelineData = this.backend.get( pipeline );
+
+		return pipelineData.pipeline !== undefined && pipelineData.pipeline !== null;
+
+	}
+
+	/**
+	 * Deletes the pipeline for the given render object.
+	 *
+	 * @param {RenderObject} object - The render object.
+	 * @return {?Object} The deleted dictionary.
+	 */
 	delete( object ) {
 
 		const pipeline = this.get( object ).pipeline;
@@ -209,6 +317,9 @@ class Pipelines extends DataMap {
 
 	}
 
+	/**
+	 * Frees internal resources.
+	 */
 	dispose() {
 
 		super.dispose();
@@ -222,13 +333,29 @@ class Pipelines extends DataMap {
 
 	}
 
+	/**
+	 * Updates the pipeline for the given render object.
+	 *
+	 * @param {RenderObject} renderObject - The render object.
+	 */
 	updateForRender( renderObject ) {
 
 		this.getForRender( renderObject );
 
 	}
 
-	_getComputePipeline( computeNode, stageCompute, cacheKey, bindings ) {
+	/**
+	 * Returns a compute pipeline for the given parameters.
+	 *
+	 * @private
+	 * @param {Node} computeNode - The compute node.
+	 * @param {ProgrammableStage} stageCompute - The programmable stage representing the compute shader.
+	 * @param {string} cacheKey - The cache key.
+	 * @param {Array<BindGroup>} bindings - The bindings.
+	 * @param {?Array<Promise>} promises - An array of compilation promises which is only relevant in context of `Renderer.compileComputeAsync()`.
+	 * @return {ComputePipeline} The compute pipeline.
+	 */
+	_getComputePipeline( computeNode, stageCompute, cacheKey, bindings, promises ) {
 
 		// check for existing pipeline
 
@@ -238,11 +365,13 @@ class Pipelines extends DataMap {
 
 		if ( pipeline === undefined ) {
 
-			pipeline = new ComputePipeline( cacheKey, stageCompute );
+			const { transforms, nodeAttributes } = this.nodes.getForCompute( computeNode );
+
+			pipeline = new ComputePipeline( cacheKey, stageCompute, transforms, nodeAttributes );
 
 			this.caches.set( cacheKey, pipeline );
 
-			this.backend.createComputePipeline( pipeline, bindings );
+			this.backend.createComputePipeline( pipeline, bindings, promises );
 
 		}
 
@@ -250,6 +379,17 @@ class Pipelines extends DataMap {
 
 	}
 
+	/**
+	 * Returns a render pipeline for the given parameters.
+	 *
+	 * @private
+	 * @param {RenderObject} renderObject - The render object.
+	 * @param {ProgrammableStage} stageVertex - The programmable stage representing the vertex shader.
+	 * @param {ProgrammableStage} stageFragment - The programmable stage representing the fragment shader.
+	 * @param {string} cacheKey - The cache key.
+	 * @param {?Array<Promise>} promises - An array of compilation promises which is only relevant in context of `Renderer.compileAsync()`.
+	 * @return {RenderObjectPipeline} The render pipeline.
+	 */
 	_getRenderPipeline( renderObject, stageVertex, stageFragment, cacheKey, promises ) {
 
 		// check for existing pipeline
@@ -260,11 +400,15 @@ class Pipelines extends DataMap {
 
 		if ( pipeline === undefined ) {
 
-			pipeline = new RenderPipeline( cacheKey, stageVertex, stageFragment );
+			pipeline = new RenderObjectPipeline( cacheKey, stageVertex, stageFragment );
 
 			this.caches.set( cacheKey, pipeline );
 
 			renderObject.pipeline = pipeline;
+
+			// The `promises` array is `null` by default and only set to an empty array when
+			// `Renderer.compileAsync()` is used. The next call actually fills the array with
+			// pending promises that resolve when the render pipelines are ready for rendering.
 
 			this.backend.createRenderPipeline( renderObject, promises );
 
@@ -274,24 +418,55 @@ class Pipelines extends DataMap {
 
 	}
 
+	/**
+	 * Computes a cache key representing a compute pipeline.
+	 *
+	 * @private
+	 * @param {Node} computeNode - The compute node.
+	 * @param {ProgrammableStage} stageCompute - The programmable stage representing the compute shader.
+	 * @return {string} The cache key.
+	 */
 	_getComputeCacheKey( computeNode, stageCompute ) {
 
 		return computeNode.id + ',' + stageCompute.id;
 
 	}
 
+	/**
+	 * Computes a cache key representing a render pipeline.
+	 *
+	 * @private
+	 * @param {RenderObject} renderObject - The render object.
+	 * @param {ProgrammableStage} stageVertex - The programmable stage representing the vertex shader.
+	 * @param {ProgrammableStage} stageFragment - The programmable stage representing the fragment shader.
+	 * @return {string} The cache key.
+	 */
 	_getRenderCacheKey( renderObject, stageVertex, stageFragment ) {
 
 		return stageVertex.id + ',' + stageFragment.id + ',' + this.backend.getRenderCacheKey( renderObject );
 
 	}
 
+	/**
+	 * Releases the given pipeline.
+	 *
+	 * @private
+	 * @param {Pipeline} pipeline - The pipeline to release.
+	 */
 	_releasePipeline( pipeline ) {
+
+		this.backend.destroyPipeline( pipeline );
 
 		this.caches.delete( pipeline.cacheKey );
 
 	}
 
+	/**
+	 * Releases the shader program.
+	 *
+	 * @private
+	 * @param {Object} program - The shader program to release.
+	 */
 	_releaseProgram( program ) {
 
 		const code = program.code;
@@ -299,8 +474,18 @@ class Pipelines extends DataMap {
 
 		this.programs[ stage ].delete( code );
 
+		this.backend.destroyProgram( program );
+		this.info.destroyProgram( program );
+
 	}
 
+	/**
+	 * Returns `true` if the compute pipeline for the given compute node requires an update.
+	 *
+	 * @private
+	 * @param {Node} computeNode - The compute node.
+	 * @return {boolean} Whether the compute pipeline for the given compute node requires an update or not.
+	 */
 	_needsComputeUpdate( computeNode ) {
 
 		const data = this.get( computeNode );
@@ -309,6 +494,13 @@ class Pipelines extends DataMap {
 
 	}
 
+	/**
+	 * Returns `true` if the render pipeline for the given render object requires an update.
+	 *
+	 * @private
+	 * @param {RenderObject} renderObject - The render object.
+	 * @return {boolean} Whether the render object for the given render object requires an update or not.
+	 */
 	_needsRenderUpdate( renderObject ) {
 
 		const data = this.get( renderObject );

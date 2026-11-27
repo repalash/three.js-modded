@@ -3,41 +3,52 @@ import { select } from '../math/ConditionalNode.js';
 import { clamp, log2, max, min, pow, mix } from '../math/MathNode.js';
 import { mul, sub, div } from '../math/OperatorNode.js';
 
-// exposure only
-
-export const LinearToneMapping = /*@__PURE__*/ Fn( ( [ color, exposure ] ) => {
+/**
+ * Linear tone mapping, exposure only.
+ *
+ * @tsl
+ * @function
+ * @param {Node<vec3>} color - The color that should be tone mapped.
+ * @param {Node<float>} exposure - The exposure.
+ * @return {Node<vec3>} The tone mapped color.
+ */
+export const linearToneMapping = /*@__PURE__*/ Fn( ( [ color, exposure ] ) => {
 
 	return color.mul( exposure ).clamp();
 
-} ).setLayout( {
-	name: 'LinearToneMapping',
-	type: 'vec3',
-	inputs: [
-		{ name: 'color', type: 'vec3' },
-		{ name: 'exposure', type: 'float' }
-	]
-} );
+}, { color: 'vec3', exposure: 'float', return: 'vec3' } );
 
-// source: https://www.cs.utah.edu/docs/techreports/2002/pdf/UUCS-02-001.pdf
-
-export const ReinhardToneMapping = /*@__PURE__*/ Fn( ( [ color, exposure ] ) => {
+/**
+ * Reinhard tone mapping.
+ *
+ * Reference: {@link https://www.cs.utah.edu/docs/techreports/2002/pdf/UUCS-02-001.pdf}
+ *
+ * @tsl
+ * @function
+ * @param {Node<vec3>} color - The color that should be tone mapped.
+ * @param {Node<float>} exposure - The exposure.
+ * @return {Node<vec3>} The tone mapped color.
+ */
+export const reinhardToneMapping = /*@__PURE__*/ Fn( ( [ color, exposure ] ) => {
 
 	color = color.mul( exposure );
 
 	return color.div( color.add( 1.0 ) ).clamp();
 
-} ).setLayout( {
-	name: 'ReinhardToneMapping',
-	type: 'vec3',
-	inputs: [
-		{ name: 'color', type: 'vec3' },
-		{ name: 'exposure', type: 'float' }
-	]
-} );
+}, { color: 'vec3', exposure: 'float', return: 'vec3' } );
 
-// source: http://filmicworlds.com/blog/filmic-tonemapping-operators/
-
-export const CineonToneMapping = /*@__PURE__*/ Fn( ( [ color, exposure ] ) => {
+/**
+ * Cineon tone mapping.
+ *
+ * Reference: {@link http://filmicworlds.com/blog/filmic-tonemapping-operators/}
+ *
+ * @tsl
+ * @function
+ * @param {Node<vec3>} color - The color that should be tone mapped.
+ * @param {Node<float>} exposure - The exposure.
+ * @return {Node<vec3>} The tone mapped color.
+ */
+export const cineonToneMapping = /*@__PURE__*/ Fn( ( [ color, exposure ] ) => {
 
 	// filmic operator by Jim Hejl and Richard Burgess-Dawson
 	color = color.mul( exposure );
@@ -48,29 +59,31 @@ export const CineonToneMapping = /*@__PURE__*/ Fn( ( [ color, exposure ] ) => {
 
 	return a.div( b ).pow( 2.2 );
 
-} ).setLayout( {
-	name: 'CineonToneMapping',
-	type: 'vec3',
-	inputs: [
-		{ name: 'color', type: 'vec3' },
-		{ name: 'exposure', type: 'float' }
-	]
-} );
+}, { color: 'vec3', exposure: 'float', return: 'vec3' } );
 
 // source: https://github.com/selfshadow/ltc_code/blob/master/webgl/shaders/ltc/ltc_blit.fs
 
 const RRTAndODTFit = /*@__PURE__*/ Fn( ( [ color ] ) => {
 
 	const a = color.mul( color.add( 0.0245786 ) ).sub( 0.000090537 );
-	const b = color.mul( color.add( 0.4329510 ).mul( 0.983729 ) ).add( 0.238081 );
+	const b = color.mul( color.mul( 0.983729 ).add( 0.4329510 ) ).add( 0.238081 );
 
 	return a.div( b );
 
-} );
+}, { color: 'vec3', return: 'vec3' } );
 
-// source: https://github.com/selfshadow/ltc_code/blob/master/webgl/shaders/ltc/ltc_blit.fs
-
-export const ACESFilmicToneMapping = /*@__PURE__*/ Fn( ( [ color, exposure ] ) => {
+/**
+ * ACESFilmic tone mapping.
+ *
+ * Reference: {@link https://github.com/selfshadow/ltc_code/blob/master/webgl/shaders/ltc/ltc_blit.fs}
+ *
+ * @tsl
+ * @function
+ * @param {Node<vec3>} color - The color that should be tone mapped.
+ * @param {Node<float>} exposure - The exposure.
+ * @return {Node<vec3>} The tone mapped color.
+ */
+export const acesFilmicToneMapping = /*@__PURE__*/ Fn( ( [ color, exposure ] ) => {
 
 	// sRGB => XYZ => D65_2_D60 => AP1 => RRT_SAT
 	const ACESInputMat = mat3(
@@ -98,14 +111,7 @@ export const ACESFilmicToneMapping = /*@__PURE__*/ Fn( ( [ color, exposure ] ) =
 	// Clamp to [0, 1]
 	return color.clamp();
 
-} ).setLayout( {
-	name: 'ACESFilmicToneMapping',
-	type: 'vec3',
-	inputs: [
-		{ name: 'color', type: 'vec3' },
-		{ name: 'exposure', type: 'float' }
-	]
-} );
+}, { color: 'vec3', exposure: 'float', return: 'vec3' } );
 
 const LINEAR_REC2020_TO_LINEAR_SRGB = /*@__PURE__*/ mat3( vec3( 1.6605, - 0.1246, - 0.0182 ), vec3( - 0.5876, 1.1329, - 0.1006 ), vec3( - 0.0728, - 0.0083, 1.1187 ) );
 const LINEAR_SRGB_TO_LINEAR_REC2020 = /*@__PURE__*/ mat3( vec3( 0.6274, 0.0691, 0.0164 ), vec3( 0.3293, 0.9195, 0.0880 ), vec3( 0.0433, 0.0113, 0.8956 ) );
@@ -118,9 +124,18 @@ const agxDefaultContrastApprox = /*@__PURE__*/ Fn( ( [ x_immutable ] ) => {
 
 	return float( 15.5 ).mul( x4.mul( x2 ) ).sub( mul( 40.14, x4.mul( x ) ) ).add( mul( 31.96, x4 ).sub( mul( 6.868, x2.mul( x ) ) ).add( mul( 0.4298, x2 ).add( mul( 0.1191, x ).sub( 0.00232 ) ) ) );
 
-} );
+}, { x: 'vec3', return: 'vec3' } );
 
-export const AgXToneMapping = /*@__PURE__*/ Fn( ( [ color, exposure ] ) => {
+/**
+ * AgX tone mapping.
+ *
+ * @tsl
+ * @function
+ * @param {Node<vec3>} color - The color that should be tone mapped.
+ * @param {Node<float>} exposure - The exposure.
+ * @return {Node<vec3>} The tone mapped color.
+ */
+export const agxToneMapping = /*@__PURE__*/ Fn( ( [ color, exposure ] ) => {
 
 	const colortone = vec3( color ).toVar();
 	const AgXInsetMatrix = mat3( vec3( 0.856627153315983, 0.137318972929847, 0.11189821299995 ), vec3( 0.0951212405381588, 0.761241990602591, 0.0767994186031903 ), vec3( 0.0482516061458583, 0.101439036467562, 0.811302368396859 ) );
@@ -142,18 +157,20 @@ export const AgXToneMapping = /*@__PURE__*/ Fn( ( [ color, exposure ] ) => {
 
 	return colortone;
 
-} ).setLayout( {
-	name: 'AgXToneMapping',
-	type: 'vec3',
-	inputs: [
-		{ name: 'color', type: 'vec3' },
-		{ name: 'exposure', type: 'float' }
-	]
-} );
+}, { color: 'vec3', exposure: 'float', return: 'vec3' } );
 
-// https://modelviewer.dev/examples/tone-mapping
-
-export const NeutralToneMapping = /*@__PURE__*/ Fn( ( [ color, exposure ] ) => {
+/**
+ * Neutral tone mapping.
+ *
+ * Reference: {@link https://modelviewer.dev/examples/tone-mapping}
+ *
+ * @tsl
+ * @function
+ * @param {Node<vec3>} color - The color that should be tone mapped.
+ * @param {Node<float>} exposure - The exposure.
+ * @return {Node<vec3>} The tone mapped color.
+ */
+export const neutralToneMapping = /*@__PURE__*/ Fn( ( [ color, exposure ] ) => {
 
 	const StartCompression = float( 0.8 - 0.04 );
 	const Desaturation = float( 0.15 );
@@ -180,11 +197,4 @@ export const NeutralToneMapping = /*@__PURE__*/ Fn( ( [ color, exposure ] ) => {
 
 	return mix( color, vec3( newPeak ), g );
 
-} ).setLayout( {
-	name: 'NeutralToneMapping',
-	type: 'vec3',
-	inputs: [
-		{ name: 'color', type: 'vec3' },
-		{ name: 'exposure', type: 'float' }
-	]
-} );
+}, { color: 'vec3', exposure: 'float', return: 'vec3' } );

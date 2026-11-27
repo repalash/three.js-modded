@@ -7,8 +7,28 @@ import {
 	Vector3
 } from 'three';
 
+/**
+ * Fires when the camera has been transformed by the controls.
+ *
+ * @event TrackballControls#change
+ * @type {Object}
+ */
 const _changeEvent = { type: 'change' };
+
+/**
+ * Fires when an interaction was initiated.
+ *
+ * @event TrackballControls#start
+ * @type {Object}
+ */
 const _startEvent = { type: 'start' };
+
+/**
+ * Fires when an interaction has finished.
+ *
+ * @event TrackballControls#end
+ * @type {Object}
+ */
 const _endEvent = { type: 'end' };
 
 const _EPS = 0.000001;
@@ -25,50 +45,195 @@ const _objectUpDirection = new Vector3();
 const _objectSidewaysDirection = new Vector3();
 const _moveDirection = new Vector3();
 
+/**
+ * This class is similar to {@link OrbitControls}. However, it does not maintain a constant camera
+ * `up` vector. That means if the camera orbits over the “north” and “south” poles, it does not flip
+ * to stay "right side up".
+ *
+ * @augments Controls
+ * @three_import import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
+ */
 class TrackballControls extends Controls {
 
+	/**
+	 * Constructs a new controls instance.
+	 *
+	 * @param {Object3D} object - The object that is managed by the controls.
+	 * @param {?HTMLElement} domElement - The HTML element used for event listeners.
+	 */
 	constructor( object, domElement = null ) {
 
 		super( object, domElement );
 
-		// API
-
-		this.enabled = true;
-
+		/**
+		 * Represents the properties of the screen. Automatically set when `handleResize()` is called.
+		 *
+		 * @type {Object}
+		 * @readonly
+		 */
 		this.screen = { left: 0, top: 0, width: 0, height: 0 };
 
+		/**
+		 * The rotation speed.
+		 *
+		 * @type {number}
+		 * @default 1
+		 */
 		this.rotateSpeed = 1.0;
+
+		/**
+		 * The zoom speed.
+		 *
+		 * @type {number}
+		 * @default 1.2
+		 */
 		this.zoomSpeed = 1.2;
+
+		/**
+		 * The pan speed.
+		 *
+		 * @type {number}
+		 * @default 0.3
+		 */
 		this.panSpeed = 0.3;
 
+		/**
+		 * The roll speed used for multi-touch roll.
+		 *
+		 * @type {number}
+		 * @default 1
+		 */
+		this.rollSpeed = 1.0;
+
+		/**
+		 * Whether rotation is disabled or not.
+		 *
+		 * @type {boolean}
+		 * @default false
+		 */
 		this.noRotate = false;
+
+		/**
+		 * Whether zooming is disabled or not.
+		 *
+		 * @type {boolean}
+		 * @default false
+		 */
 		this.noZoom = false;
+
+		/**
+		 * Whether panning is disabled or not.
+		 *
+		 * @type {boolean}
+		 * @default false
+		 */
 		this.noPan = false;
 
+		/**
+		 * Whether two finger twist gesture rolls
+		 * the camera around its view axis or not.
+		 *
+		 * @type {boolean}
+		 * @default false
+		 */
+		this.multiTouchRoll = false;
+
+		/**
+		 * Whether damping is disabled or not.
+		 *
+		 * @type {boolean}
+		 * @default false
+		 */
 		this.staticMoving = false;
+
+		/**
+		 * Defines the intensity of damping. Only considered if `staticMoving` is set to `false`.
+		 *
+		 * @type {number}
+		 * @default 0.2
+		 */
 		this.dynamicDampingFactor = 0.2;
 
+		/**
+		 * How far you can dolly in (perspective camera only).
+		 *
+		 * @type {number}
+		 * @default 0
+		 */
 		this.minDistance = 0;
+
+		/**
+		 * How far you can dolly out (perspective camera only).
+		 *
+		 * @type {number}
+		 * @default Infinity
+		 */
 		this.maxDistance = Infinity;
 
+		/**
+		 * How far you can zoom in (orthographic camera only).
+		 *
+		 * @type {number}
+		 * @default 0
+		 */
 		this.minZoom = 0;
+
+		/**
+		 * How far you can zoom out (orthographic camera only).
+		 *
+		 * @type {number}
+		 * @default Infinity
+		 */
 		this.maxZoom = Infinity;
 
+		/**
+		 * This array holds keycodes for controlling interactions.
+		 *
+		 * - When the first defined key is pressed, all mouse interactions (left, middle, right) performs orbiting.
+		 * - When the second defined key is pressed, all mouse interactions (left, middle, right) performs zooming.
+		 * - When the third defined key is pressed, all mouse interactions (left, middle, right) performs panning.
+		 *
+		 * Default is *KeyA, KeyS, KeyD* which represents A, S, D.
+		 *
+		 * @type {Array<string>}
+		 */
 		this.keys = [ 'KeyA' /*A*/, 'KeyS' /*S*/, 'KeyD' /*D*/ ];
 
+		/**
+		 * This object contains references to the mouse actions used by the controls.
+		 *
+		 * ```js
+		 * controls.mouseButtons = {
+		 * 	LEFT: THREE.MOUSE.ROTATE,
+		 * 	MIDDLE: THREE.MOUSE.DOLLY,
+		 * 	RIGHT: THREE.MOUSE.PAN
+		 * }
+		 * ```
+		 * @type {Object}
+		 */
 		this.mouseButtons = { LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN };
-		this.state = _STATE.NONE;
-		this.keyState = _STATE.NONE;
 
+		/**
+		 * The focus point of the controls.
+		 *
+		 * @type {Vector3}
+		 */
 		this.target = new Vector3();
 
 		// internals
 
+		this.state = _STATE.NONE;
+		this.keyState = _STATE.NONE;
+
 		this._lastPosition = new Vector3();
+		this._lastUp = new Vector3();
 		this._lastZoom = 1;
 		this._touchZoomDistanceStart = 0;
 		this._touchZoomDistanceEnd = 0;
+		this._touchRollAngle = 0;
+		this._touchRollPointerIds = '';
 		this._lastAngle = 0;
+		this._lastRollAngle = 0;
 
 		this._eye = new Vector3();
 
@@ -114,7 +279,7 @@ class TrackballControls extends Controls {
 
 		if ( domElement !== null ) {
 
-			this.connect();
+			this.connect( domElement );
 
 			this.handleResize();
 
@@ -125,7 +290,9 @@ class TrackballControls extends Controls {
 
 	}
 
-	connect() {
+	connect( element ) {
+
+		super.connect( element );
 
 		window.addEventListener( 'keydown', this._onKeyDown );
 		window.addEventListener( 'keyup', this._onKeyUp );
@@ -135,7 +302,7 @@ class TrackballControls extends Controls {
 		this.domElement.addEventListener( 'wheel', this._onMouseWheel, { passive: false } );
 		this.domElement.addEventListener( 'contextmenu', this._onContextMenu );
 
-		this.domElement.style.touchAction = 'none'; // disable touch scroll
+		this.domElement.style.touchAction = 'none'; // Disable touch scroll
 
 	}
 
@@ -145,13 +312,13 @@ class TrackballControls extends Controls {
 		window.removeEventListener( 'keyup', this._onKeyUp );
 
 		this.domElement.removeEventListener( 'pointerdown', this._onPointerDown );
-		this.domElement.removeEventListener( 'pointermove', this._onPointerMove );
-		this.domElement.removeEventListener( 'pointerup', this._onPointerUp );
+		this.domElement.ownerDocument.removeEventListener( 'pointermove', this._onPointerMove );
+		this.domElement.ownerDocument.removeEventListener( 'pointerup', this._onPointerUp );
 		this.domElement.removeEventListener( 'pointercancel', this._onPointerCancel );
 		this.domElement.removeEventListener( 'wheel', this._onMouseWheel );
 		this.domElement.removeEventListener( 'contextmenu', this._onContextMenu );
 
-		this.domElement.style.touchAction = 'auto'; // disable touch scroll
+		this.domElement.style.touchAction = ''; // Restore touch scroll
 
 	}
 
@@ -161,6 +328,9 @@ class TrackballControls extends Controls {
 
 	}
 
+	/**
+	 * Must be called if the application window is resized.
+	 */
 	handleResize() {
 
 		const box = this.domElement.getBoundingClientRect();
@@ -181,6 +351,12 @@ class TrackballControls extends Controls {
 		if ( ! this.noRotate ) {
 
 			this._rotateCamera();
+
+			if ( this.multiTouchRoll === true ) {
+
+				this._rollCamera();
+
+			}
 
 		}
 
@@ -204,11 +380,15 @@ class TrackballControls extends Controls {
 
 			this.object.lookAt( this.target );
 
-			if ( this._lastPosition.distanceToSquared( this.object.position ) > _EPS ) {
+			const positionChanged = this._lastPosition.distanceToSquared( this.object.position ) > _EPS;
+			const rollChanged = this._lastUp.distanceToSquared( this.object.up ) > _EPS;
+
+			if ( positionChanged || rollChanged ) {
 
 				this.dispatchEvent( _changeEvent );
 
 				this._lastPosition.copy( this.object.position );
+				this._lastUp.copy( this.object.up );
 
 			}
 
@@ -216,11 +396,16 @@ class TrackballControls extends Controls {
 
 			this.object.lookAt( this.target );
 
-			if ( this._lastPosition.distanceToSquared( this.object.position ) > _EPS || this._lastZoom !== this.object.zoom ) {
+			const positionChanged = this._lastPosition.distanceToSquared( this.object.position ) > _EPS;
+			const rollChanged = this._lastUp.distanceToSquared( this.object.up ) > _EPS;
+			const zoomChanged = this._lastZoom !== this.object.zoom;
+
+			if ( positionChanged || rollChanged || zoomChanged ) {
 
 				this.dispatchEvent( _changeEvent );
 
 				this._lastPosition.copy( this.object.position );
+				this._lastUp.copy( this.object.up );
 				this._lastZoom = this.object.zoom;
 
 			}
@@ -233,6 +418,9 @@ class TrackballControls extends Controls {
 
 	}
 
+	/**
+	 * Resets the controls to its initial state.
+	 */
 	reset() {
 
 		this.state = _STATE.NONE;
@@ -252,6 +440,7 @@ class TrackballControls extends Controls {
 		this.dispatchEvent( _changeEvent );
 
 		this._lastPosition.copy( this.object.position );
+		this._lastUp.copy( this.object.up );
 		this._lastZoom = this.object.zoom;
 
 	}
@@ -334,6 +523,76 @@ class TrackballControls extends Controls {
 		}
 
 		this._movePrev.copy( this._moveCurr );
+
+	}
+
+	_rollCamera() {
+
+		const angle = this._getTouchRollAngle();
+
+		if ( angle ) {
+
+			this._lastRollAngle = angle * this.rollSpeed;
+
+		} else if ( ! this.staticMoving && this._lastRollAngle ) {
+
+			this._lastRollAngle *= Math.sqrt( 1.0 - this.dynamicDampingFactor );
+
+		} else {
+
+			return;
+
+		}
+
+		_eyeDirection.copy( this._eye ).normalize();
+		_quaternion.setFromAxisAngle( _eyeDirection, this._lastRollAngle );
+
+		this.object.up.applyQuaternion( _quaternion );
+
+	}
+
+	_getTouchRollAngle() {
+
+		const first = this._pointers[ 0 ];
+		const second = this._pointers[ 1 ];
+
+		if ( second === undefined || first.pointerType !== 'touch' || second.pointerType !== 'touch' ) {
+
+			this._touchRollPointerIds = '';
+			return 0;
+
+		}
+
+		const pointerIds = `${ first.pointerId },${ second.pointerId }`;
+
+		const positionFirst = this._pointerPositions[ first.pointerId ];
+		const positionSecond = this._pointerPositions[ second.pointerId ];
+
+		const rollAngle = Math.atan2( positionSecond.y - positionFirst.y, positionSecond.x - positionFirst.x );
+
+		// fingers changed or new gesture started
+		if ( pointerIds !== this._touchRollPointerIds ) {
+
+			this._touchRollPointerIds = pointerIds;
+			this._touchRollAngle = rollAngle;
+			return 0;
+
+		}
+
+		let angle = rollAngle - this._touchRollAngle;
+		this._touchRollAngle = rollAngle;
+
+		if ( angle > Math.PI ) {
+
+			angle -= 2 * Math.PI;
+
+		} else if ( angle < - Math.PI ) {
+
+			angle += 2 * Math.PI;
+
+		}
+
+		return angle;
 
 	}
 
@@ -508,8 +767,8 @@ function onPointerDown( event ) {
 
 		this.domElement.setPointerCapture( event.pointerId );
 
-		this.domElement.addEventListener( 'pointermove', this._onPointerMove );
-		this.domElement.addEventListener( 'pointerup', this._onPointerUp );
+		this.domElement.ownerDocument.addEventListener( 'pointermove', this._onPointerMove );
+		this.domElement.ownerDocument.addEventListener( 'pointerup', this._onPointerUp );
 
 	}
 
@@ -567,8 +826,8 @@ function onPointerUp( event ) {
 
 		this.domElement.releasePointerCapture( event.pointerId );
 
-		this.domElement.removeEventListener( 'pointermove', this._onPointerMove );
-		this.domElement.removeEventListener( 'pointerup', this._onPointerUp );
+		this.domElement.ownerDocument.removeEventListener( 'pointermove', this._onPointerMove );
+		this.domElement.ownerDocument.removeEventListener( 'pointerup', this._onPointerUp );
 
 	}
 
@@ -618,23 +877,43 @@ function onKeyDown( event ) {
 
 function onMouseDown( event ) {
 
-	if ( this.state === _STATE.NONE ) {
+	let mouseAction;
 
-		switch ( event.button ) {
+	switch ( event.button ) {
 
-			case this.mouseButtons.LEFT:
-				this.state = _STATE.ROTATE;
-				break;
+		case 0:
+			mouseAction = this.mouseButtons.LEFT;
+			break;
 
-			case this.mouseButtons.MIDDLE:
-				this.state = _STATE.ZOOM;
-				break;
+		case 1:
+			mouseAction = this.mouseButtons.MIDDLE;
+			break;
 
-			case this.mouseButtons.RIGHT:
-				this.state = _STATE.PAN;
-				break;
+		case 2:
+			mouseAction = this.mouseButtons.RIGHT;
+			break;
 
-		}
+		default:
+			mouseAction = - 1;
+
+	}
+
+	switch ( mouseAction ) {
+
+		case MOUSE.DOLLY:
+			this.state = _STATE.ZOOM;
+			break;
+
+		case MOUSE.ROTATE:
+			this.state = _STATE.ROTATE;
+			break;
+
+		case MOUSE.PAN:
+			this.state = _STATE.PAN;
+			break;
+
+		default:
+			this.state = _STATE.NONE;
 
 	}
 
@@ -667,7 +946,6 @@ function onMouseMove( event ) {
 
 	if ( state === _STATE.ROTATE && ! this.noRotate ) {
 
-		this._movePrev.copy( this._moveCurr );
 		this._moveCurr.copy( this._getMouseOnCircle( event.pageX, event.pageY ) );
 
 	} else if ( state === _STATE.ZOOM && ! this.noZoom ) {
@@ -767,7 +1045,6 @@ function onTouchMove( event ) {
 	switch ( this._pointers.length ) {
 
 		case 1:
-			this._movePrev.copy( this._moveCurr );
 			this._moveCurr.copy( this._getMouseOnCircle( event.pageX, event.pageY ) );
 			break;
 

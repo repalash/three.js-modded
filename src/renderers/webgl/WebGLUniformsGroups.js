@@ -1,15 +1,14 @@
+import { warn } from '../../utils.js';
+
 function WebGLUniformsGroups( gl, info, capabilities, state ) {
 
 	let buffers = {};
 	let updateList = {};
-	let allocatedBindingPoints = [];
-
-	const maxBindingPoints = gl.getParameter( gl.MAX_UNIFORM_BUFFER_BINDINGS ); // binding points are global whereas block indices are per shader program
 
 	function bind( uniformsGroup, program ) {
 
 		const webglProgram = program.program;
-		state.uniformBlockBinding( uniformsGroup, webglProgram );
+		state.uniformBlockBinding( uniformsGroup, webglProgram, buffers[ uniformsGroup.id ] );
 
 	}
 
@@ -49,11 +48,6 @@ function WebGLUniformsGroups( gl, info, capabilities, state ) {
 
 	function createBuffer( uniformsGroup ) {
 
-		// the setup of an UBO is independent of a particular shader program but global
-
-		const bindingPointIndex = allocateBindingPointIndex();
-		uniformsGroup.__bindingPointIndex = bindingPointIndex;
-
 		const buffer = gl.createBuffer();
 		const size = uniformsGroup.__size;
 		const usage = uniformsGroup.usage;
@@ -61,28 +55,8 @@ function WebGLUniformsGroups( gl, info, capabilities, state ) {
 		gl.bindBuffer( gl.UNIFORM_BUFFER, buffer );
 		gl.bufferData( gl.UNIFORM_BUFFER, size, usage );
 		gl.bindBuffer( gl.UNIFORM_BUFFER, null );
-		gl.bindBufferBase( gl.UNIFORM_BUFFER, bindingPointIndex, buffer );
 
 		return buffer;
-
-	}
-
-	function allocateBindingPointIndex() {
-
-		for ( let i = 0; i < maxBindingPoints; i ++ ) {
-
-			if ( allocatedBindingPoints.indexOf( i ) === - 1 ) {
-
-				allocatedBindingPoints.push( i );
-				return i;
-
-			}
-
-		}
-
-		console.error( 'THREE.WebGLRenderer: Maximum number of simultaneously usable uniforms groups reached.' );
-
-		return 0;
 
 	}
 
@@ -96,62 +70,19 @@ function WebGLUniformsGroups( gl, info, capabilities, state ) {
 
 		for ( let i = 0, il = uniforms.length; i < il; i ++ ) {
 
-			const uniformArray = Array.isArray( uniforms[ i ] ) ? uniforms[ i ] : [ uniforms[ i ] ];
+			const uniformItem = uniforms[ i ];
 
-			for ( let j = 0, jl = uniformArray.length; j < jl; j ++ ) {
+			if ( Array.isArray( uniformItem ) ) {
 
-				const uniform = uniformArray[ j ];
+				for ( let j = 0, jl = uniformItem.length; j < jl; j ++ ) {
 
-				if ( hasUniformChanged( uniform, i, j, cache ) === true ) {
-
-					const offset = uniform.__offset;
-
-					const values = Array.isArray( uniform.value ) ? uniform.value : [ uniform.value ];
-
-					let arrayOffset = 0;
-
-					for ( let k = 0; k < values.length; k ++ ) {
-
-						const value = values[ k ];
-
-						const info = getUniformSize( value );
-
-						// TODO add integer and struct support
-						if ( typeof value === 'number' || typeof value === 'boolean' ) {
-
-							uniform.__data[ 0 ] = value;
-							gl.bufferSubData( gl.UNIFORM_BUFFER, offset + arrayOffset, uniform.__data );
-
-						} else if ( value.isMatrix3 ) {
-
-							// manually converting 3x3 to 3x4
-
-							uniform.__data[ 0 ] = value.elements[ 0 ];
-							uniform.__data[ 1 ] = value.elements[ 1 ];
-							uniform.__data[ 2 ] = value.elements[ 2 ];
-							uniform.__data[ 3 ] = 0;
-							uniform.__data[ 4 ] = value.elements[ 3 ];
-							uniform.__data[ 5 ] = value.elements[ 4 ];
-							uniform.__data[ 6 ] = value.elements[ 5 ];
-							uniform.__data[ 7 ] = 0;
-							uniform.__data[ 8 ] = value.elements[ 6 ];
-							uniform.__data[ 9 ] = value.elements[ 7 ];
-							uniform.__data[ 10 ] = value.elements[ 8 ];
-							uniform.__data[ 11 ] = 0;
-
-						} else {
-
-							value.toArray( uniform.__data, arrayOffset );
-
-							arrayOffset += info.storage / Float32Array.BYTES_PER_ELEMENT;
-
-						}
-
-					}
-
-					gl.bufferSubData( gl.UNIFORM_BUFFER, offset, uniform.__data );
+					updateUniform( uniformItem[ j ], i, j, cache );
 
 				}
+
+			} else {
+
+				updateUniform( uniformItem, i, 0, cache );
 
 			}
 
@@ -161,22 +92,123 @@ function WebGLUniformsGroups( gl, info, capabilities, state ) {
 
 	}
 
+	function updateUniform( uniform, index, indexArray, cache ) {
+
+		if ( hasUniformChanged( uniform, index, indexArray, cache ) === true ) {
+
+			const offset = uniform.__offset;
+			const value = uniform.value;
+
+			if ( Array.isArray( value ) ) {
+
+				let arrayOffset = 0;
+
+				for ( let k = 0; k < value.length; k ++ ) {
+
+					const val = value[ k ];
+					const info = getUniformSize( val, true );
+
+					writeUniformValue( val, uniform.__data, arrayOffset );
+
+					arrayOffset += info.storage / Float32Array.BYTES_PER_ELEMENT;
+
+				}
+
+			} else {
+
+				writeUniformValue( value, uniform.__data, 0 );
+
+			}
+
+			gl.bufferSubData( gl.UNIFORM_BUFFER, offset, uniform.__data );
+
+		}
+
+	}
+
+	function writeUniformValue( value, data, offset ) {
+
+		// TODO add integer vector and struct support
+		if ( typeof value === 'number' || typeof value === 'boolean' ) {
+
+			data[ offset ] = value;
+
+		} else if ( value.isMatrix3 ) {
+
+			// manually converting 3x3 to 3x4
+
+			data[ offset ] = value.elements[ 0 ];
+			data[ offset + 1 ] = value.elements[ 1 ];
+			data[ offset + 2 ] = value.elements[ 2 ];
+			data[ offset + 3 ] = 0;
+			data[ offset + 4 ] = value.elements[ 3 ];
+			data[ offset + 5 ] = value.elements[ 4 ];
+			data[ offset + 6 ] = value.elements[ 5 ];
+			data[ offset + 7 ] = 0;
+			data[ offset + 8 ] = value.elements[ 6 ];
+			data[ offset + 9 ] = value.elements[ 7 ];
+			data[ offset + 10 ] = value.elements[ 8 ];
+			data[ offset + 11 ] = 0;
+
+		} else if ( ArrayBuffer.isView( value ) ) {
+
+			// copy the buffer data using "set"
+			data.set( value.subarray( 0, data.length - offset ), offset );
+
+		} else {
+
+			value.toArray( data, offset );
+
+		}
+
+	}
+
 	function hasUniformChanged( uniform, index, indexArray, cache ) {
 
 		const value = uniform.value;
 		const indexString = index + '_' + indexArray;
 
-		if ( cache[ indexString ] === undefined ) {
+		if ( Array.isArray( value ) ) {
+
+			// arrays are cached per element
+
+			if ( cache[ indexString ] === undefined ) cache[ indexString ] = [];
+
+			const cachedArray = cache[ indexString ];
+
+			let changed = false;
+
+			for ( let k = 0; k < value.length; k ++ ) {
+
+				if ( hasValueChanged( value[ k ], cachedArray, k ) === true ) changed = true;
+
+			}
+
+			return changed;
+
+		}
+
+		return hasValueChanged( value, cache, indexString );
+
+	}
+
+	function hasValueChanged( value, cache, key ) {
+
+		if ( cache[ key ] === undefined ) {
 
 			// cache entry does not exist so far
 
 			if ( typeof value === 'number' || typeof value === 'boolean' ) {
 
-				cache[ indexString ] = value;
+				cache[ key ] = value;
+
+			} else if ( ArrayBuffer.isView( value ) ) {
+
+				cache[ key ] = value.slice();
 
 			} else {
 
-				cache[ indexString ] = value.clone();
+				cache[ key ] = value.clone();
 
 			}
 
@@ -184,7 +216,7 @@ function WebGLUniformsGroups( gl, info, capabilities, state ) {
 
 		} else {
 
-			const cachedObject = cache[ indexString ];
+			const cachedObject = cache[ key ];
 
 			// compare current value with cached entry
 
@@ -192,10 +224,15 @@ function WebGLUniformsGroups( gl, info, capabilities, state ) {
 
 				if ( cachedObject !== value ) {
 
-					cache[ indexString ] = value;
+					cache[ key ] = value;
 					return true;
 
 				}
+
+			} else if ( ArrayBuffer.isView( value ) ) {
+
+				// always update the array buffers
+				return true;
 
 			} else {
 
@@ -234,11 +271,16 @@ function WebGLUniformsGroups( gl, info, capabilities, state ) {
 
 				const values = Array.isArray( uniform.value ) ? uniform.value : [ uniform.value ];
 
+				// arrays of uniforms and uniforms with array values both represent GLSL arrays
+				const isArray = Array.isArray( uniforms[ i ] ) || Array.isArray( uniform.value );
+
+				let start = offset;
+
 				for ( let k = 0, kl = values.length; k < kl; k ++ ) {
 
 					const value = values[ k ];
 
-					const info = getUniformSize( value );
+					const info = getUniformSize( value, isArray );
 
 					const chunkOffset = offset % chunkSize; // offset in the current chunk
 					const chunkPadding = chunkOffset % info.boundary; // required padding to match boundary
@@ -254,14 +296,17 @@ function WebGLUniformsGroups( gl, info, capabilities, state ) {
 
 					}
 
-					// the following two properties will be used for partial buffer updates
-					uniform.__data = new Float32Array( info.storage / Float32Array.BYTES_PER_ELEMENT );
-					uniform.__offset = offset;
+					if ( k === 0 ) start = offset;
 
 					// Update the global offset
 					offset += info.storage;
 
 				}
+
+				// the following two properties will be used for partial buffer updates
+				const ArrayType = uniform.type === 'int' ? Int32Array : uniform.type === 'uint' ? Uint32Array : Float32Array;
+				uniform.__data = new ArrayType( ( offset - start ) / Float32Array.BYTES_PER_ELEMENT );
+				uniform.__offset = start;
 
 			}
 
@@ -282,7 +327,7 @@ function WebGLUniformsGroups( gl, info, capabilities, state ) {
 
 	}
 
-	function getUniformSize( value ) {
+	function getUniformSize( value, isArrayElement ) {
 
 		const info = {
 			boundary: 0, // bytes
@@ -323,23 +368,37 @@ function WebGLUniformsGroups( gl, info, capabilities, state ) {
 
 			// mat3 (in STD140 a 3x3 matrix is represented as 3x4)
 
-			info.boundary = 48;
+			info.boundary = 16;
 			info.storage = 48;
 
 		} else if ( value.isMatrix4 ) {
 
 			// mat4
 
-			info.boundary = 64;
+			info.boundary = 16;
 			info.storage = 64;
 
 		} else if ( value.isTexture ) {
 
-			console.warn( 'THREE.WebGLRenderer: Texture samplers can not be part of an uniforms group.' );
+			warn( 'WebGLRenderer: Texture samplers can not be part of an uniforms group.' );
+
+		} else if ( ArrayBuffer.isView( value ) ) {
+
+			info.boundary = 16;
+			info.storage = value.byteLength;
 
 		} else {
 
-			console.warn( 'THREE.WebGLRenderer: Unsupported uniform value type.', value );
+			warn( 'WebGLRenderer: Unsupported uniform value type.', value );
+
+		}
+
+		if ( isArrayElement === true ) {
+
+			// the alignment and stride of array elements are rounded up to the size of a vec4
+
+			info.boundary = 16;
+			info.storage = Math.ceil( info.storage / 16 ) * 16;
 
 		}
 
@@ -352,9 +411,6 @@ function WebGLUniformsGroups( gl, info, capabilities, state ) {
 		const uniformsGroup = event.target;
 
 		uniformsGroup.removeEventListener( 'dispose', onUniformsGroupsDispose );
-
-		const index = allocatedBindingPoints.indexOf( uniformsGroup.__bindingPointIndex );
-		allocatedBindingPoints.splice( index, 1 );
 
 		gl.deleteBuffer( buffers[ uniformsGroup.id ] );
 
@@ -371,7 +427,6 @@ function WebGLUniformsGroups( gl, info, capabilities, state ) {
 
 		}
 
-		allocatedBindingPoints = [];
 		buffers = {};
 		updateList = {};
 

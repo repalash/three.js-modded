@@ -46,11 +46,13 @@ import { Texture } from '../../textures/Texture.js';
 import { DataArrayTexture } from '../../textures/DataArrayTexture.js';
 import { Data3DTexture } from '../../textures/Data3DTexture.js';
 import { DepthTexture } from '../../textures/DepthTexture.js';
-import { LessEqualCompare } from '../../constants.js';
+import { CubeDepthTexture } from '../../textures/CubeDepthTexture.js';
+import { AlwaysCompare } from '../../constants.js';
 
 const emptyTexture = /*@__PURE__*/ new Texture();
 
 const emptyShadowTexture = /*@__PURE__*/ new DepthTexture( 1, 1 );
+const emptyCubeShadowTexture = /*@__PURE__*/ new CubeDepthTexture( 1 );
 
 const emptyArrayTexture = /*@__PURE__*/ new DataArrayTexture();
 const empty3dTexture = /*@__PURE__*/ new Data3DTexture();
@@ -554,6 +556,19 @@ function setValueV4ui( gl, v ) {
 }
 
 
+function initShadowTexture( texture ) {
+
+	if ( texture.version === 0 ) {
+
+		texture.compareFunction = AlwaysCompare;
+		texture.needsUpdate = true;
+
+	}
+
+	return texture;
+
+}
+
 // Single texture (2D / Cube)
 
 function setValueT1( gl, v, textures ) {
@@ -572,8 +587,7 @@ function setValueT1( gl, v, textures ) {
 
 	if ( this.type === gl.SAMPLER_2D_SHADOW ) {
 
-		emptyShadowTexture.compareFunction = LessEqualCompare; // #28670
-		emptyTexture2D = emptyShadowTexture;
+		emptyTexture2D = initShadowTexture( emptyShadowTexture );
 
 	} else {
 
@@ -613,7 +627,19 @@ function setValueT6( gl, v, textures ) {
 
 	}
 
-	textures.setTextureCube( v || emptyCubeTexture, unit );
+	let emptyTextureCube;
+
+	if ( this.type === gl.SAMPLER_CUBE_SHADOW ) {
+
+		emptyTextureCube = initShadowTexture( emptyCubeShadowTexture );
+
+	} else {
+
+		emptyTextureCube = emptyCubeTexture;
+
+	}
+
+	textures.setTextureCube( v || emptyTextureCube, unit );
 
 }
 
@@ -822,9 +848,21 @@ function setValueT1Array( gl, v, textures ) {
 
 	}
 
+	let emptyTexture2D;
+
+	if ( this.type === gl.SAMPLER_2D_SHADOW ) {
+
+		emptyTexture2D = initShadowTexture( emptyShadowTexture );
+
+	} else {
+
+		emptyTexture2D = emptyTexture;
+
+	}
+
 	for ( let i = 0; i !== n; ++ i ) {
 
-		textures.setTexture2D( v[ i ] || emptyTexture, units[ i ] );
+		textures.setTexture2D( v[ i ] || emptyTexture2D, units[ i ] );
 
 	}
 
@@ -870,9 +908,21 @@ function setValueT6Array( gl, v, textures ) {
 
 	}
 
+	let emptyTextureCube;
+
+	if ( this.type === gl.SAMPLER_CUBE_SHADOW ) {
+
+		emptyTextureCube = initShadowTexture( emptyCubeShadowTexture );
+
+	} else {
+
+		emptyTextureCube = emptyCubeTexture;
+
+	}
+
 	for ( let i = 0; i !== n; ++ i ) {
 
-		textures.setTextureCube( v[ i ] || emptyCubeTexture, units[ i ] );
+		textures.setTextureCube( v[ i ] || emptyTextureCube, units[ i ] );
 
 	}
 
@@ -1107,6 +1157,31 @@ class WebGLUniforms {
 				addr = gl.getUniformLocation( program, info.name );
 
 			parseUniform( info, addr, this );
+
+		}
+
+		// Sort uniforms to prioritize shadow samplers first (for optimal texture unit allocation)
+
+		const shadowSamplers = [];
+		const otherUniforms = [];
+
+		for ( const u of this.seq ) {
+
+			if ( u.type === gl.SAMPLER_2D_SHADOW || u.type === gl.SAMPLER_CUBE_SHADOW || u.type === gl.SAMPLER_2D_ARRAY_SHADOW ) {
+
+				shadowSamplers.push( u );
+
+			} else {
+
+				otherUniforms.push( u );
+
+			}
+
+		}
+
+		if ( shadowSamplers.length > 0 ) {
+
+			this.seq = shadowSamplers.concat( otherUniforms );
 
 		}
 

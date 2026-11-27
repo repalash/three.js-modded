@@ -1,31 +1,81 @@
-import { registerNode } from '../core/Node.js';
-import TempNode from '../core/TempNode.js';
+import Node from '../core/Node.js';
 import { addMethodChaining, nodeProxy } from '../tsl/TSLCore.js';
 import { vectorComponents } from '../core/constants.js';
 
-class AssignNode extends TempNode {
+/**
+ * These node represents an assign operation. Meaning a node is assigned
+ * to another node.
+ *
+ * @augments Node
+ */
+class AssignNode extends Node {
 
+	static get type() {
+
+		return 'AssignNode';
+
+	}
+
+	/**
+	 * Constructs a new assign node.
+	 *
+	 * @param {Node} targetNode - The target node.
+	 * @param {Node} sourceNode - The source type.
+	 */
 	constructor( targetNode, sourceNode ) {
 
 		super();
 
+		/**
+		 * The target node.
+		 *
+		 * @type {Node}
+		 */
 		this.targetNode = targetNode;
+
+		/**
+		 * The source node.
+		 *
+		 * @type {Node}
+		 */
 		this.sourceNode = sourceNode;
+
+		/**
+		 * This flag can be used for type testing.
+		 *
+		 * @type {boolean}
+		 * @readonly
+		 * @default true
+		 */
+		this.isAssignNode = true;
 
 	}
 
-	hasDependencies() {
+	/**
+	 * Assignments must not be cached in temporary variables.
+	 *
+	 * @param {NodeBuilder} builder - The current node builder.
+	 * @return {boolean} Always `false`.
+	 */
+	isCacheable( /*builder*/ ) {
 
 		return false;
 
 	}
 
-	getNodeType( builder, output ) {
+	generateNodeType( builder, output ) {
 
 		return output !== 'void' ? this.targetNode.getNodeType( builder ) : 'void';
 
 	}
 
+	/**
+	 * Whether a split is required when assigning source to target. This can happen when the component length of
+	 * target and source data type does not match.
+	 *
+	 * @param {NodeBuilder} builder - The current node builder.
+	 * @return {boolean} Whether a split is required when assigning source to target.
+	 */
 	needsSplitAssign( builder ) {
 
 		const { targetNode } = this;
@@ -33,9 +83,9 @@ class AssignNode extends TempNode {
 		if ( builder.isAvailable( 'swizzleAssign' ) === false && targetNode.isSplitNode && targetNode.components.length > 1 ) {
 
 			const targetLength = builder.getTypeLength( targetNode.node.getNodeType( builder ) );
-			const assignDiferentVector = vectorComponents.join( '' ).slice( 0, targetLength ) !== targetNode.components;
+			const assignDifferentVector = vectorComponents.join( '' ).slice( 0, targetLength ) !== targetNode.components;
 
-			return assignDiferentVector;
+			return assignDifferentVector;
 
 		}
 
@@ -43,17 +93,31 @@ class AssignNode extends TempNode {
 
 	}
 
-	generate( builder, output ) {
+	setup( builder ) {
 
 		const { targetNode, sourceNode } = this;
 
+		const scope = targetNode.getScope();
+
+		const scopeData = builder.getDataFromNode( scope );
+		scopeData.assign = true;
+
+		const properties = builder.getNodeProperties( this );
+		properties.sourceNode = sourceNode;
+		properties.targetNode = targetNode.context( { assign: true } );
+
+	}
+
+	generate( builder, output ) {
+
+		const { targetNode, sourceNode } = builder.getNodeProperties( this );
+
 		const needsSplitAssign = this.needsSplitAssign( builder );
 
+		const target = targetNode.build( builder );
 		const targetType = targetNode.getNodeType( builder );
 
-		const target = targetNode.context( { assign: true } ).build( builder );
 		const source = sourceNode.build( builder, targetType );
-
 		const sourceType = sourceNode.getNodeType( builder );
 
 		const nodeData = builder.getDataFromNode( this );
@@ -62,7 +126,7 @@ class AssignNode extends TempNode {
 
 		let snippet;
 
-		if ( nodeData.initialized === true ) {
+		if ( nodeData.propertyName !== undefined ) {
 
 			if ( output !== 'void' ) {
 
@@ -75,15 +139,18 @@ class AssignNode extends TempNode {
 			const sourceVar = builder.getVarFromNode( this, null, targetType );
 			const sourceProperty = builder.getPropertyName( sourceVar );
 
-			builder.addLineFlowCode( `${ sourceProperty } = ${ source }` );
+			builder.addLineFlowCode( `${ sourceProperty } = ${ source }`, this );
 
-			const targetRoot = targetNode.node.context( { assign: true } ).build( builder );
+			const splitNode = targetNode.node;
+			const splitTargetNode = splitNode.node.context( { assign: true } );
 
-			for ( let i = 0; i < targetNode.components.length; i ++ ) {
+			const targetRoot = splitTargetNode.build( builder );
 
-				const component = targetNode.components[ i ];
+			for ( let i = 0; i < splitNode.components.length; i ++ ) {
 
-				builder.addLineFlowCode( `${ targetRoot }.${ component } = ${ sourceProperty }[ ${ i } ]` );
+				const component = splitNode.components[ i ];
+
+				builder.addLineFlowCode( `${ targetRoot }.${ component } = ${ sourceProperty }[ ${ i } ]`, this );
 
 			}
 
@@ -99,7 +166,7 @@ class AssignNode extends TempNode {
 
 			if ( output === 'void' || sourceType === 'void' ) {
 
-				builder.addLineFlowCode( snippet );
+				builder.addLineFlowCode( snippet, this );
 
 				if ( output !== 'void' ) {
 
@@ -111,7 +178,8 @@ class AssignNode extends TempNode {
 
 		}
 
-		nodeData.initialized = true;
+		// The value of an assignment is its target.
+		nodeData.propertyName = target;
 
 		return builder.format( snippet, targetType, output );
 
@@ -121,8 +189,15 @@ class AssignNode extends TempNode {
 
 export default AssignNode;
 
-AssignNode.type = /*@__PURE__*/ registerNode( 'Assign', AssignNode );
-
-export const assign = /*@__PURE__*/ nodeProxy( AssignNode );
+/**
+ * TSL function for creating an assign node.
+ *
+ * @tsl
+ * @function
+ * @param {Node} targetNode - The target node.
+ * @param {Node} sourceNode - The source type.
+ * @returns {AssignNode}
+ */
+export const assign = /*@__PURE__*/ nodeProxy( AssignNode ).setParameterLength( 2 );
 
 addMethodChaining( 'assign', assign );

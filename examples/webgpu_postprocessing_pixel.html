@@ -4,22 +4,31 @@
 		<title>three.js webgpu - postprocessing pixel</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<link type="text/css" rel="stylesheet" href="main.css">
+		<meta property="og:title" content="three.js webgpu - postprocessing pixel">
+		<meta property="og:type" content="website">
+		<meta property="og:url" content="https://threejs.org/examples/webgpu_postprocessing_pixel.html">
+		<meta property="og:image" content="https://threejs.org/examples/screenshots/webgpu_postprocessing_pixel.jpg">
+		<link type="text/css" rel="stylesheet" href="example.css">
 	</head>
 
 <body>
-	<div id="info">
-		<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - Node based pixelation pass with optional single pixel outlines by
-		<a href="https://github.com/KodyJKing" target="_blank" rel="noopener">Kody King</a><br /><br />
-	</div>
 
-	<div id="container"></div>
+	<div id="info">
+		<a href="https://threejs.org/" target="_blank" rel="noopener" class="logo-link"></a>
+
+		<div class="title-wrapper">
+			<a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a><span>Pixelation</span>
+		</div>
+
+		<small>Node based pixelation pass with optional single pixel outlines by <a href="https://github.com/KodyJKing" target="_blank" rel="noopener">Kody King</a>.</small>
+	</div>
 
 	<script type="importmap">
 		{
 			"imports": {
 				"three": "../build/three.webgpu.js",
-				"three/tsl": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+				"three/tsl": "../build/three.tsl.js",
 				"three/addons/": "./jsm/"
 			}
 		}
@@ -28,15 +37,20 @@
 
 	<script type="module">
 
-		import * as THREE from 'three';
+		import * as THREE from 'three/webgpu';
 
 		import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-		import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+		import { Inspector } from 'three/addons/inspector/Inspector.js';
 
-		import { uniform, pixelationPass } from 'three/tsl';
+		import { uniform } from 'three/tsl';
+		import { pixelationPass } from 'three/addons/tsl/display/PixelationPassNode.js';
 
-		let camera, scene, renderer, postProcessing, crystalMesh, clock;
-		let gui, effectController;
+		let camera, scene, renderer, renderPipeline, crystalMesh, timer;
+		let scenePass;
+
+		const params = {
+			pixelAlignedPanning: true
+		};
 
 		init();
 
@@ -51,7 +65,8 @@
 			scene = new THREE.Scene();
 			scene.background = new THREE.Color( 0x151729 );
 
-			clock = new THREE.Clock();
+			timer = new THREE.Timer();
+			timer.connect( document );
 
 			// textures
 
@@ -113,7 +128,6 @@
 			directionalLight.position.set( 100, 100, 100 );
 			directionalLight.castShadow = true;
 			directionalLight.shadow.mapSize.set( 2048, 2048 );
-			directionalLight.shadow.bias = - 0.0001;
 			scene.add( directionalLight );
 
 			const spotLight = new THREE.SpotLight( 0xffc100, 10, 10, Math.PI / 16, .02, 2 );
@@ -122,26 +136,19 @@
 			scene.add( target );
 			target.position.set( 0, 0, 0 );
 			spotLight.castShadow = true;
-			spotLight.shadow.bias = - 0.001;
 			scene.add( spotLight );
 
 			renderer = new THREE.WebGPURenderer();
-			renderer.shadowMap.enabled = true;
-			renderer.shadowMap.type = THREE.BasicShadowMap;
 			renderer.setSize( window.innerWidth, window.innerHeight );
 			renderer.setAnimationLoop( animate );
+			renderer.inspector = new Inspector();
+			renderer.shadowMap.enabled = true;
+			renderer.shadowMap.type = THREE.BasicShadowMap;
 			document.body.appendChild( renderer.domElement );
 
-			effectController = {
-				pixelSize: uniform( 6 ),
-				normalEdgeStrength: uniform( 0.3 ),
-				depthEdgeStrength: uniform( 0.4 ),
-				pixelAlignedPanning: true
-			};
-
-			postProcessing = new THREE.PostProcessing( renderer );
-			const scenePass = pixelationPass( scene, camera, effectController.pixelSize, effectController.normalEdgeStrength, effectController.depthEdgeStrength );
-			postProcessing.outputNode = scenePass;
+			renderPipeline = new THREE.RenderPipeline( renderer );
+			scenePass = pixelationPass( scene, camera, 6, uniform( 0.3 ), uniform( 0.4 ) );
+			renderPipeline.outputNode = scenePass;
 
 			window.addEventListener( 'resize', onWindowResize );
 
@@ -150,11 +157,11 @@
 
 			// gui
 
-			gui = new GUI();
-			gui.add( effectController.pixelSize, 'value', 1, 16, 1 ).name( 'Pixel Size' );
-			gui.add( effectController.normalEdgeStrength, 'value', 0, 2, 0.05 ).name( 'Normal Edge Strength' );
-			gui.add( effectController.depthEdgeStrength, 'value', 0, 1, 0.05 ).name( 'Depth Edge Strength' );
-			gui.add( effectController, 'pixelAlignedPanning' );
+			const gui = renderer.inspector.createParameters( 'Settings' );
+			gui.add( scenePass, 'pixelSize', 1, 16, 1 ).name( 'Pixel Size' );
+			gui.add( scenePass.normalEdgeStrength, 'value', 0, 2, 0.05 ).name( 'Normal Edge Strength' );
+			gui.add( scenePass.depthEdgeStrength, 'value', 0, 1, 0.05 ).name( 'Depth Edge Strength' );
+			gui.add( params, 'pixelAlignedPanning' );
 
 		}
 
@@ -171,7 +178,9 @@
 
 		function animate() {
 
-			const t = clock.getElapsedTime();
+			timer.update();
+
+			const t = timer.getElapsed();
 
 			crystalMesh.material.emissiveIntensity = Math.sin( t * 3 ) * .5 + .5;
 			crystalMesh.position.y = .7 + Math.sin( t * 2 ) * .05;
@@ -180,9 +189,9 @@
 			const rendererSize = renderer.getSize( new THREE.Vector2() );
 			const aspectRatio = rendererSize.x / rendererSize.y;
 
-			if ( effectController.pixelAlignedPanning ) {
+			if ( params.pixelAlignedPanning ) {
 
-				const pixelSize = effectController.pixelSize.value;
+				const pixelSize = scenePass.pixelSize;
 
 				pixelAlignFrustum( camera, aspectRatio, Math.floor( rendererSize.x / pixelSize ),
 					Math.floor( rendererSize.y / pixelSize ) );
@@ -198,7 +207,7 @@
 
 			}
 
-			postProcessing.render();
+			renderPipeline.render();
 
 		}
 

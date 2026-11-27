@@ -4,9 +4,29 @@ import {
 	SphereGeometry
 } from 'three';
 
+/**
+ * Renders a sphere to visualize a light probe in the scene.
+ *
+ * This helper can only be used with {@link WebGLRenderer}.
+ * When using {@link WebGPURenderer}, import from `LightProbeHelperGPU.js`.
+ *
+ * ```js
+ * const helper = new LightProbeHelper( lightProbe );
+ * scene.add( helper );
+ * ```
+ *
+ * @augments Mesh
+ * @three_import import { LightProbeHelper } from 'three/addons/helpers/LightProbeHelper.js';
+ */
 class LightProbeHelper extends Mesh {
 
-	constructor( lightProbe, size ) {
+	/**
+	 * Constructs a new light probe helper.
+	 *
+	 * @param {LightProbe} lightProbe - The light probe to visualize.
+	 * @param {number} [size=1] - The size of the helper.
+	 */
+	constructor( lightProbe, size = 1 ) {
 
 		const material = new ShaderMaterial( {
 
@@ -38,11 +58,12 @@ class LightProbeHelper extends Mesh {
 
 				#define RECIPROCAL_PI 0.318309886
 
-				vec3 inverseTransformDirection( in vec3 normal, in mat4 matrix ) {
 
-					// matrix is assumed to be orthogonal
+				vec3 transformNormalByInverseViewMatrix( in vec3 normal, in mat4 viewMatrix ) {
 
-					return normalize( ( vec4( normal, 0.0 ) * matrix ).xyz );
+					// upper-left 3x3 of view matrix is assumed to be orthogonal
+
+					return normalize( ( vec4( normal, 0.0 ) * viewMatrix ).xyz );
 
 				}
 
@@ -81,7 +102,7 @@ class LightProbeHelper extends Mesh {
 
 					vec3 normal = normalize( vNormal );
 
-					vec3 worldNormal = inverseTransformDirection( normal, viewMatrix );
+					vec3 worldNormal = transformNormalByInverseViewMatrix( normal, viewMatrix );
 
 					vec3 irradiance = shGetIrradianceAt( worldNormal, sh );
 
@@ -99,7 +120,19 @@ class LightProbeHelper extends Mesh {
 
 		super( geometry, material );
 
+		/**
+		 * The light probe to visualize.
+		 *
+		 * @type {LightProbe}
+		 */
 		this.lightProbe = lightProbe;
+
+		/**
+		 * The size of the helper.
+		 *
+		 * @type {number}
+		 * @default 1
+		 */
 		this.size = size;
 		this.type = 'LightProbeHelper';
 
@@ -107,6 +140,10 @@ class LightProbeHelper extends Mesh {
 
 	}
 
+	/**
+	 * Frees the GPU-related resources allocated by this instance. Call this
+	 * method whenever this instance is no longer used in your app.
+	 */
 	dispose() {
 
 		this.geometry.dispose();

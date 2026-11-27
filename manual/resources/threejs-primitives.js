@@ -191,7 +191,7 @@ const extrudeSettings = {
   bevelSegments: 2,  // ui: bevelSegments
 };
 
-const geometry = THREE.ExtrudeGeometry(shape, extrudeSettings);
+const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
 `,
 			create2( steps = 100 ) {
 
@@ -830,7 +830,7 @@ const geometry = new THREE.WireframeGeometry(
 
 		const a = document.createElement( 'a' );
 		a.setAttribute( 'target', '_blank' );
-		a.href = href || `https://threejs.org/docs/#api/geometries/${name}`;
+		a.href = href || `https://threejs.org/docs/#api/en/geometries/${name}`;
 		const code = document.createElement( 'code' );
 		code.textContent = name;
 		a.appendChild( code );
@@ -842,7 +842,7 @@ const geometry = new THREE.WireframeGeometry(
 	function addDeepLink( parent, name, href ) {
 
 		const a = document.createElement( 'a' );
-		a.href = href || `https://threejs.org/docs/#api/geometries/${name}`;
+		a.href = href || `https://threejs.org/docs/#api/en/geometries/${name}`;
 		a.textContent = name;
 		a.className = 'deep-link';
 		parent.appendChild( a );

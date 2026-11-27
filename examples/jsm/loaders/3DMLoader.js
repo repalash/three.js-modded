@@ -1,4 +1,6 @@
 import {
+	BufferAttribute,
+	BufferGeometry,
 	BufferGeometryLoader,
 	CanvasTexture,
 	ClampToEdgeWrapping,
@@ -23,18 +25,47 @@ import {
 	SpotLight,
 	Sprite,
 	SpriteMaterial,
-	TextureLoader
+	TextureLoader,
+	EquirectangularReflectionMapping
 } from 'three';
 
 import { EXRLoader } from '../loaders/EXRLoader.js';
 
 const _taskCache = new WeakMap();
+const _bufferGeometryLoader = new BufferGeometryLoader();
 
+/**
+ * A loader for Rhinoceros 3D files and objects.
+ *
+ * Rhinoceros is a 3D modeler used to create, edit, analyze, document, render,
+ * animate, and translate NURBS curves, surfaces, breps, extrusions, point clouds,
+ * as well as polygon meshes and SubD objects. `rhino3dm.js` is compiled to WebAssembly
+ * from the open source geometry library `openNURBS`. The loader currently uses
+ * `rhino3dm.js 8.32.1`.
+ *
+ * ```js
+ * const loader = new Rhino3dmLoader();
+ * loader.setLibraryPath( 'https://cdn.jsdelivr.net/npm/rhino3dm@8.32.1/' );
+ *
+ * const object = await loader.loadAsync( 'models/3dm/Rhino_Logo.3dm' );
+ * scene.add( object );
+ * ```
+ *
+ * @augments Loader
+ * @three_import import { Rhino3dmLoader } from 'three/addons/loaders/3DMLoader.js';
+ */
 class Rhino3dmLoader extends Loader {
 
+	/**
+	 * Constructs a new Rhino 3DM loader.
+	 *
+	 * @param {LoadingManager} [manager] - The loading manager.
+	 */
 	constructor( manager ) {
 
 		super( manager );
+
+		// internals
 
 		this.libraryPath = '';
 		this.libraryPending = null;
@@ -49,11 +80,21 @@ class Rhino3dmLoader extends Loader {
 		this.workerSourceURL = '';
 		this.workerConfig = {};
 
+		// Number of global subdivisions applied to SubD objects before meshing. Higher
+		// values increase smoothness at the cost of (potentially very large) vertex counts.
+		this.subdivisionLevel = 3;
+
 		this.materials = [];
 		this.warnings = [];
 
 	}
 
+	/**
+	 * Path to a folder containing the JS and WASM libraries.
+	 *
+	 * @param {string} path - The library path to set.
+	 * @return {Rhino3dmLoader} A reference to this loader.
+	 */
 	setLibraryPath( path ) {
 
 		this.libraryPath = path;
@@ -62,6 +103,14 @@ class Rhino3dmLoader extends Loader {
 
 	}
 
+	/**
+	 * Sets the maximum number of Web Workers to be used during decoding.
+	 * A lower limit may be preferable if workers are also for other
+	 * tasks in the application.
+	 *
+	 * @param {number} workerLimit - The worker limit.
+	 * @return {Rhino3dmLoader} A reference to this loader.
+	 */
 	setWorkerLimit( workerLimit ) {
 
 		this.workerLimit = workerLimit;
@@ -70,13 +119,41 @@ class Rhino3dmLoader extends Loader {
 
 	}
 
+	/**
+	 * Sets the number of global subdivisions applied to SubD objects before they are
+	 * meshed for display. The default is `3`. Large models with many SubD objects may
+	 * benefit from a lower value to keep vertex counts manageable.
+	 *
+	 * @param {number} level - The subdivision level.
+	 * @return {Rhino3dmLoader} A reference to this loader.
+	 */
+	setSubdivisionLevel( level ) {
+
+		this.subdivisionLevel = level;
+
+		return this;
+
+	}
+
+	/**
+	 * Starts loading from the given URL and passes the loaded 3DM asset
+	 * to the `onLoad()` callback.
+	 *
+	 * @param {string} url - The path/URL of the file to be loaded. This can also be a data URI.
+	 * @param {function(Object3D)} onLoad - Executed when the loading process has been finished.
+	 * @param {onProgressCallback} onProgress - Executed while the loading is in progress.
+	 * @param {onErrorCallback} onError - Executed when errors occur.
+	 */
 	load( url, onLoad, onProgress, onError ) {
 
 		const loader = new FileLoader( this.manager );
+		loader.setPriority( this.priority );
+		loader.setCache( this.cache );
 
 		loader.setPath( this.path );
 		loader.setResponseType( 'arraybuffer' );
 		loader.setRequestHeader( this.requestHeader );
+		loader.setWithCredentials( this.withCredentials );
 
 		this.url = url;
 
@@ -106,12 +183,22 @@ class Rhino3dmLoader extends Loader {
 
 	}
 
+	/**
+	 * Prints debug messages to the browser console.
+	 */
 	debug() {
 
 		console.log( 'Task load: ', this.workerPool.map( ( worker ) => worker._taskLoad ) );
 
 	}
 
+	/**
+	 * Decodes the 3DM asset data with a Web Worker.
+	 *
+	 * @param {ArrayBuffer} buffer - The raw 3DM asset data as an array buffer.
+	 * @param {string} url - The asset URL.
+	 * @return {Promise<Object3D>} A Promise that resolved with the decoded 3D object.
+	 */
 	decodeObjects( buffer, url ) {
 
 		let worker;
@@ -129,9 +216,7 @@ class Rhino3dmLoader extends Loader {
 
 					worker._callbacks[ taskID ] = { resolve, reject };
 
-					worker.postMessage( { type: 'decode', id: taskID, buffer }, [ buffer ] );
-
-					// this.debug();
+					worker.postMessage( { type: 'decode', id: taskID, buffer, subdivisionLevel: this.subdivisionLevel }, [ buffer ] );
 
 				} );
 
@@ -153,7 +238,6 @@ class Rhino3dmLoader extends Loader {
 
 					this._releaseTask( worker, taskID );
 
-					//this.debug();
 
 				}
 
@@ -171,16 +255,34 @@ class Rhino3dmLoader extends Loader {
 
 	}
 
+	/**
+	 * Parses the given 3DM data and passes the loaded 3DM asset
+	 * to the `onLoad()` callback.
+	 *
+	 * @param {ArrayBuffer} data - The raw 3DM asset data as an array buffer.
+	 * @param {function(Object3D)} onLoad - Executed when the loading process has been finished.
+	 * @param {onErrorCallback} onError - Executed when errors occur.
+	 */
 	parse( data, onLoad, onError ) {
 
-		this.decodeObjects( data, '' )
-			.then( result => {
+		this.parseAsync( data ).then( onLoad ).catch( onError );
 
-				result.userData.warnings = this.warnings;
-				onLoad( result );
+	}
 
-			} )
-			.catch( e => onError( e ) );
+	/**
+	 * Parses the given 3DM data and returns a Promise that resolves with the loaded asset.
+	 *
+	 * @param {ArrayBuffer} data - The raw 3DM asset data as an array buffer.
+	 * @return {Promise<Object3D>} A Promise that resolves with the decoded 3D object.
+	 */
+	parseAsync( data ) {
+
+		return this.decodeObjects( data, '' ).then( result => {
+
+			result.userData.warnings = this.warnings;
+			return result;
+
+		} );
 
 	}
 
@@ -238,19 +340,18 @@ class Rhino3dmLoader extends Loader {
 
 		}
 
-		//console.log(material)
 
 		const mat = new MeshPhysicalMaterial( {
 
 			color: new Color( material.diffuseColor.r / 255.0, material.diffuseColor.g / 255.0, material.diffuseColor.b / 255.0 ),
-			emissive: new Color( material.emissionColor.r, material.emissionColor.g, material.emissionColor.b ),
+			emissive: new Color( material.emissionColor.r / 255.0, material.emissionColor.g / 255.0, material.emissionColor.b / 255.0 ),
 			flatShading: material.disableLighting,
 			ior: material.indexOfRefraction,
 			name: material.name,
 			reflectivity: material.reflectivity,
 			opacity: 1.0 - material.transparency,
 			side: DoubleSide, // todo should we change?
-			specularColor: material.specularColor,
+			specularColor: new Color( material.specularColor.r / 255.0, material.specularColor.g / 255.0, material.specularColor.b / 255.0 ),
 			transparent: material.transparency > 0 ? true : false
 
 		} );
@@ -267,24 +368,24 @@ class Rhino3dmLoader extends Loader {
 			mat.clearcoat = pbr.clearcoat;
 			mat.clearcoatRoughness = pbr.clearcoatRoughness;
 			mat.metalness = pbr.metallic;
-			mat.transmission = 1 - pbr.opacity;
 			mat.roughness = pbr.roughness;
 			mat.sheen = pbr.sheen;
 			mat.specularIntensity = pbr.specular;
 			mat.thickness = pbr.subsurface;
 
-		}
-
-		if ( material.pbrSupported && material.pbr.opacity === 0 && material.transparency === 1 ) {
-
-			//some compromises
-
-			mat.opacity = 0.2;
-			mat.transmission = 1.00;
+			// Rhino PBR Opacity is coverage/alpha, not glass transmission, and is
+			// 1 = opaque (glTF/Disney convention, matching three.js mat.opacity — unlike
+			// the legacy Material.transparency used above, which is 0 = opaque). Map it
+			// straight to opacity so it behaves as pure alpha; leave mat.transmission at
+			// its default (0) rather than deriving glass from opacity. (RH3DM-190)
+			mat.opacity = pbr.opacity;
+			mat.transparent = pbr.opacity < 1.0;
 
 		}
 
 		const textureLoader = new TextureLoader();
+		textureLoader.setPriority( this.priority );
+		textureLoader.setCache( this.cache );
 
 		for ( let i = 0; i < material.textures.length; i ++ ) {
 
@@ -294,7 +395,6 @@ class Rhino3dmLoader extends Loader {
 
 				const map = textureLoader.load( texture.image );
 
-				//console.log(texture.type )
 
 				switch ( texture.type ) {
 
@@ -441,9 +541,9 @@ class Rhino3dmLoader extends Loader {
 		// todo repalash - do it through AssetImporter/LoadingManager
 		if ( renderEnvironment ) {
 
-			new EXRLoader().load( renderEnvironment.image, function ( texture ) {
+			new EXRLoader().setPriority( this.priority ).setCache( this.cache ).load( renderEnvironment.image, function ( texture ) {
 
-				texture.mapping = THREE.EquirectangularReflectionMapping;
+				texture.mapping = EquirectangularReflectionMapping;
 				mat.envMap = texture;
 
 			} );
@@ -462,12 +562,13 @@ class Rhino3dmLoader extends Loader {
 		const instanceReferences = [];
 
 		object.userData[ 'layers' ] = data.layers;
+		object.userData[ 'views' ] = data.views;
+		object.userData[ 'namedViews' ] = data.namedViews;
 		object.userData[ 'groups' ] = data.groups;
+		object.userData[ 'strings' ] = data.strings;
 		object.userData[ 'settings' ] = data.settings;
 		object.userData.settings[ 'renderSettings' ] = data.renderSettings;
-		object.userData[ 'strings' ] = data.strings;
 		object.userData[ 'objectType' ] = 'File3dm';
-		object.userData[ 'materials' ] = null;
 
 		object.name = this.url;
 
@@ -606,7 +707,7 @@ class Rhino3dmLoader extends Loader {
 						if ( iRef.attributes.materialIndex >= 0 && iRef.attributes.materialIndex !== objects[ 0 ].userData.attributes.materialIndex ) {
 
 							const rMaterial = materials[ iRef.attributes.materialIndex ];
-							const material = this._createMaterial( rMaterial );
+							const material = this._createMaterial( rMaterial, data.renderEnvironment );
 							clone.material = this._compareMaterials( material );
 
 						}
@@ -648,16 +749,39 @@ class Rhino3dmLoader extends Loader {
 
 		}
 
-		object.userData[ 'materials' ] = this.materials;
 		// todo removing name?
 		object.name = '';
 		return object;
 
 	}
 
-	_createObject( obj, mat ) {
+	/**
+	 * Builds a BufferGeometry from a worker payload. Meshes decoded via the fast path
+	 * arrive as transferable typed arrays (`format: 'buffers'`) and are assembled directly;
+	 * everything else falls back to the three.js BufferGeometry JSON produced by
+	 * `toThreejsJSON()` (older rhino3dm, point clouds, curves, …).
+	 */
+	_geometryFromData( data ) {
 
-		const loader = new BufferGeometryLoader();
+		if ( data && data.format === 'buffers' ) {
+
+			const geometry = new BufferGeometry();
+
+			if ( data.position && data.position.length ) geometry.setAttribute( 'position', new BufferAttribute( data.position, 3 ) );
+			if ( data.normal && data.normal.length ) geometry.setAttribute( 'normal', new BufferAttribute( data.normal, 3 ) );
+			if ( data.uv && data.uv.length ) geometry.setAttribute( 'uv', new BufferAttribute( data.uv, 2 ) );
+			if ( data.color && data.color.length ) geometry.setAttribute( 'color', new BufferAttribute( data.color, 3 ) );
+			if ( data.index && data.index.length ) geometry.setIndex( new BufferAttribute( data.index, 1 ) );
+
+			return geometry;
+
+		}
+
+		return _bufferGeometryLoader.parse( data );
+
+	}
+
+	_createObject( obj, mat ) {
 
 		const attributes = obj.attributes;
 
@@ -668,9 +792,9 @@ class Rhino3dmLoader extends Loader {
 			case 'Point':
 			case 'PointSet':
 
-				geometry = loader.parse( obj.geometry );
+				geometry = this._geometryFromData( obj.geometry );
 
-				if ( geometry.attributes.hasOwnProperty( 'color' ) ) {
+				if ( geometry.hasAttribute( 'color' ) ) {
 
 					material = new PointsMaterial( { vertexColors: true, sizeAttenuation: false, size: 2 } );
 
@@ -703,7 +827,7 @@ class Rhino3dmLoader extends Loader {
 
 				if ( obj.geometry === null ) return;
 
-				geometry = loader.parse( obj.geometry );
+				geometry = this._geometryFromData( obj.geometry );
 
 
 				if ( mat === null ) {
@@ -713,7 +837,7 @@ class Rhino3dmLoader extends Loader {
 				}
 
 
-				if ( geometry.attributes.hasOwnProperty( 'color' ) ) {
+				if ( geometry.hasAttribute( 'color' ) ) {
 
 					mat.vertexColors = true;
 
@@ -738,7 +862,7 @@ class Rhino3dmLoader extends Loader {
 
 			case 'Curve':
 
-				geometry = loader.parse( obj.geometry );
+				geometry = this._geometryFromData( obj.geometry );
 
 				_color = attributes.drawColor;
 				color = new Color( _color.r / 255.0, _color.g / 255.0, _color.b / 255.0 );
@@ -889,6 +1013,8 @@ class Rhino3dmLoader extends Loader {
 
 			// Load rhino3dm wrapper.
 			const jsLoader = new FileLoader( this.manager );
+			jsLoader.setPriority( this.priority );
+			jsLoader.setCache( this.cache );
 			jsLoader.setPath( this.libraryPath );
 			const jsContent = new Promise( ( resolve, reject ) => {
 
@@ -898,6 +1024,8 @@ class Rhino3dmLoader extends Loader {
 
 			// Load rhino3dm WASM binary.
 			const binaryLoader = new FileLoader( this.manager );
+			binaryLoader.setPriority( this.priority );
+			binaryLoader.setCache( this.cache );
 			binaryLoader.setPath( this.libraryPath );
 			binaryLoader.setResponseType( 'arraybuffer' );
 			const binaryContent = new Promise( ( resolve, reject ) => {
@@ -1004,6 +1132,10 @@ class Rhino3dmLoader extends Loader {
 
 	}
 
+	/**
+	 * Frees internal resources. This method should be called
+	 * when the loader is no longer required.
+	 */
 	dispose() {
 
 		for ( let i = 0; i < this.workerPool.length; ++ i ) {
@@ -1013,8 +1145,6 @@ class Rhino3dmLoader extends Loader {
 		}
 
 		this.workerPool.length = 0;
-
-		return this;
 
 	}
 
@@ -1060,16 +1190,20 @@ function Rhino3dmWorker() {
 
 				taskID = message.id;
 				const buffer = message.buffer;
+				const subdivisionLevel = message.subdivisionLevel;
 				libraryPending.then( () => {
 
 					try {
 
-						const data = decodeObjects( rhino, buffer );
-						self.postMessage( { type: 'decode', id: message.id, data } );
+						const data = decodeObjects( rhino, buffer, subdivisionLevel );
+						// Transfer the mesh typed arrays (fast path) instead of structure-cloning
+						// them across the worker boundary.
+						self.postMessage( { type: 'decode', id: message.id, data }, collectTransferables( data ) );
 
 					} catch ( error ) {
 
-						self.postMessage( { type: 'error', id: message.id, error } );
+						// Error objects don't always survive structured clone with their stack intact.
+						self.postMessage( { type: 'error', id: message.id, error: { message: error.message, stack: error.stack } } );
 
 					}
 
@@ -1081,7 +1215,59 @@ function Rhino3dmWorker() {
 
 	};
 
-	function decodeObjects( rhino, buffer ) {
+	// Converts a rhino3dm mesh or point cloud to a Three.js payload. When the wasm build
+	// supports toThreejsBuffers (rhino3dm >= 8.32.1 for point clouds, >= 8.32 for meshes),
+	// returns transferable typed arrays tagged \`format: 'buffers'\`; otherwise falls back to
+	// the element-by-element BufferGeometry JSON.
+	function meshToThreejs( geom ) {
+
+		if ( typeof geom.toThreejsBuffers === 'function' ) {
+
+			const b = geom.toThreejsBuffers( false );
+			const g = { format: 'buffers', position: b.position };
+			if ( b.normal ) g.normal = b.normal; // meshes always have normals; point clouds may not
+			if ( b.index ) g.index = b.index; // meshes only (point clouds are non-indexed)
+			if ( b.uv ) g.uv = b.uv;
+			if ( b.color ) g.color = b.color;
+			return g;
+
+		}
+
+		return geom.toThreejsJSON();
+
+	}
+
+	// Gathers the ArrayBuffers backing every fast-path mesh so postMessage can transfer
+	// (move) them to the main thread instead of copying.
+	function collectTransferables( data ) {
+
+		const transfer = new Set();
+
+		if ( data && data.objects ) {
+
+			for ( const obj of data.objects ) {
+
+				const g = obj.geometry;
+
+				if ( g && g.format === 'buffers' ) {
+
+					for ( const key of [ 'position', 'normal', 'uv', 'color', 'index' ] ) {
+
+						if ( g[ key ] && g[ key ].buffer ) transfer.add( g[ key ].buffer );
+
+					}
+
+				}
+
+			}
+
+		}
+
+		return Array.from( transfer );
+
+	}
+
+	function decodeObjects( rhino, buffer, subdivisionLevel ) {
 
 		const arr = new Uint8Array( buffer );
 		const doc = rhino.File3dm.fromByteArray( arr );
@@ -1103,7 +1289,7 @@ function Rhino3dmWorker() {
 
 			const _object = objs.get( i );
 
-			const object = extractObjectData( _object, doc );
+			const object = extractObjectData( _object, doc, subdivisionLevel );
 
 			_object.delete();
 
@@ -1116,7 +1302,6 @@ function Rhino3dmWorker() {
 		}
 
 		// Handle instance definitions
-		// console.log( \`Instance Definitions Count: \$\{doc.instanceDefinitions().count()\}\` );
 
 		for ( let i = 0; i < doc.instanceDefinitions().count; i ++ ) {
 
@@ -1248,15 +1433,11 @@ function Rhino3dmWorker() {
 		//TODO: Handle other document stuff like dimstyles, instance definitions, bitmaps etc.
 
 		// Handle dimstyles
-		// console.log( \`Dimstyle Count: \$\{doc.dimstyles().count()\}\` );
 
 		// Handle bitmaps
-		// console.log( \`Bitmap Count: \$\{doc.bitmaps().count()\}\` );
 
 		// Handle strings
-		// console.log( \`Document Strings Count: \$\{doc.strings().count()\}\` );
 		// Note: doc.strings().documentUserTextCount() counts any doc.strings defined in a section
-		// console.log( \`Document User Text Count: \$\{doc.strings().documentUserTextCount()\}\` );
 
 		const strings_count = doc.strings().count;
 
@@ -1277,7 +1458,7 @@ function Rhino3dmWorker() {
 
 		for ( let i = 0; i < rc.count; i ++ ) {
 
-			const content = rc.get(i);
+			const content = rc.get( i );
 
 			switch ( content.kind ) {
 
@@ -1395,7 +1576,7 @@ function Rhino3dmWorker() {
 		} else {
 
 			self.postMessage( { type: 'warning', id: taskID, data: {
-				message: \`THREE.3DMLoader: Image for \$\{tType\} texture not embedded in file.\`,
+				message: \`THREE.3DMLoader: Image for \${tType} texture not embedded in file.\`,
 				type: 'missing resource'
 			}
 
@@ -1409,7 +1590,7 @@ function Rhino3dmWorker() {
 
 	}
 
-	function extractObjectData( object, doc ) {
+	function extractObjectData( object, doc, subdivisionLevel ) {
 
 		const _geometry = object.geometry();
 		const _attributes = object.attributes();
@@ -1479,7 +1660,7 @@ function Rhino3dmWorker() {
 			case rhino.ObjectType.PointSet:
 			case rhino.ObjectType.Mesh:
 
-				geometry = _geometry.toThreejsJSON();
+				geometry = meshToThreejs( _geometry );
 
 				break;
 
@@ -1507,7 +1688,7 @@ function Rhino3dmWorker() {
 				if ( mesh.faces().count > 0 ) {
 
 					mesh.compact();
-					geometry = mesh.toThreejsJSON();
+					geometry = meshToThreejs( mesh );
 					faces.delete();
 
 				}
@@ -1522,7 +1703,7 @@ function Rhino3dmWorker() {
 
 				if ( mesh ) {
 
-					geometry = mesh.toThreejsJSON();
+					geometry = meshToThreejs( mesh );
 					mesh.delete();
 
 				}
@@ -1542,7 +1723,7 @@ function Rhino3dmWorker() {
 				if ( geometry.lightStyle.name === 'LightStyle_WorldLinear' ) {
 
 					self.postMessage( { type: 'warning', id: taskID, data: {
-						message: \`THREE.3DMLoader: No conversion exists for \$\{objectType.constructor.name} \$\{geometry.lightStyle.name\}\`,
+						message: \`THREE.3DMLoader: No conversion exists for \${objectType.constructor.name} \${geometry.lightStyle.name}\`,
 						type: 'no conversion',
 						guid: _attributes.id
 					}
@@ -1564,11 +1745,11 @@ function Rhino3dmWorker() {
 			case rhino.ObjectType.SubD:
 
 				// TODO: precalculate resulting vertices and faces and warn on excessive results
-				_geometry.subdivide( 3 );
+				_geometry.subdivide( subdivisionLevel );
 				mesh = rhino.Mesh.createFromSubDControlNet( _geometry, false );
 				if ( mesh ) {
 
-					geometry = mesh.toThreejsJSON();
+					geometry = meshToThreejs( mesh );
 					mesh.delete();
 
 				}
@@ -1584,7 +1765,7 @@ function Rhino3dmWorker() {
 			default:
 
 				self.postMessage( { type: 'warning', id: taskID, data: {
-					message: \`THREE.3DMLoader: Conversion not implemented for \$\{objectType.constructor.name\}\`,
+					message: \`THREE.3DMLoader: Conversion not implemented for \${objectType.constructor.name}\`,
 					type: 'not implemented',
 					guid: _attributes.id
 				}
@@ -1621,7 +1802,7 @@ function Rhino3dmWorker() {
 			if ( _attributes.decals().count > 0 ) {
 
 				self.postMessage( { type: 'warning', id: taskID, data: {
-					message: \`THREE.3DMLoader: No conversion exists for the decals associated with this object.\`,
+					message: 'THREE.3DMLoader: No conversion exists for the decals associated with this object.',
 					type: 'no conversion',
 					guid: _attributes.id
 				}
@@ -1640,7 +1821,7 @@ function Rhino3dmWorker() {
 		} else {
 
 			self.postMessage( { type: 'warning', id: taskID, data: {
-				message: \`THREE.3DMLoader: \$\{objectType.constructor.name\} has no associated mesh geometry.\`,
+				message: \`THREE.3DMLoader: \${objectType.constructor.name} has no associated mesh geometry.\`,
 				type: 'missing mesh',
 				guid: _attributes.id
 			}
@@ -1678,7 +1859,6 @@ function Rhino3dmWorker() {
 			} else {
 
 				// these are functions that could be called to extract more data.
-				//console.log( \`\$\{property\}: \$\{object[ property ].constructor.name}\` );
 
 			}
 

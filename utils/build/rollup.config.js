@@ -1,7 +1,6 @@
-import terser from '@rollup/plugin-terser';
 import MagicString from 'magic-string';
 
-export function glsl() {
+function glsl() {
 
 	return {
 
@@ -45,7 +44,7 @@ function header() {
 
 			code.prepend( `/**
  * @license
- * Copyright 2010-2024 Three.js Authors
+ * Copyright 2010-2026 Three.js Authors
  * SPDX-License-Identifier: MIT
  */\n` );
 
@@ -60,74 +59,50 @@ function header() {
 
 }
 
+/**
+ * @type {Array<import('rollup').RollupOptions>}
+ */
 const builds = [
 	{
-		input: 'src/Three.js',
+		input: {
+			'three.core.js': 'src/Three.Core.js',
+			'three.webgpu.nodes.js': 'src/Three.WebGPU.Nodes.js',
+		},
 		plugins: [
 			glsl(),
 			header()
 		],
+		preserveEntrySignatures: 'allow-extension',
 		output: [
 			{
 				format: 'esm',
-				file: 'build/three.module.js'
+				dir: 'build',
+				minifyInternalExports: false,
+				entryFileNames: '[name]',
 			}
 		]
 	},
 	{
-		input: 'src/Three.js',
-		plugins: [
-			glsl(),
-			header(),
-			terser()
-		],
-		output: [
-			{
-				format: 'esm',
-				file: 'build/three.module.min.js'
-			}
-		]
-	},
-	{
-		input: 'src/Three.js',
+		input: {
+			'three.core.js': 'src/Three.Core.js',
+			'three.module.js': 'src/Three.js',
+			'three.webgpu.js': 'src/Three.WebGPU.js',
+			'three.tsl.js': 'src/Three.TSL.js',
+		},
 		plugins: [
 			glsl(),
 			header()
 		],
-		output: [
-			{
-				format: 'cjs',
-				name: 'THREE',
-				file: 'build/three.cjs',
-				indent: '\t'
-			}
-		]
-	},
-	{
-		input: 'src/Three.WebGPU.js',
-		plugins: [
-			header()
-		],
+		preserveEntrySignatures: 'allow-extension',
 		output: [
 			{
 				format: 'esm',
-				file: 'build/three.webgpu.js'
-			}
-		]
-	},
-	{
-		input: 'src/Three.WebGPU.js',
-		plugins: [
-			header(),
-			terser()
-		],
-		output: [
-			{
-				format: 'esm',
-				file: 'build/three.webgpu.min.js'
+				dir: 'build',
+				minifyInternalExports: false,
+				entryFileNames: '[name]',
 			}
 		]
 	}
 ];
 
-export default ( args ) => args.configOnlyModule ? [ builds[ 0 ], builds[ 3 ] ] : builds;
+export default builds;

@@ -1,8 +1,10 @@
-/* global QUnit */
-
 import { ObjectLoader } from '../../../../src/loaders/ObjectLoader.js';
 
 import { Loader } from '../../../../src/loaders/Loader.js';
+import { Object3D } from '../../../../src/core/Object3D.js';
+import { Sprite } from '../../../../src/objects/Sprite.js';
+import { Vector3 } from '../../../../src/math/Vector3.js';
+import { eps } from '../../utils/math-constants.js';
 
 export default QUnit.module( 'Loaders', () => {
 
@@ -28,93 +30,30 @@ export default QUnit.module( 'Loaders', () => {
 		} );
 
 		// PUBLIC
-		QUnit.todo( 'load', ( assert ) => {
+		QUnit.test( 'parse (pivot)', ( assert ) => {
 
-			assert.ok( false, 'everything\'s gonna be alright' );
+			const object = new Object3D();
+			object.position.set( 1, 2, 3 );
+			object.rotation.set( 0.3, - 0.7, 1.2 );
+			object.scale.set( 2, 3, 4 );
+			object.pivot = new Vector3( 1, - 2, 3 );
+			object.updateMatrix();
 
-		} );
+			const loaded = new ObjectLoader().parse( object.toJSON() );
 
-		QUnit.todo( 'loadAsync', ( assert ) => {
-
-			// async loadAsync( url, onProgress )
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'parse', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
+			assert.ok( loaded.pivot.equals( object.pivot ), 'Pivot is restored' );
+			assert.ok( loaded.position.distanceTo( object.position ) < eps, 'Position is restored' );
 
 		} );
 
-		QUnit.todo( 'parseAsync', ( assert ) => {
+		QUnit.test( 'parse (Sprite center)', ( assert ) => {
 
-			// async parseAsync( json )
-			assert.ok( false, 'everything\'s gonna be alright' );
+			const sprite = new Sprite();
+			sprite.center.set( 0.5, 0 );
 
-		} );
+			const loaded = new ObjectLoader().parse( sprite.toJSON() );
 
-		QUnit.todo( 'parseShapes', ( assert ) => {
-
-			// parseShapes( json )
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'parseSkeletons', ( assert ) => {
-
-			// parseSkeletons( json, object )
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'parseGeometries', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'parseMaterials', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'parseAnimations', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'parseImages', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'parseImagesAsync', ( assert ) => {
-
-			// async parseImagesAsync( json )
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'parseTextures', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'parseObject', ( assert ) => {
-
-			assert.ok( false, 'everything\'s gonna be alright' );
-
-		} );
-
-		QUnit.todo( 'bindSkeletons', ( assert ) => {
-
-			// bindSkeletons( object, skeletons )
-			assert.ok( false, 'everything\'s gonna be alright' );
+			assert.ok( loaded.center.equals( sprite.center ), 'Center is restored' );
 
 		} );
 

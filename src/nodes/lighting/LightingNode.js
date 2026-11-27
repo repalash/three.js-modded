@@ -1,23 +1,42 @@
-import Node, { registerNode } from '../core/Node.js';
+import Node from '../core/Node.js';
 
+/**
+ * Base class for lighting nodes.
+ *
+ * @augments Node
+ */
 class LightingNode extends Node {
 
+	static get type() {
+
+		return 'LightingNode';
+
+	}
+
+	/**
+	 * Constructs a new lighting node.
+	 */
 	constructor() {
 
 		super( 'vec3' );
 
+		/**
+		 * This flag can be used for type testing.
+		 *
+		 * @type {boolean}
+		 * @readonly
+		 * @default true
+		 */
 		this.isLightingNode = true;
 
 	}
 
-	generate( /*builder*/ ) {
+	isCacheable( /*builder*/ ) {
 
-		console.warn( 'Abstract function.' );
+		return false;
 
 	}
 
 }
 
 export default LightingNode;
-
-LightingNode.type = /*@__PURE__*/ registerNode( 'Lighting', LightingNode );
