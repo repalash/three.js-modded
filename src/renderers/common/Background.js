@@ -1,25 +1,59 @@
 import DataMap from './DataMap.js';
 import Color4 from './Color4.js';
-import { vec4, context, normalWorld, backgroundBlurriness, backgroundIntensity, modelViewProjection } from '../../nodes/TSL.js';
+import { vec4, context, normalWorldGeometry, backgroundBlurriness, backgroundIntensity, backgroundRotation, modelViewProjection } from '../../nodes/TSL.js';
 import NodeMaterial from '../../materials/nodes/NodeMaterial.js';
 
 import { Mesh } from '../../objects/Mesh.js';
 import { SphereGeometry } from '../../geometries/SphereGeometry.js';
-import { BackSide, LinearSRGBColorSpace } from '../../constants.js';
+import { BackSide } from '../../constants.js';
+import { error } from '../../utils.js';
 
 const _clearColor = /*@__PURE__*/ new Color4();
 
+/**
+ * This renderer module manages the background.
+ *
+ * @private
+ * @augments DataMap
+ */
 class Background extends DataMap {
 
+	/**
+	 * Constructs a new background management component.
+	 *
+	 * @param {Renderer} renderer - The renderer.
+	 * @param {Nodes} nodes - Renderer component for managing nodes related logic.
+	 */
 	constructor( renderer, nodes ) {
 
 		super();
 
+		/**
+		 * The renderer.
+		 *
+		 * @type {Renderer}
+		 */
 		this.renderer = renderer;
+
+		/**
+		 * Renderer component for managing nodes related logic.
+		 *
+		 * @type {Nodes}
+		 */
 		this.nodes = nodes;
 
 	}
 
+	/**
+	 * Updates the background for the given scene. Depending on how `Scene.background`
+	 * or `Scene.backgroundNode` are configured, this method might configure a simple clear
+	 * or add a mesh to the render list for rendering the background as a textured plane
+	 * or skybox.
+	 *
+	 * @param {Scene} scene - The scene.
+	 * @param {RenderList} renderList - The current render list.
+	 * @param {RenderContext} renderContext - The current render context.
+	 */
 	update( scene, renderList, renderContext ) {
 
 		const renderer = this.renderer;
@@ -31,14 +65,14 @@ class Background extends DataMap {
 
 			// no background settings, use clear color configuration from the renderer
 
-			renderer._clearColor.getRGB( _clearColor, LinearSRGBColorSpace );
+			renderer._clearColor.getRGB( _clearColor );
 			_clearColor.a = renderer._clearColor.a;
 
 		} else if ( background.isColor === true ) {
 
 			// background is an opaque color
 
-			background.getRGB( _clearColor, LinearSRGBColorSpace );
+			background.getRGB( _clearColor );
 			_clearColor.a = 1;
 
 			forceClear = true;
@@ -56,11 +90,11 @@ class Background extends DataMap {
 
 				const backgroundMeshNode = context( vec4( backgroundNode ).mul( backgroundIntensity ), {
 					// @TODO: Add Texture2D support using node context
-					getUV: () => normalWorld,
+					getUV: () => backgroundRotation.mul( normalWorldGeometry ),
 					getTextureLevel: () => backgroundBlurriness
 				} );
 
-				let viewProj = modelViewProjection();
+				let viewProj = modelViewProjection;
 				viewProj = viewProj.setZ( viewProj.w );
 
 				const nodeMaterial = new NodeMaterial();
@@ -85,6 +119,17 @@ class Background extends DataMap {
 
 				};
 
+				function onBackgroundDispose() {
+
+					background.removeEventListener( 'dispose', onBackgroundDispose );
+
+					backgroundMesh.material.dispose();
+					backgroundMesh.geometry.dispose();
+
+				}
+
+				background.addEventListener( 'dispose', onBackgroundDispose );
+
 			}
 
 			const backgroundCacheKey = backgroundNode.getCacheKey();
@@ -100,11 +145,25 @@ class Background extends DataMap {
 
 			}
 
-			renderList.unshift( backgroundMesh, backgroundMesh.geometry, backgroundMesh.material, 0, 0, null );
+			renderList.unshift( backgroundMesh, backgroundMesh.geometry, backgroundMesh.material, 0, 0, null, null );
 
 		} else {
 
-			console.error( 'THREE.Renderer: Unsupported background configuration.', background );
+			error( 'Renderer: Unsupported background configuration.', background );
+
+		}
+
+		//
+
+		const environmentBlendMode = renderer.xr.getEnvironmentBlendMode();
+
+		if ( environmentBlendMode === 'additive' ) {
+
+			_clearColor.set( 0, 0, 0, 1 );
+
+		} else if ( environmentBlendMode === 'alpha-blend' ) {
+
+			_clearColor.set( 0, 0, 0, 0 );
 
 		}
 
@@ -112,14 +171,24 @@ class Background extends DataMap {
 
 		if ( renderer.autoClear === true || forceClear === true ) {
 
-			_clearColor.multiplyScalar( _clearColor.a );
-
 			const clearColorValue = renderContext.clearColorValue;
 
 			clearColorValue.r = _clearColor.r;
 			clearColorValue.g = _clearColor.g;
 			clearColorValue.b = _clearColor.b;
 			clearColorValue.a = _clearColor.a;
+
+			// premultiply alpha
+
+			if ( renderer.backend.isWebGLBackend === true || renderer.alpha === true ) {
+
+				clearColorValue.r *= clearColorValue.a;
+				clearColorValue.g *= clearColorValue.a;
+				clearColorValue.b *= clearColorValue.a;
+
+			}
+
+			//
 
 			renderContext.depthClearValue = renderer._clearDepth;
 			renderContext.stencilClearValue = renderer._clearStencil;

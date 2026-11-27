@@ -34,13 +34,44 @@ export default QUnit.module( 'Textures', () => {
 
 		} );
 
-		QUnit.test( 'Instancing with ImageData -webonly', ( assert ) => {
+		QUnit.module( 'Instancing with ImageData', ( hooks ) => {
 
-			const image = new ImageData( 1, 1 );
-			const texture = new Texture( image );
-			assert.strictEqual( texture.image, image, 'The ImageData is retained.' );
-			assert.strictEqual( texture.version, 1, 'ImageData textures are marked for upload.' );
-			assert.strictEqual( texture.source.version, 1, 'The image source is marked for upload.' );
+			// ImageData is a browser global; in Node a minimal stand-in is used (as AudioContext.tests.js mocks window.AudioContext)
+			if ( typeof ImageData === 'undefined' ) {
+
+				hooks.before( function () {
+
+					globalThis.ImageData = class ImageData {
+
+						constructor( width, height ) {
+
+							this.width = width;
+							this.height = height;
+							this.data = new Uint8ClampedArray( width * height * 4 );
+
+						}
+
+					};
+
+				} );
+
+				hooks.after( function () {
+
+					delete globalThis.ImageData;
+
+				} );
+
+			}
+
+			QUnit.test( 'marks the texture for upload', ( assert ) => {
+
+				const image = new ImageData( 1, 1 );
+				const texture = new Texture( image );
+				assert.strictEqual( texture.image, image, 'The ImageData is retained.' );
+				assert.strictEqual( texture.version, 1, 'ImageData textures are marked for upload.' );
+				assert.strictEqual( texture.source.version, 1, 'The image source is marked for upload.' );
+
+			} );
 
 		} );
 
